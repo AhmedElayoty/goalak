@@ -1,0 +1,1784 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Goalak · الجول جولك</title>
+<meta name="description" content="Goalak · الجول جولك · live scores, fixtures, tables and stats for the top football leagues">
+<meta name="theme-color" content="#0a1230">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Goalak">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Alexandria:wght@600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+ /* WCup family palette (same navy/rust/gold as the World Cup app) */
+ --bg:#0a1230; --card:#121d44; --card2:#0e1736; --line:#22305f; --line2:#2e4076;
+ --txt:#eef2ff; --dim:#8493c8; --dim2:#8493c8;
+ --acc:#ff7a45; --accdark:#7e2f12; --gold:#ffc02e; --red:#ff5d5d;
+ --rz-g:#2fd873; --rz-a:#ffc02e; --rz-r:#ff5d5d;
+}
+/* light theme (same family as the WC app light mode) */
+html[data-theme="light"]{
+ --bg:#eef1f8; --card:#ffffff; --card2:#e6ebf6; --line:#c3cde2; --line2:#9fb0d4;
+ --txt:#0d1533; --dim:#51607e; --dim2:#6b7a9c;
+ --acc:#c2451b; --accdark:#c2451b; --gold:#946400; --red:#c62828;
+ --rz-g:#0f9d58; --rz-a:#a67c00; --rz-r:#c62828;
+}
+html[data-theme="light"] .stale{background:#fff3d6;border-color:#d9b64a;color:#7a5d00}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg)}
+body{background:var(--bg);color:var(--txt);font-family:'Cairo',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:15px;line-height:1.5;min-height:100vh}
+button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer}
+img{max-width:100%}
+.hide{display:none!important}
+#app{max-width:680px;margin:0 auto;padding:0 10px 40px;position:relative}
+
+/* ---------- header ---------- */
+.gkhead{display:flex;align-items:center;gap:10px;padding:14px 2px 10px}
+/* brand tile stays Midnight Aubergine in BOTH themes (it is the app icon) */
+.gklogo{width:44px;height:44px;flex:0 0 44px;border-radius:12px;background:linear-gradient(135deg,#2c1a40,#211235);display:flex;align-items:center;justify-content:center;border:1px solid var(--line2)}
+.gklogo img{width:34px;height:34px;display:block}
+.gktit{display:flex;flex-direction:column;min-width:0}
+.gkname{font-family:'Alexandria','Cairo',system-ui,sans-serif;font-weight:800;font-size:21px;letter-spacing:.5px;line-height:1.15;color:var(--txt)}
+.gkname b{color:var(--acc)}
+.gkmotto{font-size:12.5px;color:var(--gold);font-weight:700;line-height:1.3}
+.gkspacer{flex:1}
+.seg{display:flex;border:1px solid var(--line2);border-radius:10px;overflow:hidden}
+.seg button{padding:5px 12px;font-size:12px;font-weight:700;color:var(--dim)}
+.seg button.on{background:var(--accdark);color:#fff}
+.themebtn{padding:7px 9px;border-radius:10px;background:var(--card);border:1px solid var(--line);color:var(--dim);display:flex;align-items:center}
+.themebtn svg{width:17px;height:17px}
+html[data-theme="dark"] .ico-moon{display:none}
+html[data-theme="light"] .ico-sun{display:none}
+.setchip{display:flex;align-items:center;gap:6px;padding:7px 11px;border-radius:10px;background:var(--card);border:1px solid var(--line);color:var(--dim);font-size:11.5px;font-weight:700}
+
+/* ---------- settings sheet (WC-app style dropdown dialog) ---------- */
+.sheet{position:absolute;top:60px;inset-inline-end:10px;z-index:70;width:min(340px,calc(100% - 20px));background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:0 14px 6px;box-shadow:0 14px 40px rgba(0,0,0,.45)}
+.shtop{display:flex;align-items:center;justify-content:space-between;padding:10px 0 8px;border-bottom:1px solid var(--line)}
+.shttl{font-size:13px;font-weight:900;letter-spacing:.4px}
+.shx{width:26px;height:26px;border-radius:50%;background:var(--card2);color:var(--dim);font-size:14px;line-height:1}
+.shrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.shrow:last-of-type{border-bottom:none}
+.shlab{font-size:13px;font-weight:700;color:var(--dim)}
+.sheet select{background:var(--card2);color:var(--txt);border:1px solid var(--line2);border-radius:9px;padding:6px 10px;font-family:inherit;font-size:12.5px;font-weight:700;max-width:58%}
+.shver{text-align:center;font-size:10px;color:var(--dim2);padding:8px 0 6px;letter-spacing:.5px;font-weight:700}
+.shinstall{display:flex;width:100%;gap:8px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px;font-weight:800;color:var(--acc);text-align:start}
+.pushlgs{flex-wrap:wrap;justify-content:flex-start;gap:6px}
+.pushlgs .shlab{flex-basis:100%}
+.pushlgs .chip{padding:4px 11px;font-size:12px}
+
+/* ---------- info bar (status dot + tz + clock, like the WC connbar) ---------- */
+.infobar{display:flex;align-items:center;gap:8px;padding:2px 6px 8px;font-size:10.5px;color:var(--dim2);font-weight:700;letter-spacing:.3px}
+.condot{width:7px;height:7px;border-radius:50%;background:var(--rz-g);flex:0 0 auto}
+.condot.bad{background:var(--gold)}
+.ibr{margin-inline-start:auto;display:flex;align-items:center;gap:8px}
+.cz{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:1px 8px;font-size:10px;font-weight:800}
+.cz--off{color:var(--dim2)}
+.clock{font-weight:900;color:var(--txt);font-size:12px;font-variant-numeric:tabular-nums}
+
+/* ---------- league rail: 9 chips in two tidy rows, no scrolling ---------- */
+.rail{position:sticky;top:0;z-index:40;background:linear-gradient(var(--bg) 85%,transparent);padding:6px 0 8px;display:flex;flex-wrap:wrap;gap:5px}
+.railc{flex:1 1 calc(20% - 5px);min-width:calc(20% - 5px);display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 6px;border-radius:12px;background:var(--card);border:1px solid var(--line);color:var(--dim)}
+.railc.on{background:var(--accdark);border-color:var(--acc);color:#fff}
+.railc .rico{font-size:16px;line-height:1.15}
+.rflag{width:20px;height:14px;border-radius:2.5px;object-fit:cover;display:inline-block;vertical-align:middle;border:1px solid rgba(255,255,255,.12)}
+.railc .rflag{margin:1px 0}
+.lgphead .rflag{width:26px;height:18px}
+.railc .rlbl{font-size:8.5px;font-weight:700;letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+
+/* ---------- date strip ---------- */
+.dwrap{margin:2px 0 8px}
+.dstrip{display:flex;gap:6px;overflow-x:auto;padding:4px 2px;scrollbar-width:none}
+.dstrip::-webkit-scrollbar{display:none}
+.dc{flex:0 0 auto;width:52px;padding:6px 0 5px;border-radius:12px;background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:0}
+.dc .wd{font-size:9.5px;letter-spacing:1px;color:var(--dim2);font-weight:700}
+.dc .dn{font-size:17px;font-weight:800;line-height:1.2}
+.dc .mo{font-size:10px;color:var(--dim)}
+.dc.sel{background:var(--accdark);border-color:var(--acc)}
+.dc.sel .wd,.dc.sel .mo{color:#ffd9c7}
+.dc.tdy .dn{color:var(--gold)}
+.dc.sel.tdy .dn{color:#fff}
+
+/* ---------- counter + chips ---------- */
+.cnt{font-size:12px;color:var(--dim);padding:0 4px 8px;font-weight:600}
+.chips{display:flex;gap:7px;overflow-x:auto;padding:0 2px 10px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;padding:5px 12px;border-radius:16px;border:1px solid var(--line);background:var(--card);font-size:12px;font-weight:700;color:var(--dim);white-space:nowrap}
+.chip.on{background:var(--accdark);border-color:var(--acc);color:#fff}
+.chip.lv{color:var(--red)}
+.chip.lv.on{background:#5b1717;border-color:var(--red);color:#fff}
+.chip .cn{opacity:.75;font-size:11px}
+
+/* ---------- stale / error ---------- */
+.stale{display:flex;align-items:center;gap:8px;background:#2b2413;border:1px solid #57491f;color:var(--gold);border-radius:10px;padding:7px 12px;font-size:12px;font-weight:600;margin:0 0 10px}
+.errbox{text-align:center;padding:40px 10px;color:var(--dim)}
+.errbox .big{font-size:34px;margin-bottom:8px}
+.retrybtn{margin-top:12px;padding:8px 22px;border-radius:10px;background:var(--accdark);color:#fff;font-weight:700;font-size:13px}
+
+/* ---------- league sections (home) ---------- */
+.lgsec{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:10px;overflow:hidden}
+.lghead{display:flex;align-items:center;border-bottom:1px solid var(--line)}
+.lgopen{flex:1;display:flex;align-items:center;gap:9px;padding:10px 13px;min-width:0;text-align:start}
+.lgico{font-size:16px;flex:0 0 auto}
+.lgnm{font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lgn{font-size:11px;color:var(--dim);background:var(--card2);border-radius:10px;padding:1px 8px;font-weight:700;flex:0 0 auto}
+.lgarrow{color:var(--dim2);font-size:17px;font-weight:800;margin-inline-start:auto;flex:0 0 auto}
+[dir=rtl] .lgarrow{transform:scaleX(-1)}
+.fold{padding:10px 14px;color:var(--dim2);font-size:16px;font-weight:800;border-inline-start:1px solid var(--line)}
+
+/* ---------- match rows ---------- */
+.mrow{display:grid;grid-template-columns:1fr 92px 1fr;align-items:center;width:100%;padding:9px 10px;border-bottom:1px solid var(--line);gap:4px;text-align:center}
+.mrow:last-child{border-bottom:none}
+.mrow:active{background:var(--card2)}
+.tm{display:flex;align-items:center;gap:7px;min-width:0}
+.tmh{justify-content:flex-end;text-align:end}
+.tma{justify-content:flex-start;text-align:start}
+.tm i{font-style:normal;font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crest{width:22px;height:22px;object-fit:contain;flex:0 0 auto}
+.crestfb{width:22px;height:22px;border-radius:50%;background:var(--card2);border:1px solid var(--line2);color:var(--dim);font-size:8.5px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto;letter-spacing:.3px}
+.mid{display:flex;flex-direction:column;align-items:center;gap:1px}
+.mtime{font-size:13.5px;font-weight:800;color:var(--txt)}
+.msc{font-size:16px;font-weight:900;letter-spacing:1px}
+.msc.live{color:var(--red)}
+.msub{font-size:9.5px;color:var(--dim2);font-weight:700;letter-spacing:.4px}
+.msub .lvm{color:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+.lvdot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--red);animation:pulse 1.4s infinite;vertical-align:middle;margin-inline-end:3px}
+
+/* ---------- league page ---------- */
+.lgphead{display:flex;align-items:center;gap:10px;padding:4px 2px 10px}
+.lgphead .backbtn{padding:6px 12px;border-radius:10px;background:var(--card);border:1px solid var(--line);font-size:15px;font-weight:800;color:var(--dim)}
+.backbtn span{display:inline-block}
+[dir=ltr] .backbtn span{transform:scaleX(-1)}
+.lgptit{font-size:17px;font-weight:900}
+.lgpico{font-size:19px}
+.ltabs{display:flex;gap:7px;padding:0 2px 12px}
+.ltab{flex:1;padding:8px 0;border-radius:11px;background:var(--card);border:1px solid var(--line);font-size:13px;font-weight:800;color:var(--dim)}
+.ltab.on{background:var(--accdark);border-color:var(--acc);color:#fff}
+.lseg{display:flex;gap:7px;padding:0 2px 12px}
+.lsegb{padding:6px 16px;border-radius:16px;background:var(--card);border:1px solid var(--line);font-size:12px;font-weight:700;color:var(--dim)}
+.lsegb.on{background:var(--card2);border-color:var(--acc);color:#fff}
+.dhead{font-size:12px;font-weight:800;color:var(--dim);padding:12px 6px 6px;letter-spacing:.3px}
+
+/* ---------- standings table ---------- */
+.tblwrap{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.trow{display:grid;grid-template-columns:30px 1fr 30px 26px 26px 26px 40px 40px;align-items:center;padding:7px 8px;border-bottom:1px solid var(--line);font-size:12.5px}
+.tgf,.tga{display:none}
+@media(min-width:430px){
+ .trow{grid-template-columns:30px 1fr 30px 26px 26px 26px 30px 30px 40px 40px}
+ .tgf,.tga{display:block;text-align:center;color:var(--dim)}
+}
+.trow:last-child{border-bottom:none}
+.trow.thead{color:var(--dim2);font-size:10.5px;font-weight:800;letter-spacing:.4px;background:var(--card2)}
+.tpos{text-align:center;font-weight:800;position:relative}
+.tpos::before{content:"";position:absolute;inset-block:4px;inset-inline-start:-8px;width:3px;border-radius:2px}
+.zg .tpos::before{background:var(--rz-g)}
+.za .tpos::before{background:var(--rz-a)}
+.zr .tpos::before{background:var(--rz-r)}
+.ttm{display:flex;align-items:center;gap:7px;min-width:0;font-weight:700}
+.ttm i{font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px}
+.tnum{text-align:center;color:var(--dim)}
+.tpts{text-align:center;font-weight:900;color:#fff}
+.tgd{text-align:center;color:var(--dim)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;padding:10px 6px;font-size:11px;color:var(--dim);font-weight:600}
+.legend .zdot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-inline-end:5px;vertical-align:middle}
+.seasonnote{font-size:11.5px;color:var(--gold);padding:8px 6px 0;font-weight:600}
+
+/* ---------- stats ---------- */
+.htiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.htile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px 26px;position:relative;overflow:hidden}
+.htile::before{content:"";position:absolute;inset-inline:0;top:0;height:3px;background:var(--hacc,var(--gold))}
+.htile .hcap{font-size:10px;color:var(--dim2);font-weight:800;letter-spacing:.5px}
+.htile .hname{font-size:13.5px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.htile .hteam{font-size:10.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.htile .hnum{position:absolute;inset-inline-end:12px;bottom:4px;font-size:26px;font-weight:900;color:var(--hacc,var(--gold))}
+.statcard{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:12px;overflow:hidden}
+.stath{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);font-weight:900;font-size:14px}
+.stath .ic{font-size:16px}
+.srow{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--line)}
+.srow:last-child{border-bottom:none}
+.srank{width:22px;text-align:center;font-weight:800;color:var(--dim);font-size:12px;flex:0 0 auto}
+.srank.top{color:var(--gold)}
+.sname{flex:1;min-width:0}
+.sname b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sname span{display:block;font-size:10.5px;color:var(--dim2)}
+.sval{font-size:18px;font-weight:900;color:var(--gold);flex:0 0 auto}
+.morebtn{width:100%;padding:9px 0;font-size:12px;font-weight:700;color:var(--dim);background:var(--card2)}
+
+/* ---------- modal ---------- */
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;display:flex;align-items:flex-end;justify-content:center}
+@media(min-width:520px){#modal{align-items:center}}
+.mbox{background:var(--card);border:1px solid var(--line2);border-radius:18px 18px 0 0;width:100%;max-width:520px;max-height:82vh;overflow-y:auto;padding:18px 16px 26px}
+@media(min-width:520px){.mbox{border-radius:18px}}
+.mx{position:sticky;top:0;float:inline-end;background:var(--card2);border-radius:50%;width:30px;height:30px;font-size:15px;color:var(--dim)}
+.mvs{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:6px 0 4px}
+.mvt{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+.mvt img,.mvt .crestfb{width:44px;height:44px}
+.mvt i{font-style:normal;font-size:12.5px;font-weight:800;text-align:center}
+.mvsc{font-size:30px;font-weight:900;letter-spacing:2px}
+.mvsc.live{color:var(--red)}
+.mmeta{text-align:center;font-size:11.5px;color:var(--dim);padding:2px 0 12px;font-weight:600}
+.evline{display:flex;align-items:center;gap:8px;padding:5px 4px;font-size:12.5px;border-bottom:1px solid var(--line)}
+.evline:last-child{border-bottom:none}
+.evmin{width:44px;color:var(--dim);font-weight:800;font-size:11px;flex:0 0 auto;text-align:center}
+.evico{flex:0 0 auto}
+.evtxt{font-weight:700}
+.evside{margin-inline-start:auto;font-size:10px;color:var(--dim2);font-weight:700}
+.mnoev{text-align:center;color:var(--dim2);font-size:12px;padding:14px 0}
+
+/* ---------- misc ---------- */
+.empty{text-align:center;color:var(--dim);padding:44px 10px}
+.empty .big{font-size:36px;margin-bottom:10px}
+footer{text-align:center;font-size:10.5px;color:var(--dim2);padding:26px 0 10px;letter-spacing:.4px;font-weight:600}
+footer b{color:var(--dim)}
+.skel{padding:30px 0;text-align:center;color:var(--dim2);font-size:13px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--line2);border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-inline-end:8px}
+
+/* ========== v1.2 readability scale-up (owner: app felt "zoomed out") ========== */
+body{font-size:16px}
+.gkhead{padding-top:calc(14px + env(safe-area-inset-top))}
+.gkname{font-size:23px}
+.gkmotto{font-size:13.5px}
+.railc .rlbl{font-size:9.5px}
+.dc{width:58px;padding:7px 0 6px}
+.dc .dn{font-size:19px}
+.dc .wd{font-size:10.5px}
+.dc .mo{font-size:11px}
+.cnt{font-size:13px}
+.chip{font-size:13px;padding:6px 14px}
+.lgnm{font-size:15px}
+.lgn{font-size:12px}
+.mrow{grid-template-columns:1fr 100px 1fr;padding:12px 10px}
+.tm i{font-size:14px}
+.crest,.crestfb{width:26px;height:26px}
+.crestfb{font-size:9.5px}
+.mtime{font-size:15px}
+.msc{font-size:18.5px}
+.msub{font-size:11px}
+.ltab{font-size:14px;padding:10px 0}
+.lsegb{font-size:13px}
+.dhead{font-size:13px}
+.trow{font-size:13.5px;padding:9px 8px}
+.trow.thead{font-size:11.5px}
+.ttm i{font-size:13.5px}
+.trow .crest,.trow .crestfb{width:22px;height:22px}
+.legend{font-size:12px}
+.srow{padding:10px 14px}
+.sname b{font-size:14.5px}
+.sname span{font-size:11.5px}
+.sval{font-size:20px}
+.srank{font-size:13px}
+.htile .hcap{font-size:11px}
+.htile .hname{font-size:15px}
+.htile .hteam{font-size:11.5px}
+.htile .hnum{font-size:28px}
+.mvt i{font-size:14px}
+.mvsc{font-size:32px}
+.mmeta{font-size:12.5px}
+.evline{font-size:13.5px}
+.stale{font-size:13px}
+.morebtn{font-size:13px}
+.infobar{font-size:11.5px}
+.cz{font-size:11px}
+.clock{font-size:13px}
+.shlab{font-size:14px}
+.sheet select{font-size:13.5px}
+.seg button{font-size:13px}
+.lgptit{font-size:19px}
+.backbtn{font-size:16px}
+footer{font-size:11px;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+/* light theme: darker secondary text so small labels stay crisp on white */
+html[data-theme="light"]{--dim:#44536f;--dim2:#5a6a8e}
+
+/* ---------- bottom nav (mobile-app tabs) ---------- */
+#app{padding-bottom:96px}
+.bnav{position:fixed;bottom:0;inset-inline:0;max-width:680px;margin-inline:auto;z-index:60;display:flex;background:var(--card);border-top:1px solid var(--line2);padding-bottom:env(safe-area-inset-bottom)}
+.bnav button{flex:1;padding:9px 0 7px;display:flex;flex-direction:column;align-items:center;gap:1px;font-size:11.5px;font-weight:800;color:var(--dim2)}
+.bnav button.on{color:var(--acc)}
+.bnav .bnico{font-size:19px;line-height:1.1}
+
+/* ---------- predictions ---------- */
+.authcard{background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:16px;text-align:center;margin-bottom:12px}
+.authcard .autxt{font-size:14px;font-weight:700;color:var(--dim);margin-bottom:10px}
+.userchip{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 14px;margin-bottom:12px;font-size:14px}
+.userchip .signout{margin-inline-start:auto;font-size:11.5px;color:var(--red);font-weight:700}
+.pin{display:flex;align-items:center;gap:6px;justify-content:center}
+.pinp{width:44px;height:38px;text-align:center;font-size:17px;font-weight:900;background:var(--card2);border:1px solid var(--line2);border-radius:9px;color:var(--txt);font-family:inherit}
+.pdash{color:var(--dim2);font-weight:900}
+.pgo{margin-top:5px;padding:5px 18px;border-radius:9px;background:var(--accdark);border:1px solid var(--acc);color:#fff;font-size:12.5px;font-weight:800}
+.mypick{font-size:18.5px;font-weight:900;color:var(--gold)}
+.mypick.dimd{color:var(--dim2)}
+.meRow{background:var(--card2)}
+.prednote{font-size:12px;color:var(--dim2);font-weight:600;padding:2px 4px 10px}
+#authModal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:120;display:flex;align-items:center;justify-content:center;padding:16px}
+.autitle{font-size:17px;font-weight:900;padding-top:4px}
+.authtabs{display:flex;gap:7px;margin:10px 0}
+.authtabs button{flex:1;padding:9px 0;border-radius:10px;background:var(--card2);border:1px solid var(--line);font-weight:800;font-size:13px;color:var(--dim)}
+.authtabs button.on{background:var(--accdark);border-color:var(--acc);color:#fff}
+.auinp{width:100%;padding:11px 12px;margin:5px 0;background:var(--card2);border:1px solid var(--line2);border-radius:10px;color:var(--txt);font-family:inherit;font-size:15px;font-weight:700}
+.auerr{color:var(--red);font-size:12.5px;font-weight:700;padding:6px 0}
+.aubtn{width:100%;margin-top:8px}
+.aunote{font-size:11.5px;color:var(--dim2);padding-top:8px;text-align:center}
+.toast{position:fixed;bottom:84px;inset-inline:0;margin-inline:auto;width:fit-content;max-width:86%;background:rgba(8,10,20,.92);color:#fff;padding:10px 18px;border-radius:12px;font-size:13.5px;font-weight:700;z-index:130;text-align:center}
+</style>
+</head>
+<body>
+<div id="app">
+ <header class="gkhead">
+  <div class="gklogo"><img id="logoImg" src="logo-head.svg" alt="Goalak"></div>
+  <div class="gktit">
+   <span class="gkname">GOAL<b>AK</b></span>
+   <span class="gkmotto" id="motto">الجول جولك</span>
+  </div>
+  <span class="gkspacer"></span>
+  <button class="themebtn" type="button" onclick="toggleTheme()" aria-label="Light / dark theme" title="Light / dark"><svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+  <button class="setchip" id="setBtn" type="button" aria-haspopup="true" aria-controls="setSheet" onclick="toggleSettings()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg><span id="setLbl">الإعدادات</span></button>
+ </header>
+
+ <div class="sheet hide" id="setSheet" role="dialog" aria-label="Settings">
+  <div class="shtop"><span class="shttl" id="shTtl">الإعدادات</span><button type="button" class="shx" onclick="closeSettings()" aria-label="Close">&#215;</button></div>
+  <button type="button" class="shinstall hide" id="installRow" onclick="installApp()">⬇️ <span id="instTxt">ثبّت التطبيق على جهازك</span></button>
+  <div class="shrow"><span class="shlab" id="shAlerts">🔔 التنبيهات</span><div class="seg" role="radiogroup" aria-labelledby="shAlerts"><button type="button" id="pushOffB" class="on" onclick="setPush(false)">OFF</button><button type="button" id="pushOnB" onclick="setPush(true)">ON</button></div></div>
+  <div class="shrow pushlgs hide" id="pushLgRow"></div>
+  <div class="shrow"><label class="shlab" for="tzSel" id="shTz">المنطقة الزمنية</label><select id="tzSel" onchange="setTZ(this.value)" aria-label="Time zone"></select></div>
+  <div class="shrow"><span class="shlab" id="shClock">نظام الوقت</span><div class="seg" role="radiogroup" aria-labelledby="shClock"><button type="button" id="h12b" class="on" onclick="setHour12(true)">AM·PM</button><button type="button" id="h24b" onclick="setHour12(false)">24H</button></div></div>
+  <div class="shrow"><span class="shlab" id="shLang">اللغة</span><div class="seg" role="radiogroup" aria-labelledby="shLang"><button type="button" id="lgEn" onclick="setLang('en')">EN</button><button type="button" id="lgAr" class="on" onclick="setLang('ar')">عربي</button></div></div>
+  <div class="shrow"><span class="shlab" id="shTheme">🌓 المظهر</span><div class="seg" role="radiogroup" aria-labelledby="shTheme"><button type="button" id="thD" class="on" onclick="setTheme('dark')">داكن</button><button type="button" id="thL" onclick="setTheme('light')">فاتح</button></div></div>
+  <div class="shver">GOALAK · v1.2 · الجول جولك</div>
+ </div>
+
+ <nav class="rail" id="rail" aria-label="Leagues"></nav>
+
+ <div class="infobar"><span class="condot" id="conDot"></span><span id="conTxt">بيانات مباشرة من ESPN</span><span class="ibr"><span class="cz" id="tzCode">الإمارات</span><span class="cz cz--off" id="tzOff">UTC+4</span><time class="clock" id="clock" dir="ltr">--:--</time></span></div>
+
+ <main>
+  <section id="home">
+   <div class="dwrap"><div class="dstrip" id="dstrip"></div></div>
+   <div class="cnt" id="cnt"></div>
+   <div class="chips" id="chips"></div>
+   <div class="stale hide" id="staleBar"></div>
+   <div id="mlist"><div class="skel"><span class="spinner"></span><span id="loadTxt">جارٍ التحميل…</span></div></div>
+  </section>
+
+  <section id="predPane" class="hide">
+   <div id="predTop"></div>
+   <div class="ltabs" id="ptabs"></div>
+   <div class="prednote" id="predNote"></div>
+   <div id="predBody"><div class="skel"><span class="spinner"></span></div></div>
+  </section>
+
+  <section id="lg" class="hide">
+   <div class="lgphead">
+    <button type="button" class="backbtn" onclick="gotoHome()"><span>&#8594;</span></button>
+    <span class="lgpico" id="lgpIco"></span>
+    <span class="lgptit" id="lgpTit"></span>
+   </div>
+   <div class="ltabs" id="ltabs"></div>
+   <div class="stale hide" id="lgStale"></div>
+   <div id="lgBody"></div>
+  </section>
+ </main>
+
+ <footer><b>GOALAK</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN</span> · <span id="appVer">v1.2</span></footer>
+</div>
+
+<div id="modal" class="hide">
+ <div class="mbox" id="mbox"></div>
+</div>
+
+<div id="authModal" class="hide">
+ <div class="mbox">
+  <button type="button" class="mx" onclick="closeAuth()">✕</button>
+  <h3 class="autitle" id="auTitle">حسابك في جولك</h3>
+  <div class="authtabs">
+   <button type="button" id="atC" class="on" onclick="authMode('C')">إنشاء حساب</button>
+   <button type="button" id="atL" onclick="authMode('L')">تسجيل الدخول</button>
+  </div>
+  <input class="auinp" id="auUser" autocomplete="username" maxlength="18">
+  <input class="auinp" id="auPass" type="password" autocomplete="current-password" maxlength="40">
+  <div class="auerr hide" id="auErrBox"></div>
+  <button type="button" class="retrybtn aubtn" id="auGo" onclick="doAuth()">تأكيد</button>
+  <div class="aunote" id="auNote"></div>
+ </div>
+</div>
+
+<nav class="bnav" id="bnav">
+ <button type="button" id="bnScores" class="on" onclick="showMain('scores')"><span class="bnico">⚽</span><span id="bnScoresL">المباريات</span></button>
+ <button type="button" id="bnPred" onclick="showMain('pred')"><span class="bnico">🎯</span><span id="bnPredL">التوقعات</span></button>
+</nav>
+
+<script>
+"use strict";
+/* ============ GOALAK v1.0 · الجول جولك ============ */
+const APP_VERSION = "1.2";
+const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
+const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
+
+/* League registry. zones = [from,to] ranks: g=green a=amber r=red. Counts are
+   best-effort 2026-27 qualification spots; edit here if a league changes. */
+const LEAGUES = [
+ {id:"ucl", slug:"uefa.champions", qual:"uefa.champions_qual", uefa:true, en:"Champions League", ar:"دوري أبطال أوروبا", shortEn:"UCL", shortAr:"الأبطال", ico:"🏆",
+  zones:{g:[1,8],a:[9,24],r:[25,36]}, zlabAr:["التأهل المباشر لدور الـ16","الملحق","خارج المنافسة"], zlabEn:["Direct to R16","Playoff","Eliminated"]},
+ {id:"uel", slug:"uefa.europa", qual:"uefa.europa_qual", uefa:true, en:"Europa League", ar:"الدوري الأوروبي", shortEn:"UEL", shortAr:"يوروبا", ico:"🥈",
+  zones:{g:[1,8],a:[9,24],r:[25,36]}, zlabAr:["التأهل المباشر لدور الـ16","الملحق","خارج المنافسة"], zlabEn:["Direct to R16","Playoff","Eliminated"]},
+ {id:"epl", slug:"eng.1", en:"Premier League", ar:"الدوري الإنجليزي الممتاز", shortEn:"PL", shortAr:"إنجلترا", flag:"gb-eng", pred:true, zones:{g:[1,4],a:[5,6],r:[18,20]}},
+ {id:"liga", slug:"esp.1", en:"La Liga", ar:"الدوري الإسباني", shortEn:"LaLiga", shortAr:"إسبانيا", flag:"es", pred:true, zones:{g:[1,4],a:[5,6],r:[18,20]}},
+ {id:"bun", slug:"ger.1", en:"Bundesliga", ar:"الدوري الألماني", shortEn:"Bundesliga", shortAr:"ألمانيا", flag:"de", zones:{g:[1,4],a:[5,6],r:[16,18]}},
+ {id:"fl1", slug:"fra.1", en:"Ligue 1", ar:"الدوري الفرنسي", shortEn:"Ligue 1", shortAr:"فرنسا", flag:"fr", zones:{g:[1,3],a:[4,5],r:[16,18]}},
+ {id:"tsl", slug:"tur.1", en:"Süper Lig", ar:"الدوري التركي", shortEn:"Süper Lig", shortAr:"تركيا", flag:"tr", zones:{g:[1,2],a:[3,4],r:[16,18]}},
+ {id:"spl", slug:"sco.1", en:"Scottish Premiership", ar:"الدوري الأسكتلندي الممتاز", shortEn:"SPFL", shortAr:"أسكتلندا", flag:"gb-sct", zones:{g:[1,1],a:[2,3],r:[12,12]}},
+];
+const ZLAB_DEF_AR = ["دوري أبطال أوروبا","المراكز الأوروبية","الهبوط"];
+const ZLAB_DEF_EN = ["Champions League","European spots","Relegation"];
+
+/* time zones - same grouped list as the WC app (Host Nations group replaced by nothing;
+   Türkiye added to Europe because we cover the Süper Lig) */
+const ZONES = [
+ ["Gulf", [["Asia/Dubai","UAE","UAE"],["Asia/Riyadh","Saudi Arabia","KSA"],["Asia/Qatar","Qatar","QAT"],["Asia/Kuwait","Kuwait","KWT"],["Asia/Bahrain","Bahrain","BHR"],["Asia/Muscat","Oman","OMN"],["Asia/Baghdad","Iraq","IRQ"]]],
+ ["North Africa", [["Africa/Cairo","Egypt","EGY"],["Africa/Casablanca","Morocco","MAR"],["Africa/Algiers","Algeria","ALG"],["Africa/Tunis","Tunisia","TUN"],["Africa/Tripoli","Libya","LBY"],["Africa/Khartoum","Sudan","SDN"]]],
+ ["Levant", [["Asia/Amman","Jordan","JOR"],["Asia/Beirut","Lebanon","LBN"]]],
+ ["Europe 🇪🇺", [["Europe/London","UK · Eng/Sco","UK"],["Europe/Madrid","Spain","ESP"],["Europe/Paris","France","FRA"],["Europe/Istanbul","Türkiye","TUR"],["Europe/Lisbon","Portugal","POR"],["Europe/Berlin","Germany","GER"],["Europe/Amsterdam","Netherlands","NED"],["Europe/Brussels","Belgium","BEL"],["Europe/Zurich","Switzerland","SUI"],["Europe/Vienna","Austria","AUT"],["Europe/Oslo","Norway","NOR"],["Europe/Stockholm","Sweden","SWE"],["Europe/Prague","Czechia","CZE"],["Europe/Zagreb","Croatia","CRO"]]]
+];
+const AR_TZABBR = {UAE:"الإمارات",KSA:"السعودية",QAT:"قطر",KWT:"الكويت",BHR:"البحرين",OMN:"عُمان",IRQ:"العراق",EGY:"مصر",MAR:"المغرب",ALG:"الجزائر",TUN:"تونس",LBY:"ليبيا",SDN:"السودان",JOR:"الأردن",LBN:"لبنان",UK:"بريطانيا",ESP:"إسبانيا",FRA:"فرنسا",TUR:"تركيا",POR:"البرتغال",GER:"ألمانيا",NED:"هولندا",BEL:"بلجيكا",SUI:"سويسرا",AUT:"النمسا",NOR:"النرويج",SWE:"السويد",CZE:"التشيك",CRO:"كرواتيا"};
+const AR_GROUPS = {"Gulf":"الخليج","North Africa":"شمال أفريقيا","Levant":"بلاد الشام","Europe 🇪🇺":"أوروبا 🇪🇺"};
+
+/* ============ i18n ============ */
+let LANG = (function(){ try{ return localStorage.getItem("gk_lang") || "ar"; }catch(_){ return "ar"; } })();
+let TZ = (function(){ try{ const v = localStorage.getItem("gk_tz"); return (v && v !== "auto") ? v : "Asia/Dubai"; }catch(_){ return "Asia/Dubai"; } })();
+let H12 = (function(){ try{ return localStorage.getItem("gk_h12") !== "0"; }catch(_){ return true; } })();
+let THEME = (function(){ try{ return localStorage.getItem("gk_theme") || "dark"; }catch(_){ return "dark"; } })();
+const STR = {
+ motto:["الجول جولك","El Goal Goalak"],
+ footNote:["تطبيق غير رسمي · البيانات من ESPN","Unofficial fan app · Data: ESPN"],
+ loading:["جارٍ التحميل…","Loading…"],
+ all:["الكل","All"],
+ live:["مباشر","LIVE"],
+ today:["اليوم","Today"],
+ notStarted:["لم تبدأ","Not started"],
+ ht:["استراحة","HT"],
+ ft:["انتهت","FT"],
+ postponed:["مؤجلة","Postponed"],
+ canceled:["ملغاة","Cancelled"],
+ pens:["ركلات الترجيح","Pens"],
+ matchesTab:["المباريات","Matches"],
+ tableTab:["الترتيب","Table"],
+ statsTab:["الإحصائيات","Stats"],
+ upcoming:["القادمة","Upcoming"],
+ results:["النتائج","Results"],
+ noMatchesDay:["لا توجد مباريات في هذا اليوم","No matches on this day"],
+ noMatchesRange:["لا توجد مباريات في هذه الفترة","No matches in this period"],
+ loadFail:["تعذر تحميل البيانات","Could not load data"],
+ retry:["إعادة المحاولة","Retry"],
+ staleNote:["تعذر التحديث · يتم عرض آخر البيانات المحفوظة","Update failed · showing last saved data"],
+ goals:["الهدافون","Top scorers"],
+ assists:["صناع الأهداف","Top assists"],
+ statsSoon:["تتوفر الإحصائيات بعد انطلاق الموسم","Stats will appear once the season starts"],
+ lastSeasonData:["البيانات المعروضة عن الموسم الماضي 2025-2026","Showing last season (2025-26) data"],
+ installLab:["ثبّت التطبيق على جهازك","Install the app"],
+ iosHint:["للتثبيت على الآيفون: افتح الموقع في Safari ثم اضغط زر المشاركة واختر \"إضافة إلى الشاشة الرئيسية\"","On iPhone: open in Safari, tap Share, then choose 'Add to Home Screen'"],
+ tableSoonUefa:["جدول مرحلة الدوري يظهر بعد إجراء القرعة","The league phase table appears after the draw"],
+ lastSeasonShown:["المعروض: الموسم المنتهي 2025-2026","Showing the finished 2025-26 season"],
+ curSeason:["الموسم الحالي","This season"],
+ prevSeason:["موسم 2025-2026","2025-26 season"],
+ showAll:["عرض الكل","Show all"],
+ showLess:["عرض أقل","Show less"],
+ team:["الفريق","Team"],
+ played:["لعب","P"], wins:["ف","W"], draws:["ت","D"], losses:["خ","L"], pts:["نقاط","PTS"],
+ venue:["الملعب","Venue"],
+ matchEvents:["أحداث المباراة","Match events"],
+ noEvents:["لا توجد أحداث مسجلة بعد","No events recorded yet"],
+ qualTag:["تصفيات","Qualifying"],
+ zonesTitle:["دلالة الألوان:","Zones:"],
+ settings:["الإعدادات","Settings"],
+ langLab:["اللغة","Language"],
+ themeLab:["المظهر","Theme"],
+ darkLab:["داكن","DARK"],
+ lightLab:["فاتح","LIGHT"],
+ tzLab:["المنطقة الزمنية","Time zone"],
+ clockLab:["نظام الوقت","Time format"],
+ liveData:["بيانات مباشرة من ESPN","Live data · ESPN"],
+ topScorer:["هداف البطولة","Top scorer"],
+ topAssister:["صانع الأهداف","Top assister"],
+ gf:["له","GF"],
+ ga:["عليه","GA"],
+ goalWord:["هدف","Goal"],
+ ownGoalWord:["هدف عكسي","Own goal"],
+ penWord:["ركلة جزاء","Penalty"],
+ yellowWord:["بطاقة صفراء","Yellow card"],
+ redWord:["بطاقة حمراء","Red card"],
+ matchesNav:["المباريات","Matches"],
+ predictions:["التوقعات","Predictions"],
+ predictTab:["سجّل توقعك","Predict"],
+ leaderboard:["لوحة الصدارة","Leaderboard"],
+ predSignInMsg:["لعبة توقعات الدوري الإنجليزي والإسباني مع أصحابك","The PL & La Liga prediction game with your friends"],
+ joinBtn:["سجّل الآن","Join now"],
+ joinShort:["سجّل","Join"],
+ signOut:["خروج","Sign out"],
+ authTitle:["حسابك في جولك","Your Goalak account"],
+ createAcc:["إنشاء حساب","Create account"],
+ login:["تسجيل الدخول","Log in"],
+ username:["اسم المستخدم","Username"],
+ password:["كلمة السر","Password"],
+ goBtn:["تأكيد","Confirm"],
+ authNote:["حساب بسيط بدون بريد إلكتروني · لا تستخدم كلمة سر تستعملها في مكان آخر","Simple account, no email · don't reuse an important password"],
+ authBadUser:["اسم المستخدم من 2 إلى 18 حرفًا","Username must be 2-18 characters"],
+ authBadPass:["كلمة السر 4 أحرف على الأقل","Password: at least 4 characters"],
+ authNet:["تعذر الوصول للخادم · حاول مرة أخرى","Can't reach the server · try again"],
+ authNoUser:["لا يوجد حساب بهذا الاسم · أنشئ حسابًا؟","No such username · create an account?"],
+ authWrongPass:["كلمة السر غير صحيحة","Wrong password · try again"],
+ authTaken:["الاسم مستخدم · جرّب تسجيل الدخول","Username taken · try logging in"],
+ authSaveFail:["تعذر الحفظ · حاول مرة أخرى","Save failed · try again"],
+ yourPick:["توقعك","Your pick"],
+ lockedNoPick:["أُغلق التوقع","Locked"],
+ lockedNow:["أُغلق التوقع لهذه المباراة (قبل البداية بنصف ساعة)","Predictions lock 30 minutes before kickoff"],
+ badScore:["أدخل نتيجة صحيحة (0-20)","Enter a valid score (0-20)"],
+ savedOk:["تم حفظ توقعك ✅","Your prediction is saved ✅"],
+ saveBtn:["احفظ","Save"],
+ noPick:["لم تتوقع هذه المباراة","No prediction"],
+ recentResults:["نتائج التوقعات الأخيرة","Recent prediction results"],
+ lbEmpty:["لا يوجد لاعبون بعد · كن أول من يسجل!","No players yet · be the first!"],
+ exactLabel:["نتائج مضبوطة:","Exact:"],
+ scoringRule:["النتيجة المضبوطة 3 نقاط · الاتجاه الصحيح نقطة واحدة · توقع واحد لكل مباراة · القفل قبل البداية بنصف ساعة","Exact score 3 pts · correct outcome 1 pt · one prediction per match · locks 30 min before kickoff"],
+ noUpcoming:["لا توجد مباريات متاحة للتوقع حاليًا","No matches open for predictions right now"],
+ alertsLab:["🔔 التنبيهات","🔔 Match alerts"],
+ pushLeagues:["بطولات التنبيهات:","Alert leagues:"],
+ pushDenied:["التنبيهات محظورة من إعدادات المتصفح","Notifications are blocked in the browser settings"],
+ pushUnsupported:["متصفحك لا يدعم التنبيهات","Notifications are not supported in this browser"],
+ pushIosInstall:["على الآيفون: ثبّت التطبيق أولًا (مشاركة ← إضافة إلى الشاشة الرئيسية) ثم فعّل التنبيهات من داخل التطبيق","On iPhone: install the app first (Share → Add to Home Screen), then enable alerts inside it"],
+ pushOnOk:["تم تفعيل التنبيهات ✅","Alerts enabled ✅"],
+ pushKeepOne:["اختر بطولة واحدة على الأقل أو أوقف التنبيهات","Keep at least one league or turn alerts off"],
+ alreadyPicked:["سبق أن توقعت هذه المباراة من جهاز آخر","You already predicted this match on another device"],
+};
+function t(k){ const e = STR[k]; return e ? e[LANG === "ar" ? 0 : 1] : k; }
+function lgName(lg){ return LANG === "ar" ? lg.ar : lg.en; }
+/* country leagues get real flag images (emoji flags do not render on Windows); UEFA comps keep their emoji */
+function lgIcon(lg){
+ if(lg.flag) return '<img class="rflag" src="https://flagcdn.com/w40/' + lg.flag + '.png" alt="" onerror="this.style.display=\'none\'">';
+ return '<span class="rico">' + lg.ico + "</span>";
+}
+function lgShort(lg){ return LANG === "ar" ? (lg.shortAr || lg.shortEn) : lg.shortEn; }
+function countLine(nM, nC){
+ if(LANG === "ar"){
+  const m = nM === 1 ? "مباراة واحدة" : nM === 2 ? "مباراتان" : nM <= 10 ? nM + " مباريات" : nM + " مباراة";
+  const c = nC === 1 ? "بطولة واحدة" : nC === 2 ? "بطولتان" : nC <= 10 ? nC + " بطولات" : nC + " بطولة";
+  return m + " · " + c;
+ }
+ return nM + (nM === 1 ? " match" : " matches") + " · " + nC + (nC === 1 ? " competition" : " competitions");
+}
+
+/* ============ utils ============ */
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+let _dkf = null, _dkfTz = "";
+function dkey(d){
+ try{
+  if(_dkfTz !== TZ){ _dkf = new Intl.DateTimeFormat("en-CA", {timeZone:TZ, year:"numeric", month:"2-digit", day:"2-digit"}); _dkfTz = TZ; }
+  return Number(_dkf.format(d).replace(/-/g, ""));
+ }catch(_){ return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
+}
+function todayKey(){ return dkey(new Date()); }
+function keyToDate(k){ return new Date(Math.floor(k / 10000), Math.floor(k / 100) % 100 - 1, k % 100); }
+function addDaysKey(k, n){ const d = keyToDate(k); d.setDate(d.getDate() + n); return dkey(d); }
+function rangeParam(k, before, after){ return addDaysKey(k, -(before)) + "-" + addDaysKey(k, after); }
+function locale(){ return LANG === "ar" ? "ar-EG-u-nu-latn" : "en-GB"; }
+function fmtTime(iso){ try{ return new Intl.DateTimeFormat(locale(), {hour:"numeric", minute:"2-digit", hour12:H12, timeZone:TZ}).format(new Date(iso)); }catch(_){ try{ return new Intl.DateTimeFormat(locale(), {hour:"numeric", minute:"2-digit", hour12:H12}).format(new Date(iso)); }catch(__){ return ""; } } }
+function fmtDayFull(k){ try{ return new Intl.DateTimeFormat(locale(), {weekday:"long", day:"numeric", month:"long"}).format(keyToDate(k)); }catch(_){ return String(k); } }
+function evState(e){
+ const s = (e.status && e.status.type && e.status.type.state) || (e.competitions && e.competitions[0] && e.competitions[0].status && e.competitions[0].status.type && e.competitions[0].status.type.state);
+ return s || "pre";
+}
+function isHT(e){ const n = e.status && e.status.type && e.status.type.name; return n === "STATUS_HALFTIME"; }
+function statusName(e){
+ return (e.status && e.status.type && e.status.type.name) || (e.competitions && e.competitions[0] && e.competitions[0].status && e.competitions[0].status.type && e.competitions[0].status.type.name) || "";
+}
+function voidedKey(e){
+ const n = statusName(e);
+ if(n === "STATUS_POSTPONED" || n === "STATUS_SUSPENDED") return "postponed";
+ if(n === "STATUS_CANCELED" || n === "STATUS_CANCELLED") return "canceled";
+ return "";
+}
+/* left digit always belongs to the left-rendered team (home is on the RIGHT in RTL) */
+function scoreTxt(H, A){
+ const h = esc(H.score == null ? "0" : H.score), a = esc(A.score == null ? "0" : A.score);
+ return LANG === "ar" ? a + " - " + h : h + " - " + a;
+}
+function shootTxt(H, A){
+ const hs = H.shootoutScore, as = A.shootoutScore;
+ if(hs == null || as == null) return "";
+ return LANG === "ar" ? as + " - " + hs : hs + " - " + as;
+}
+
+/* ============ fetch layer (never blank UI; last-good kept) ============ */
+async function jget(url){
+ const ctl = new AbortController();
+ const to = setTimeout(() => ctl.abort(), 12000);
+ try{
+  const r = await fetch(url, {cache:"no-store", signal:ctl.signal});
+  if(!r.ok) throw new Error("http " + r.status);
+  return await r.json();
+ } finally { clearTimeout(to); }
+}
+
+/* ============ state ============ */
+let view = "home";          // 'home' | 'lg'
+let selDay = todayKey();
+let chip = "all";           // 'all' | 'live' | league id
+let selLg = null;           // league object
+let lgTab = "M";            // 'M' | 'T' | 'S'
+let lgSeg = "up";           // 'up' | 'res'
+let statsSeason = 0;        // 0 = current, 2025 = last season
+let statsOpen = {g:false, a:false};
+let stripBuiltFor = 0;      // todayKey the strip was built around
+const dayCache = {};        // `${lgId}|${dayKey}` -> {at, events[]} raw 3-day-range events
+const lgCache = {};         // lgId -> {up:{at,events}, res:{at,events}, table:{at,json}, stats:{'0':{at,json},'2025':{at,json}}}
+const EV_INDEX = {};        // event id -> event object (for the modal)
+let dayLoadSeq = 0;         // guards out-of-order day renders
+let dayFailed = false;      // last loadDay had >=1 failed league (drives the stale bar)
+
+/* ============ language ============ */
+function setLang(x){
+ if(x !== "ar" && x !== "en") return;
+ LANG = x;
+ try{ localStorage.setItem("gk_lang", x); }catch(_){}
+ document.documentElement.lang = x;
+ document.documentElement.dir = x === "ar" ? "rtl" : "ltr";
+ $("lgEn").classList.toggle("on", x === "en");
+ $("lgAr").classList.toggle("on", x === "ar");
+ $("motto").textContent = t("motto");
+ $("footMotto").textContent = t("motto");
+ $("footNote").textContent = t("footNote");
+ buildRail(); buildStrip(true); refreshSettingsUI(); tickClock();
+ const bs = $("bnScoresL"), bp = $("bnPredL");
+ if(bs) bs.textContent = t("matchesNav");
+ if(bp) bp.textContent = t("predictions");
+ if(typeof updateAuthUI === "function" && !$("authModal").classList.contains("hide")) updateAuthUI();
+ if(typeof mainView !== "undefined" && mainView === "pred"){ renderPred(); }
+ else if(view === "home"){ paintHome(); } else { paintLeague(); }
+}
+
+/* ============ settings (ported from the WC app: sheet + grouped zones + theme + clock) ============ */
+function toggleSettings(){ $("setSheet").classList.toggle("hide"); }
+function closeSettings(){ $("setSheet").classList.add("hide"); }
+document.addEventListener("click", function(ev){
+ const sh = $("setSheet");
+ if(sh.classList.contains("hide")) return;
+ if(!sh.contains(ev.target) && !ev.target.closest("#setBtn")) closeSettings();
+});
+function toggleTheme(){ setTheme(THEME === "dark" ? "light" : "dark"); }
+function setTheme(x){
+ THEME = x === "light" ? "light" : "dark";
+ try{ localStorage.setItem("gk_theme", THEME); }catch(_){}
+ document.documentElement.dataset.theme = THEME;
+ const m = document.querySelector('meta[name="theme-color"]');
+ if(m) m.setAttribute("content", THEME === "light" ? "#eef1f8" : "#0a1230");
+ $("thD").classList.toggle("on", THEME === "dark");
+ $("thL").classList.toggle("on", THEME === "light");
+}
+function tzAbbr(){
+ for(const g of ZONES) for(const z of g[1]) if(z[0] === TZ) return (LANG === "ar" && AR_TZABBR[z[2]]) ? AR_TZABBR[z[2]] : z[2];
+ return LANG === "ar" ? "الإمارات" : "UAE";
+}
+function tzOffset(tz){
+ try{
+  const p = new Intl.DateTimeFormat("en-US", {timeZone:tz, timeZoneName:"shortOffset"}).formatToParts(new Date()).find(x => x.type === "timeZoneName");
+  return p ? p.value.replace("GMT", "UTC") : "";
+ }catch(_){ return ""; }
+}
+function fillTZ(){
+ $("tzSel").innerHTML = ZONES.map(g =>
+  '<optgroup label="' + esc((LANG === "ar" && AR_GROUPS[g[0]]) ? AR_GROUPS[g[0]] : g[0]) + '">' +
+  g[1].map(z => '<option value="' + z[0] + '"' + (z[0] === TZ ? " selected" : "") + ">" + esc((LANG === "ar" && AR_TZABBR[z[2]]) ? AR_TZABBR[z[2]] : z[1]) + "</option>").join("") +
+  "</optgroup>").join("");
+}
+function updateTzLabel(){
+ const c = $("tzCode"); if(c) c.textContent = tzAbbr();
+ const o = $("tzOff"); if(o) o.textContent = tzOffset(TZ) || "";
+}
+function setTZ(v){
+ if(!ZONES.some(g => g[1].some(z => z[0] === v))) v = "Asia/Dubai";
+ TZ = v;
+ try{ localStorage.setItem("gk_tz", v); }catch(_){}
+ _dkfTz = "";
+ selDay = todayKey();
+ buildStrip(true); fillTZ(); updateTzLabel(); tickClock();
+ if(view === "home"){ paintHome(); loadDay(false); } else paintLeague();
+}
+function setHour12(v){
+ H12 = !!v;
+ try{ localStorage.setItem("gk_h12", H12 ? "1" : "0"); }catch(_){}
+ $("h12b").classList.toggle("on", H12);
+ $("h24b").classList.toggle("on", !H12);
+ tickClock();
+ if(view === "home") paintHome(); else paintLeague();
+}
+function refreshSettingsUI(){
+ $("shTtl").textContent = t("settings");
+ $("setLbl").textContent = t("settings");
+ $("shTz").textContent = t("tzLab");
+ $("shClock").textContent = t("clockLab");
+ $("shLang").textContent = t("langLab");
+ $("shTheme").textContent = "🌓 " + t("themeLab");
+ $("thD").textContent = t("darkLab");
+ $("thL").textContent = t("lightLab");
+ $("h12b").classList.toggle("on", H12);
+ $("h24b").classList.toggle("on", !H12);
+ fillTZ(); updateTzLabel();
+ $("conTxt").textContent = t("liveData");
+ const it = $("instTxt");
+ if(it) it.textContent = t("installLab");
+ if(typeof updInstallRow === "function") updInstallRow();
+ const al = $("shAlerts");
+ if(al) al.textContent = t("alertsLab");
+ if(typeof renderPushLgs === "function" && !$("pushLgRow").classList.contains("hide")) renderPushLgs();
+}
+function tickClock(){
+ const el = $("clock");
+ if(!el) return;
+ try{
+  el.textContent = new Intl.DateTimeFormat(locale(), {hour:"2-digit", minute:"2-digit", hour12:H12, timeZone:TZ}).format(new Date());
+ }catch(_){}
+}
+
+/* ============ league rail ============ */
+function buildRail(){
+ let h = '<button type="button" class="railc' + (view === "home" ? " on" : "") + '" onclick="gotoHome()"><span class="rico">⚽</span><span class="rlbl">' + esc(t("all")) + "</span></button>";
+ for(const lg of LEAGUES){
+  h += '<button type="button" class="railc' + (view === "lg" && selLg && selLg.id === lg.id ? " on" : "") + '" onclick="gotoLeague(\'' + lg.id + '\')">' + lgIcon(lg) + '<span class="rlbl">' + esc(lgShort(lg)) + "</span></button>";
+ }
+ $("rail").innerHTML = h;
+}
+
+/* ============ date strip ============ */
+function buildStrip(force){
+ const tk = todayKey();
+ if(!force && stripBuiltFor === tk) return;
+ stripBuiltFor = tk;
+ let h = "";
+ for(let o = -10; o <= 10; o++){
+  const k = addDaysKey(tk, o);
+  const d = keyToDate(k);
+  let wd = new Intl.DateTimeFormat(locale(), {weekday:"short"}).format(d);
+  if(LANG !== "ar") wd = wd.toUpperCase();
+  const mo = new Intl.DateTimeFormat(locale(), {month:"short"}).format(d);
+  h += '<button type="button" class="dc' + (k === selDay ? " sel" : "") + (k === tk ? " tdy" : "") + '" data-k="' + k + '" onclick="selectDay(' + k + ')">' +
+   '<span class="wd">' + esc(k === tk ? t("today") : wd) + "</span>" +
+   '<span class="dn" dir="ltr">' + (k % 100) + "</span>" +
+   '<span class="mo">' + esc(mo) + "</span></button>";
+ }
+ $("dstrip").innerHTML = h;
+ const sel = $("dstrip").querySelector(".dc.sel");
+ if(sel && sel.scrollIntoView) try{ sel.scrollIntoView({inline:"center", block:"nearest"}); }catch(_){}
+}
+function selectDay(k){
+ if(k === selDay) return;
+ selDay = k; chip = "all";
+ buildStrip(true);
+ paintHome();
+ loadDay(false);
+}
+
+/* ============ home: data ============ */
+function eventsFor(lg, day){
+ const c = dayCache[lg.id + "|" + day];
+ if(!c) return null;
+ const seen = {}; const out = [];
+ for(const e of c.events){
+  if(!e || !e.id || seen[e.id]) continue;
+  seen[e.id] = 1;
+  if(dkey(new Date(e.date)) === day) out.push(e);
+ }
+ out.sort((a, b) => new Date(a.date) - new Date(b.date));
+ return out;
+}
+let _dayInflight = null, _dayInflightDay = 0;
+async function loadDay(force){
+ const day = selDay;
+ if(_dayInflight && _dayInflightDay === day && !force) return _dayInflight;
+ const seq = ++dayLoadSeq;
+ const p = (async () => {
+  const tk = todayKey();
+  const nearToday = day === tk || day === addDaysKey(tk, -1);
+  let anyFail = false;
+  await Promise.all(LEAGUES.map(async lg => {
+   const ck = lg.id + "|" + day;
+   const c = dayCache[ck];
+   const hasLive = c && c.events.some(e => evState(e) === "in");
+   const ttl = hasLive ? 40000 : nearToday ? 120000 : 600000;
+   if(!force && c && Date.now() - c.at < ttl) return;
+   const slugs = [lg.slug].concat(lg.qual ? [lg.qual] : []);
+   try{
+    const results = await Promise.all(slugs.map(s => jget(API + s + "/scoreboard?dates=" + rangeParam(day, 1, 1))));
+    const evs = [];
+    results.forEach((j, si) => { (j && j.events || []).forEach(e => { if(si > 0) e._gkQual = 1; evs.push(e); }); });
+    dayCache[ck] = {at: Date.now(), events: evs};
+   }catch(_){ anyFail = true; /* keep last-good cache untouched */ }
+  }));
+  if(seq !== dayLoadSeq || view !== "home" || selDay !== day) return;
+  dayFailed = anyFail;
+  paintHome();
+ })();
+ _dayInflight = p; _dayInflightDay = day;
+ try{ await p; } finally { if(_dayInflight === p) _dayInflight = null; }
+}
+
+/* ============ home: render ============ */
+function crestHtml(team){
+ const nm = team && (team.abbreviation || team.shortDisplayName || team.displayName) || "";
+ const ini = esc(String(nm).replace(/[^A-Za-z0-9؀-ۿ]/g, "").slice(0, 3).toUpperCase() || "?");
+ const url = team && (team.logo || (team.logos && team.logos[0] && team.logos[0].href));
+ if(!url) return '<span class="crestfb">' + ini + "</span>";
+ return '<img class="crest" src="' + esc(url) + '" alt="" loading="lazy" onerror="this.style.display=\'none\';if(this.nextElementSibling)this.nextElementSibling.style.display=\'flex\'"><span class="crestfb" style="display:none">' + ini + "</span>";
+}
+function teamName(c){ const tm = c && c.team || {}; return tm.shortDisplayName || tm.displayName || tm.name || "?"; }
+function mrow(e, lg){
+ const comp = e.competitions && e.competitions[0] || {};
+ const cs = comp.competitors || [];
+ const H = cs.find(c => c.homeAway === "home") || cs[0] || {};
+ const A = cs.find(c => c.homeAway === "away") || cs[1] || {};
+ const s = evState(e);
+ EV_INDEX[e.id] = e;
+ const vk = voidedKey(e);
+ let mid, sub;
+ if(vk){
+  mid = '<span class="mtime">–</span>';
+  sub = esc(t(vk));
+ } else if(s === "pre"){
+  mid = '<span class="mtime" dir="ltr">' + esc(fmtTime(e.date)) + "</span>";
+  sub = esc(t("notStarted"));
+ } else if(s === "in"){
+  mid = '<span class="msc live" dir="ltr">' + scoreTxt(H, A) + "</span>";
+  const clock = isHT(e) ? t("ht") : ((e.status && e.status.displayClock) || "");
+  sub = '<span class="lvm"><span class="lvdot"></span><span dir="ltr">' + esc(clock) + "</span></span>";
+ } else {
+  mid = '<span class="msc" dir="ltr">' + scoreTxt(H, A) + "</span>";
+  sub = esc(t("ft"));
+  const sh = shootTxt(H, A);
+  if(sh) sub += " · " + esc(t("pens")) + ' <span dir="ltr">' + sh + "</span>";
+ }
+ if(e._gkQual) sub += " · " + esc(t("qualTag"));
+ return '<button type="button" class="mrow" data-eid="' + esc(e.id) + '" onclick="openMatch(this.dataset.eid)">' +
+  '<span class="tm tmh">' + '<i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + "</span>" +
+  '<span class="mid">' + mid + '<span class="msub">' + sub + "</span></span>" +
+  '<span class="tm tma">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span>" +
+  "</button>";
+}
+function paintHome(){
+ buildStrip(false);
+ const day = selDay;
+ let totalM = 0, comps = 0, liveN = 0, anyUnknown = false;
+ const perLg = [];
+ for(const lg of LEAGUES){
+  const evs = eventsFor(lg, day);
+  if(evs === null){ anyUnknown = true; continue; }
+  if(!evs.length) continue;
+  comps++; totalM += evs.length;
+  liveN += evs.filter(e => evState(e) === "in").length;
+  perLg.push({lg, evs});
+ }
+ /* never leave a chip selected that can no longer render anything */
+ if(chip === "live" && liveN === 0) chip = "all";
+ if(chip !== "all" && chip !== "live" && !perLg.some(p => p.lg.id === chip)) chip = "all";
+ $("cnt").textContent = totalM ? countLine(totalM, comps) : "";
+ /* chips */
+ let ch = '<button type="button" class="chip' + (chip === "all" ? " on" : "") + '" onclick="setChip(\'all\')">' + esc(t("all")) + "</button>";
+ if(liveN > 0) ch += '<button type="button" class="chip lv' + (chip === "live" ? " on" : "") + '" onclick="setChip(\'live\')">● ' + esc(t("live")) + ' <span class="cn" dir="ltr">(' + liveN + ")</span></button>";
+ for(const p of perLg){
+  ch += '<button type="button" class="chip' + (chip === p.lg.id ? " on" : "") + '" onclick="setChip(\'' + p.lg.id + '\')">' + lgIcon(p.lg) + " " + esc(lgShort(p.lg)) + ' <span class="cn" dir="ltr">' + p.evs.length + "</span></button>";
+ }
+ $("chips").innerHTML = ch;
+ /* stale bar: shown whenever the last load had a failure, no matter what else renders */
+ const sb = $("staleBar");
+ if(dayFailed){ sb.textContent = "⚠️ " + t("staleNote"); sb.classList.remove("hide"); }
+ else sb.classList.add("hide");
+ const cd = $("conDot");
+ if(cd) cd.classList.toggle("bad", !!dayFailed);
+ /* list */
+ let h = "";
+ for(const p of perLg){
+  let list = p.evs;
+  if(chip === "live"){ list = list.filter(e => evState(e) === "in"); if(!list.length) continue; }
+  else if(chip !== "all" && chip !== p.lg.id) continue;
+  const foldKey = "gk_fold_" + p.lg.id;
+  let folded = false;
+  try{ folded = chip === "all" && localStorage.getItem(foldKey) === "1"; }catch(_){}
+  h += '<section class="lgsec"><div class="lghead">' +
+   '<button type="button" class="lgopen" onclick="gotoLeague(\'' + p.lg.id + '\')">' +
+   '<span class="lgico">' + lgIcon(p.lg) + '</span><span class="lgnm">' + esc(lgName(p.lg)) + '</span><span class="lgn" dir="ltr">' + list.length + '</span><span class="lgarrow">›</span></button>' +
+   '<button type="button" class="fold" aria-label="fold" onclick="toggleFold(\'' + p.lg.id + '\', this)">' + (folded ? "+" : "−") + "</button>" +
+   '</div><div class="lgbody' + (folded ? " hide" : "") + '" id="fold_' + p.lg.id + '">' + list.map(e => mrow(e, p.lg)).join("") + "</div></section>";
+ }
+ if(!h){
+  if(totalM === 0 && (anyUnknown || dayFailed)){
+   /* "failed" is never presented as "genuinely empty" */
+   h = '<div class="errbox"><div class="big">📡</div>' + esc(t("loadFail")) + '<br><button type="button" class="retrybtn" onclick="loadDay(true)">' + esc(t("retry")) + "</button></div>";
+  } else {
+   h = '<div class="empty"><div class="big">🗓️</div>' + esc(t("noMatchesDay")) + "</div>";
+  }
+ }
+ $("mlist").innerHTML = h;
+}
+function setChip(c){ chip = c; paintHome(); }
+function toggleFold(id, btn){
+ const el = $("fold_" + id);
+ if(!el) return;
+ const nowHidden = !el.classList.contains("hide");
+ el.classList.toggle("hide", nowHidden);
+ btn.textContent = nowHidden ? "+" : "−";
+ try{ localStorage.setItem("gk_fold_" + id, nowHidden ? "1" : "0"); }catch(_){}
+}
+
+/* ============ navigation ============ */
+function gotoHome(){
+ /* direct switch, never delegated to async history.back() (fast-tap race, QA finding) —
+    a stale {gkv} history entry just becomes one inert back-press */
+ view = "home"; selLg = null;
+ $("lg").classList.add("hide");
+ if(mainView === "scores") $("home").classList.remove("hide"); /* never unhide home under the predictions pane */
+ buildRail(); paintHome();
+ loadDay(false);
+}
+function gotoLeague(id){
+ const lg = LEAGUES.find(l => l.id === id);
+ if(!lg) return;
+ if(view !== "lg"){ try{ history.pushState({gkv:"lg"}, ""); }catch(_){} }
+ view = "lg"; selLg = lg; lgTab = "M"; lgSeg = "up"; statsSeason = 0; statsOpen = {g:false, a:false};
+ $("home").classList.add("hide"); $("lg").classList.remove("hide");
+ buildRail(); paintLeague();
+ window.scrollTo(0, 0);
+}
+/* Android/installed-PWA back button: close overlays first, then leave the league page, never exit-with-overlay */
+window.addEventListener("popstate", function(){
+ const modal = $("modal");
+ if(!modal.classList.contains("hide")){ modal.classList.add("hide"); return; }
+ const am = $("authModal");
+ if(am && !am.classList.contains("hide")){ am.classList.add("hide"); return; }
+ if(!$("setSheet").classList.contains("hide")){ closeSettings(); return; }
+ if(view === "lg") gotoHome();
+});
+/* install prompt (Android exposes the event; iOS gets instructions) */
+let _bip = null;
+window.addEventListener("beforeinstallprompt", function(e){ e.preventDefault(); _bip = e; updInstallRow(); });
+function isStandalone(){ try{ return matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; }catch(_){ return false; } }
+function isIOS(){ const ua = navigator.userAgent; return /iphone|ipad|ipod/i.test(ua) || (/macintosh/i.test(ua) && navigator.maxTouchPoints > 1); }
+function updInstallRow(){ const r = $("installRow"); if(r) r.classList.toggle("hide", isStandalone() || (!_bip && !isIOS())); }
+function installApp(){
+ if(_bip){ try{ _bip.prompt(); }catch(_){} _bip = null; updInstallRow(); }
+ else if(isIOS()) alert(t("iosHint"));
+}
+
+/* ============ league page ============ */
+function paintLeague(){
+ if(!selLg) return;
+ $("lgpIco").innerHTML = lgIcon(selLg);
+ $("lgpTit").textContent = lgName(selLg);
+ $("ltabs").innerHTML =
+  '<button type="button" class="ltab' + (lgTab === "M" ? " on" : "") + '" onclick="setLgTab(\'M\')">' + esc(t("matchesTab")) + "</button>" +
+  '<button type="button" class="ltab' + (lgTab === "T" ? " on" : "") + '" onclick="setLgTab(\'T\')">' + esc(t("tableTab")) + "</button>" +
+  '<button type="button" class="ltab' + (lgTab === "S" ? " on" : "") + '" onclick="setLgTab(\'S\')">' + esc(t("statsTab")) + "</button>";
+ $("lgStale").classList.add("hide");
+ $("lgBody").dataset.sig = "";
+ if(lgTab === "M") renderLgMatches();
+ else if(lgTab === "T") renderTable();
+ else renderStats();
+}
+function setLgTab(x){ lgTab = x; paintLeague(); }
+function setLgSeg(x){ lgSeg = x; renderLgMatches(); }
+function lgc(){ if(!lgCache[selLg.id]) lgCache[selLg.id] = {}; return lgCache[selLg.id]; }
+function lgStaleShow(){ const b = $("lgStale"); b.textContent = "⚠️ " + t("staleNote"); b.classList.remove("hide"); }
+
+/* ---- league matches ---- */
+function segHtml(){
+ return '<div class="lseg">' +
+  '<button type="button" class="lsegb' + (lgSeg === "up" ? " on" : "") + '" onclick="setLgSeg(\'up\')">' + esc(t("upcoming")) + "</button>" +
+  '<button type="button" class="lsegb' + (lgSeg === "res" ? " on" : "") + '" onclick="setLgSeg(\'res\')">' + esc(t("results")) + "</button></div>";
+}
+async function renderLgMatches(){
+ const lg = selLg, seg = lgSeg;
+ const c = lgc();
+ const cached = c[seg];
+ const body = $("lgBody");
+ const sig = lg.id + "|" + seg + "|" + (cached ? cached.at : 0);
+ if(cached && cached.events){
+  if(body.dataset.sig !== sig){ body.innerHTML = segHtml() + lgMatchesHtml(cached.events, seg); body.dataset.sig = sig; }
+ } else { body.innerHTML = segHtml() + '<div class="skel"><span class="spinner"></span>' + esc(t("loading")) + "</div>"; body.dataset.sig = ""; }
+ if(cached && Date.now() - cached.at < 90000) return;
+ const tk = todayKey();
+ const range = seg === "up" ? rangeParam(tk, 0, 45) : rangeParam(tk, 45, 0);
+ const slugs = [lg.slug].concat(lg.qual ? [lg.qual] : []);
+ try{
+  const results = await Promise.all(slugs.map(s => jget(API + s + "/scoreboard?dates=" + range)));
+  const seen = {}; const evs = [];
+  results.forEach((j, si) => { (j && j.events || []).forEach(e => { if(e && e.id && !seen[e.id]){ seen[e.id] = 1; if(si > 0) e._gkQual = 1; evs.push(e); } }); });
+  evs.sort((a, b) => seg === "up" ? new Date(a.date) - new Date(b.date) : new Date(b.date) - new Date(a.date));
+  c[seg] = {at: Date.now(), events: evs};
+ }catch(_){
+  if(selLg === lg && lgTab === "M"){ if(cached && cached.events) lgStaleShow(); else $("lgBody").innerHTML = segHtml() + '<div class="errbox"><div class="big">📡</div>' + esc(t("loadFail")) + '<br><button type="button" class="retrybtn" onclick="renderLgMatches()">' + esc(t("retry")) + "</button></div>"; }
+  return;
+ }
+ if(selLg === lg && lgTab === "M" && lgSeg === seg){
+  const b = $("lgBody");
+  b.innerHTML = segHtml() + lgMatchesHtml(c[seg].events, seg);
+  b.dataset.sig = lg.id + "|" + seg + "|" + c[seg].at;
+ }
+}
+function lgMatchesHtml(evs, seg){
+ if(!evs.length) return '<div class="empty"><div class="big">🗓️</div>' + esc(t("noMatchesRange")) + "</div>";
+ /* for results hide matches that have not been played (pre) ; for upcoming hide finished.
+    Postponed/cancelled matches keep state 'post' on ESPN: route them by date, never as results */
+ const tk = todayKey();
+ const list = evs.filter(e => {
+  if(voidedKey(e)) return seg === "up" ? dkey(new Date(e.date)) >= tk : dkey(new Date(e.date)) < tk;
+  return seg === "up" ? evState(e) !== "post" : evState(e) === "post" || evState(e) === "in";
+ });
+ if(!list.length) return '<div class="empty"><div class="big">🗓️</div>' + esc(t("noMatchesRange")) + "</div>";
+ let h = "", lastDay = 0;
+ for(const e of list){
+  const k = dkey(new Date(e.date));
+  if(k !== lastDay){ lastDay = k; h += '<div class="dhead">' + esc(fmtDayFull(k)) + "</div>"; }
+  h += '<div class="lgsec"><div class="lgbody">' + mrow(e, selLg) + "</div></div>";
+ }
+ return h;
+}
+
+/* ---- standings ---- */
+function statVal(stats, name){
+ const s = (stats || []).find(x => x.name === name);
+ return s ? (s.value != null ? s.value : s.displayValue) : null;
+}
+async function renderTable(){
+ const lg = selLg;
+ const c = lgc();
+ const body = $("lgBody");
+ if(c.table && c.table.json){ body.innerHTML = tableHtml(c.table.json); }
+ else body.innerHTML = '<div class="skel"><span class="spinner"></span>' + esc(t("loading")) + "</div>";
+ if(c.table && Date.now() - c.table.at < 120000) return;
+ try{
+  const j = await jget(STAND + lg.slug + "/standings");
+  c.table = {at: Date.now(), json: j};
+ }catch(_){
+  if(selLg === lg && lgTab === "T"){ if(c.table && c.table.json) lgStaleShow(); else $("lgBody").innerHTML = '<div class="errbox"><div class="big">📡</div>' + esc(t("loadFail")) + '<br><button type="button" class="retrybtn" onclick="renderTable()">' + esc(t("retry")) + "</button></div>"; }
+  return;
+ }
+ if(selLg === lg && lgTab === "T") $("lgBody").innerHTML = tableHtml(c.table.json);
+}
+function zoneCls(lg, rank){
+ const z = lg.zones || {};
+ if(z.g && rank >= z.g[0] && rank <= z.g[1]) return "zg";
+ if(z.a && rank >= z.a[0] && rank <= z.a[1]) return "za";
+ if(z.r && rank >= z.r[0] && rank <= z.r[1]) return "zr";
+ return "";
+}
+function tableHtml(j){
+ const lg = selLg;
+ const kids = (j && j.children) || [];
+ const entries = (kids[0] && kids[0].standings && kids[0].standings.entries) || [];
+ const seasonYear = j && j.season && j.season.year;
+ if(!entries.length){
+  if(lg.uefa) return '<div class="empty"><div class="big">🎲</div>' + esc(t("tableSoonUefa")) + "</div>";
+  return '<div class="empty"><div class="big">📊</div>' + esc(t("loadFail")) + "</div>";
+ }
+ const rows = entries.map(en => {
+  const st = en.stats || [];
+  return {
+   team: en.team || {},
+   rank: Number(statVal(st, "rank")) || 0,
+   p: statVal(st, "gamesPlayed"), w: statVal(st, "wins"), d: statVal(st, "ties"), l: statVal(st, "losses"),
+   gf: statVal(st, "pointsFor"), ga: statVal(st, "pointsAgainst"),
+   gd: statVal(st, "pointDifferential"), pts: statVal(st, "points"),
+  };
+ }).sort((a, b) => a.rank - b.rank);
+ let h = "";
+ if(lg.uefa && seasonYear && seasonYear < 2026) h += '<div class="seasonnote">ℹ️ ' + esc(t("lastSeasonShown")) + " · " + esc(t("tableSoonUefa")) + "</div>";
+ h += '<div class="tblwrap"><div class="trow thead"><span class="tpos">#</span><span class="ttm">' + esc(t("team")) + '</span>' +
+  '<span class="tnum">' + esc(t("played")) + '</span><span class="tnum">' + esc(t("wins")) + '</span><span class="tnum">' + esc(t("draws")) + '</span><span class="tnum">' + esc(t("losses")) + '</span>' +
+  '<span class="tnum tgf">' + esc(t("gf")) + '</span><span class="tnum tga">' + esc(t("ga")) + "</span>" +
+  '<span class="tgd" dir="ltr">+/-</span><span class="tpts">' + esc(t("pts")) + "</span></div>";
+ for(let i = 0; i < rows.length; i++){
+  const r = rows[i];
+  const rank = r.rank || i + 1;
+  const gdN = Number(r.gd) || 0;
+  h += '<div class="trow ' + zoneCls(lg, rank) + '"><span class="tpos" dir="ltr">' + rank + "</span>" +
+   '<span class="ttm">' + crestHtml(r.team) + "<i>" + esc(r.team.shortDisplayName || r.team.displayName || "") + "</i></span>" +
+   '<span class="tnum" dir="ltr">' + esc(r.p == null ? "-" : r.p) + '</span><span class="tnum" dir="ltr">' + esc(r.w == null ? "-" : r.w) + '</span><span class="tnum" dir="ltr">' + esc(r.d == null ? "-" : r.d) + '</span><span class="tnum" dir="ltr">' + esc(r.l == null ? "-" : r.l) + "</span>" +
+   '<span class="tnum tgf" dir="ltr">' + esc(r.gf == null ? "-" : r.gf) + '</span><span class="tnum tga" dir="ltr">' + esc(r.ga == null ? "-" : r.ga) + "</span>" +
+   '<span class="tgd" dir="ltr">' + (gdN > 0 ? "+" + gdN : gdN) + "</span>" +
+   '<span class="tpts" dir="ltr">' + esc(r.pts == null ? "-" : r.pts) + "</span></div>";
+ }
+ h += "</div>";
+ const zl = LANG === "ar" ? (lg.zlabAr || ZLAB_DEF_AR) : (lg.zlabEn || ZLAB_DEF_EN);
+ h += '<div class="legend"><span>' + esc(t("zonesTitle")) + "</span>" +
+  '<span><span class="zdot" style="background:var(--rz-g)"></span>' + esc(zl[0]) + "</span>" +
+  '<span><span class="zdot" style="background:var(--rz-a)"></span>' + esc(zl[1]) + "</span>" +
+  '<span><span class="zdot" style="background:var(--rz-r)"></span>' + esc(zl[2]) + "</span></div>";
+ return h;
+}
+
+/* ---- stats ---- */
+function setStatsSeason(s){ statsSeason = s; statsOpen = {g:false, a:false}; renderStats(); }
+function toggleStatsOpen(which){ statsOpen[which] = !statsOpen[which]; renderStats(true); }
+async function renderStats(fromToggle){
+ const lg = selLg;
+ const c = lgc();
+ if(!c.stats) c.stats = {};
+ const key = String(statsSeason);
+ const cached = c.stats[key];
+ const body = $("lgBody");
+ if(cached && cached.json){ body.innerHTML = statsHtml(cached.json); if(fromToggle) return; }
+ else if(!fromToggle) body.innerHTML = '<div class="skel"><span class="spinner"></span>' + esc(t("loading")) + "</div>";
+ if(cached && Date.now() - cached.at < 300000) return;
+ try{
+  const j = await jget(API + lg.slug + "/statistics" + (statsSeason ? "?season=" + statsSeason : ""));
+  c.stats[key] = {at: Date.now(), json: j};
+ }catch(_){
+  if(selLg === lg && lgTab === "S"){ if(cached && cached.json) lgStaleShow(); else $("lgBody").innerHTML = seasonChips() + '<div class="errbox"><div class="big">📡</div>' + esc(t("loadFail")) + '<br><button type="button" class="retrybtn" onclick="renderStats()">' + esc(t("retry")) + "</button></div>"; }
+  return;
+ }
+ if(selLg === lg && lgTab === "S" && String(statsSeason) === key) $("lgBody").innerHTML = statsHtml(c.stats[key].json);
+}
+function seasonChips(){
+ return '<div class="lseg">' +
+  '<button type="button" class="lsegb' + (statsSeason === 0 ? " on" : "") + '" onclick="setStatsSeason(0)">' + esc(t("curSeason")) + "</button>" +
+  '<button type="button" class="lsegb' + (statsSeason === 2025 ? " on" : "") + '" onclick="setStatsSeason(2025)">' + esc(t("prevSeason")) + "</button></div>";
+}
+function leadersCard(cat, titleKey, icon, which){
+ const leaders = (cat && cat.leaders) || [];
+ if(!leaders.length) return "";
+ const open = statsOpen[which];
+ const list = open ? leaders.slice(0, 50) : leaders.slice(0, 10);
+ let h = '<div class="statcard"><div class="stath"><span class="ic">' + icon + "</span>" + esc(t(titleKey)) + "</div>";
+ for(let i = 0; i < list.length; i++){
+  const L = list[i];
+  const a = L.athlete || {};
+  const teamNm = (a.team && (a.team.shortDisplayName || a.team.displayName)) || "";
+  h += '<div class="srow"><span class="srank' + (i < 3 ? " top" : "") + '" dir="ltr">' + (i + 1) + "</span>" +
+   '<span class="sname"><b>' + esc(a.displayName || "?") + "</b><span>" + esc(teamNm) + "</span></span>" +
+   '<span class="sval" dir="ltr">' + esc(Math.round(Number(L.value) || 0)) + "</span></div>";
+ }
+ if(leaders.length > 10) h += '<button type="button" class="morebtn" onclick="toggleStatsOpen(\'' + which + '\')">' + esc(open ? t("showLess") : t("showAll") + " (" + Math.min(50, leaders.length) + ")") + "</button>";
+ return h + "</div>";
+}
+function heroTile(L, capKey, acc){
+ const a = L.athlete || {};
+ return '<div class="htile" style="--hacc:' + acc + '"><div class="hcap">' + esc(t(capKey)) + '</div><div class="hname">' + esc(a.displayName || "?") + '</div><div class="hteam">' + esc((a.team && (a.team.shortDisplayName || a.team.displayName)) || "") + '</div><div class="hnum" dir="ltr">' + esc(Math.round(Number(L.value) || 0)) + "</div></div>";
+}
+function statsHtml(j){
+ const cats = (j && j.stats) || [];
+ const goals = cats.find(x => x.name === "goalsLeaders") || cats.find(x => /goal/i.test(x.name || "") && !/assist/i.test(x.name || ""));
+ const assists = cats.find(x => x.name === "assistsLeaders") || cats.find(x => /assist/i.test(x.name || ""));
+ let h = seasonChips();
+ /* honesty note: UEFA comps keep serving LAST season's stats until the new league phase exists.
+    Data-driven off the response's season year, so it disappears by itself once 2026-27 data lands. */
+ const dataYear = j && j.season && j.season.year;
+ if(statsSeason === 0 && dataYear && dataYear < 2026) h += '<div class="seasonnote">ℹ️ ' + esc(t("lastSeasonData")) + "</div>";
+ const g0 = goals && goals.leaders && goals.leaders[0];
+ const a0 = assists && assists.leaders && assists.leaders[0];
+ if(g0 || a0) h += '<div class="htiles">' + (g0 ? heroTile(g0, "topScorer", "var(--gold)") : "") + (a0 ? heroTile(a0, "topAssister", "var(--acc)") : "") + "</div>";
+ const g = leadersCard(goals, "goals", "⚽", "g");
+ const a = leadersCard(assists, "assists", "🎯", "a");
+ if(!g && !a) return seasonChips() + '<div class="empty"><div class="big">📈</div>' + esc(t("statsSoon")) + "</div>";
+ return h + g + a;
+}
+
+/* ============ match modal ============ */
+function detIcon(txt, d){
+ const s = String(txt || "").toLowerCase();
+ if(d && d.ownGoal) return "🔴⚽";
+ if(s.includes("own")) return "🔴⚽";
+ if(s.includes("penalty") && s.includes("miss")) return "❌";
+ if(s.includes("goal") || (d && d.scoringPlay)) return "⚽";
+ if(s.includes("yellow")) return "🟨";
+ if(s.includes("red")) return "🟥";
+ if(s.includes("sub")) return "🔁";
+ return "•";
+}
+function openMatch(eid){
+ const e = EV_INDEX[eid];
+ if(!e) return;
+ const comp = e.competitions && e.competitions[0] || {};
+ const cs = comp.competitors || [];
+ const H = cs.find(c => c.homeAway === "home") || cs[0] || {};
+ const A = cs.find(c => c.homeAway === "away") || cs[1] || {};
+ const s = evState(e);
+ const vk = voidedKey(e);
+ const live = !vk && s === "in";
+ let scoreLine;
+ if(vk) scoreLine = '<span class="mvsc">–</span>';
+ else if(s === "pre") scoreLine = '<span class="mvsc" dir="ltr">' + esc(fmtTime(e.date)) + "</span>";
+ else scoreLine = '<span class="mvsc' + (live ? " live" : "") + '" dir="ltr">' + scoreTxt(H, A) + "</span>";
+ const venue = comp.venue && comp.venue.fullName || "";
+ const clockLive = live && !isHT(e);
+ const statusTxt = vk ? t(vk) : s === "pre" ? t("notStarted") : live ? (isHT(e) ? t("ht") : ((e.status && e.status.displayClock) || t("live"))) : t("ft");
+ let meta = esc(fmtDayFull(dkey(new Date(e.date)))) + " · " + (clockLive ? "<span dir='ltr'>" + esc(statusTxt) + "</span>" : esc(statusTxt));
+ if(!vk && s === "post"){ const sh = shootTxt(H, A); if(sh) meta += " · " + esc(t("pens")) + " <span dir='ltr'>" + sh + "</span>"; }
+ if(e._gkQual) meta += " · " + esc(t("qualTag"));
+ if(venue) meta += "<br>" + esc(t("venue")) + ": " + esc(venue);
+ const dets = (comp.details || []).slice().sort((x, y) => {
+  const xv = x.clock && x.clock.value || 0, yv = y.clock && y.clock.value || 0;
+  return xv - yv;
+ });
+ let evh = "";
+ for(const d of dets){
+  const typeTxt = d.type && d.type.text || "";
+  const who = (d.athletesInvolved && d.athletesInvolved[0] && d.athletesInvolved[0].displayName) || "";
+  if(!typeTxt && !who) continue;
+  const isH = d.team && H.team && String(d.team.id) === String(H.team.id);
+  const sideNm = d.team ? (isH ? teamName(H) : teamName(A)) : "";
+  evh += '<div class="evline"><span class="evmin" dir="ltr">' + esc(d.clock && d.clock.displayValue || "") + "</span>" +
+   '<span class="evico">' + detIcon(typeTxt, d) + "</span>" +
+   '<span class="evtxt">' + esc(who || typeTxt) + "</span>" +
+   '<span class="evside">' + esc(sideNm) + "</span></div>";
+ }
+ const evsBlock = evh
+  ? '<div class="dhead">' + esc(t("matchEvents")) + "</div>" + evh
+  : (s === "pre" ? "" : '<div class="mnoev">' + esc(t("noEvents")) + "</div>");
+ $("mbox").innerHTML =
+  '<button type="button" class="mx" onclick="closeModal()">✕</button>' +
+  '<div class="mvs">' +
+   '<span class="mvt">' + crestHtml(H.team) + "<i>" + esc(teamName(H)) + "</i></span>" +
+   scoreLine +
+   '<span class="mvt">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span>" +
+  "</div>" +
+  '<div class="mmeta">' + meta + "</div>" + evsBlock;
+ $("modal").classList.remove("hide");
+ try{ history.pushState({gkm:1}, ""); }catch(_){}
+}
+function closeModal(){
+ if($("modal").classList.contains("hide")) return; /* stray Escape must not pop unrelated history */
+ if(history.state && history.state.gkm){ try{ history.back(); return; }catch(_){} }
+ $("modal").classList.add("hide");
+}
+$("modal").addEventListener("click", function(ev){ if(ev.target === this) closeModal(); });
+document.addEventListener("keydown", function(ev){ if(ev.key === "Escape"){ closeModal(); closeSettings(); } });
+
+/* ============ predictions: textdb storage (namespaced goalak_*, per-user pred keys) ============ */
+const TDB_READ = "https://textdb.online/";
+const TDB_WRITE = "https://api.textdb.online/update/";
+/* Some ISP/router DNS setups cannot resolve textdb.online (found in QA). The push worker
+   proxies the same store at /tdb, so storage works on those networks too. */
+const TDB_PROXY = "https://goalak-push.ahmed-ayoty.workers.dev/tdb";
+const ACCT_KEY = "goalak_accounts";
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function tdbRead(key, fallback){
+ let txt = null;
+ try{
+  const r = await fetch(TDB_READ + key + "?t=" + Date.now(), {cache:"no-store"});
+  if(!r.ok) throw new Error("http " + r.status);
+  txt = (await r.text()).trim();
+ }catch(_){
+  const r2 = await fetch(TDB_PROXY + "/" + key + "?t=" + Date.now(), {cache:"no-store"});
+  if(!r2.ok) throw new Error("proxy " + r2.status);
+  txt = (await r2.text()).trim();
+ }
+ if(!txt) return fallback;
+ try{ return JSON.parse(txt); }catch(_){ return fallback; }
+}
+async function tdbWrite(key, val){
+ const body = "key=" + encodeURIComponent(key) + "&value=" + encodeURIComponent(JSON.stringify(val));
+ const opts = {method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"}, body};
+ try{
+  const r = await fetch(TDB_WRITE, opts);
+  if(!r.ok) throw new Error("write " + r.status);
+ }catch(_){
+  const r2 = await fetch(TDB_PROXY, opts);
+  if(!r2.ok) throw new Error("proxy write " + r2.status);
+ }
+}
+async function sha256(s){ const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)); return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, "0")).join(""); }
+function predKeyFor(uid){ return "goalak_pred_" + uid; }
+
+let gkUser = null;
+try{ gkUser = JSON.parse(localStorage.getItem("gk_user") || "null"); }catch(_){}
+let myPreds = {};
+try{ myPreds = JSON.parse(localStorage.getItem("gk_preds") || "{}"); }catch(_){}
+
+/* ---- auth (same scheme as the WC app: salt + sha256(salt+password), wipe guard, verify-after-write) ---- */
+let _am = "C";
+function openAuth(mode){ _am = mode || "C"; updateAuthUI(); $("authModal").classList.remove("hide"); }
+function closeAuth(){ $("authModal").classList.add("hide"); }
+function authMode(m){ _am = m; updateAuthUI(); }
+function updateAuthUI(){
+ $("auTitle").textContent = t("authTitle");
+ $("atC").textContent = t("createAcc");
+ $("atL").textContent = t("login");
+ $("atC").classList.toggle("on", _am === "C");
+ $("atL").classList.toggle("on", _am === "L");
+ $("auUser").placeholder = t("username");
+ $("auPass").placeholder = t("password");
+ $("auPass").setAttribute("autocomplete", _am === "C" ? "new-password" : "current-password");
+ $("auGo").textContent = _am === "C" ? t("createAcc") : t("login");
+ $("auNote").textContent = t("authNote");
+ $("auErrBox").classList.add("hide");
+}
+function auShowErr(msg){ const e = $("auErrBox"); e.textContent = msg; e.classList.remove("hide"); }
+async function doAuth(){
+ const u = ($("auUser").value || "").trim();
+ const p = $("auPass").value || "";
+ if(u.length < 2 || u.length > 18) return auShowErr(t("authBadUser"));
+ if(p.length < 4) return auShowErr(t("authBadPass"));
+ const go = $("auGo");
+ go.disabled = true;
+ try{
+  let accts;
+  try{ accts = await tdbRead(ACCT_KEY, null); }catch(_){ return auShowErr(t("authNet")); }
+  accts = accts && typeof accts === "object" ? accts : {};
+  const k = u.toLowerCase();
+  if(_am === "L"){
+   const a = accts[k];
+   if(!a) return auShowErr(t("authNoUser"));
+   if(await sha256(a.salt + p) !== a.hash) return auShowErr(t("authWrongPass"));
+   finishAuth(a);
+  } else {
+   if(accts[k]) return auShowErr(t("authTaken"));
+   const a = {uid:"g" + Math.random().toString(36).slice(2, 10), username:u, salt:Math.random().toString(36).slice(2, 10), hash:"", ts:Date.now()};
+   a.hash = await sha256(a.salt + p);
+   let saved = false, seen = 0;
+   try{ seen = +localStorage.getItem("gk_acct_seen") || 0; }catch(_){}
+   const cnt0 = Object.keys(accts).length;
+   if(cnt0 > seen){ seen = cnt0; try{ localStorage.setItem("gk_acct_seen", String(cnt0)); }catch(_){} }
+   for(let i = 0; i < 3 && !saved; i++){
+    try{
+     const fresh = await tdbRead(ACCT_KEY, null);           /* re-read fresh so concurrent signups aren't clobbered */
+     const obj = fresh && typeof fresh === "object" ? fresh : {};
+     const cnt = Object.keys(obj).length;
+     if(cnt > seen){ seen = cnt; try{ localStorage.setItem("gk_acct_seen", String(cnt)); }catch(_){} }
+     if(cnt === 0 && seen > 0){ await sleep(500); continue; } /* WIPE GUARD: never write over a suspicious empty read */
+     if(obj[k]) return auShowErr(t("authTaken"));
+     obj[k] = a;
+     const want = Object.keys(obj).length;
+     await tdbWrite(ACCT_KEY, obj);
+     await sleep(350);
+     const chk = await tdbRead(ACCT_KEY, null);
+     if(chk && chk[k] && Object.keys(chk).length >= want) saved = true; /* landed AND nobody else's account dropped */
+    }catch(_){ await sleep(350); }
+   }
+   if(!saved) return auShowErr(t("authSaveFail"));
+   finishAuth(a);
+  }
+ } finally { go.disabled = false; }
+}
+function finishAuth(a){
+ gkUser = {uid:a.uid, username:a.username};
+ try{ localStorage.setItem("gk_user", JSON.stringify(gkUser)); }catch(_){}
+ myPreds = {};
+ try{ localStorage.removeItem("gk_preds"); }catch(_){}
+ closeAuth();
+ syncMyPreds();
+ savePushSub(); /* attach uid/name to an existing push subscription */
+ renderPred();
+}
+function signOut(){
+ gkUser = null; myPreds = {};
+ try{ localStorage.removeItem("gk_user"); localStorage.removeItem("gk_preds"); }catch(_){}
+ renderPred();
+}
+async function syncMyPreds(){
+ if(!gkUser) return;
+ try{
+  const mine = await tdbRead(predKeyFor(gkUser.uid), null);
+  if(mine && mine.p){
+   myPreds = mine.p;
+   try{ localStorage.setItem("gk_preds", JSON.stringify(myPreds)); }catch(_){}
+   if(mainView === "pred") renderPred();
+  }
+ }catch(_){}
+}
+
+/* ---- prediction data (leagues flagged pred:true) ---- */
+let mainView = "scores";
+let predTab = "M";
+const predCache = {up:null, res:null, at:0};
+let _predInflight = null;
+function showMain(v){
+ mainView = v;
+ $("bnScores").classList.toggle("on", v === "scores");
+ $("bnPred").classList.toggle("on", v === "pred");
+ $("rail").classList.toggle("hide", v !== "scores");
+ if(v === "pred"){
+  $("home").classList.add("hide"); $("lg").classList.add("hide"); $("predPane").classList.remove("hide");
+  renderPred(); loadPredData(false); syncMyPreds();
+ } else {
+  $("predPane").classList.add("hide");
+  if(view === "lg") $("lg").classList.remove("hide"); else $("home").classList.remove("hide");
+ }
+ window.scrollTo(0, 0);
+}
+async function loadPredData(force){
+ if(_predInflight && !force) return _predInflight;
+ if(!force && predCache.at && Date.now() - predCache.at < 90000) return;
+ const p = (async () => {
+  const lgs = LEAGUES.filter(l => l.pred);
+  const tk = todayKey();
+  try{
+   /* results window reaches back to season start (2026-08-01) so leaderboard points never decay */
+  const resDays = Math.min(150, Math.max(14, Math.floor((Date.now() - Date.UTC(2026, 7, 1)) / 86400000) + 2));
+  const results = await Promise.all(
+    lgs.map(l => jget(API + l.slug + "/scoreboard?dates=" + rangeParam(tk, 0, 14)))
+    .concat(lgs.map(l => jget(API + l.slug + "/scoreboard?dates=" + rangeParam(tk, resDays, 0))))
+   );
+   const all = {};
+   results.forEach((j, idx) => {
+    const lgid = lgs[idx % lgs.length].id;
+    (j && j.events || []).forEach(e => { if(e && e.id && !all[e.id]){ e._gkLg = lgid; all[e.id] = e; } });
+   });
+   const evs = Object.values(all);
+   evs.forEach(e => { EV_INDEX[e.id] = e; });
+   predCache.up = evs.filter(e => evState(e) !== "post" && !voidedKey(e)).sort((a, b) => new Date(a.date) - new Date(b.date));
+   predCache.res = evs.filter(e => evState(e) === "post" && !voidedKey(e)).sort((a, b) => new Date(b.date) - new Date(a.date));
+   predCache.at = Date.now();
+  }catch(_){
+   if(!predCache.at && mainView === "pred") $("predBody").innerHTML = '<div class="errbox"><div class="big">📡</div>' + esc(t("loadFail")) + '<br><button type="button" class="retrybtn" onclick="loadPredData(true)">' + esc(t("retry")) + "</button></div>";
+   return;
+  }
+  if(mainView === "pred") renderPred();
+ })();
+ _predInflight = p;
+ try{ await p; } finally { if(_predInflight === p) _predInflight = null; }
+}
+function predLocked(e){ return Date.now() > (new Date(e.date).getTime() - 30 * 60000); }
+function pickTxt(pred){ return LANG === "ar" ? (pred.a + " - " + pred.h) : (pred.h + " - " + pred.a); }
+function scorePredGk(pred, e){
+ const comp = e.competitions && e.competitions[0] || {};
+ const cs = comp.competitors || [];
+ const H = cs.find(c => c.homeAway === "home") || {}, A = cs.find(c => c.homeAway === "away") || {};
+ const rh = parseInt(H.score, 10), ra = parseInt(A.score, 10);
+ if(!(rh >= 0) || !(ra >= 0)) return 0;
+ if(pred.h === rh && pred.a === ra) return 3;
+ const sg = x => x > 0 ? 1 : x < 0 ? -1 : 0;
+ return sg(pred.h - pred.a) === sg(rh - ra) ? 1 : 0;
+}
+function renderPred(){
+ const top = $("predTop");
+ if(!gkUser){
+  top.innerHTML = '<div class="authcard"><div class="autxt">🎯 ' + esc(t("predSignInMsg")) + '</div><button type="button" class="retrybtn" onclick="openAuth(\'C\')">' + esc(t("joinBtn")) + "</button></div>";
+ } else {
+  top.innerHTML = '<div class="userchip">👤 <b>' + esc(gkUser.username) + '</b><button type="button" class="signout" onclick="signOut()">' + esc(t("signOut")) + "</button></div>";
+ }
+ $("ptabs").innerHTML =
+  '<button type="button" class="ltab' + (predTab === "M" ? " on" : "") + '" onclick="setPredTab(\'M\')">' + esc(t("predictTab")) + "</button>" +
+  '<button type="button" class="ltab' + (predTab === "L" ? " on" : "") + '" onclick="setPredTab(\'L\')">' + esc(t("leaderboard")) + "</button>";
+ $("predNote").textContent = "🎯 " + t("scoringRule");
+ if(predTab === "M") renderPredMatches(); else renderLeaderboard();
+}
+function setPredTab(x){ predTab = x; renderPred(); }
+function predCard(e){
+ const comp = e.competitions && e.competitions[0] || {};
+ const cs = comp.competitors || [];
+ const H = cs.find(c => c.homeAway === "home") || cs[0] || {}, A = cs.find(c => c.homeAway === "away") || cs[1] || {};
+ const lg = LEAGUES.find(l => l.id === e._gkLg);
+ const mine = myPreds[e.id];
+ const locked = predLocked(e) || evState(e) !== "pre";
+ let mid;
+ if(mine){
+  mid = '<span class="mypick" dir="ltr">' + esc(pickTxt(mine)) + '</span><span class="msub">' + esc(t("yourPick")) + "</span>";
+ } else if(locked){
+  mid = '<span class="mypick dimd">–</span><span class="msub">' + esc(t("lockedNoPick")) + "</span>";
+ } else if(!gkUser){
+  mid = '<button type="button" class="pgo" onclick="openAuth(\'C\')">' + esc(t("joinShort")) + "</button>";
+ } else {
+  const inH = '<input class="pinp" inputmode="numeric" pattern="[0-9]*" maxlength="2" id="ph_' + esc(e.id) + '" aria-label="home">';
+  const inA = '<input class="pinp" inputmode="numeric" pattern="[0-9]*" maxlength="2" id="pa_' + esc(e.id) + '" aria-label="away">';
+  const pair = LANG === "ar" ? (inA + '<span class="pdash">-</span>' + inH) : (inH + '<span class="pdash">-</span>' + inA);
+  mid = '<span class="pin" dir="ltr">' + pair + "</span>" +
+   '<button type="button" class="pgo" data-eid="' + esc(e.id) + '" onclick="submitPredGk(this.dataset.eid, this)">' + esc(t("saveBtn")) + "</button>";
+ }
+ return '<div class="lgsec"><div class="lgbody"><div class="mrow prow">' +
+  '<span class="tm tmh"><i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + "</span>" +
+  '<span class="mid">' + mid + '<span class="msub"><span dir="ltr">' + esc(fmtTime(e.date)) + "</span>" + (lg ? " · " + esc(lgShort(lg)) : "") + "</span></span>" +
+  '<span class="tm tma">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span>" +
+  "</div></div></div>";
+}
+function predResultRow(e){
+ const comp = e.competitions && e.competitions[0] || {};
+ const cs = comp.competitors || [];
+ const H = cs.find(c => c.homeAway === "home") || cs[0] || {}, A = cs.find(c => c.homeAway === "away") || cs[1] || {};
+ const mine = myPreds[e.id];
+ const pts = mine ? scorePredGk(mine, e) : null;
+ const sub = mine
+  ? esc(t("yourPick")) + ' <span dir="ltr">' + esc(pickTxt(mine)) + "</span> · " + (pts === 3 ? "🎯 +3" : pts === 1 ? "✅ +1" : "0")
+  : esc(t("noPick"));
+ return '<div class="lgsec"><div class="lgbody"><div class="mrow prow">' +
+  '<span class="tm tmh"><i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + "</span>" +
+  '<span class="mid"><span class="msc" dir="ltr">' + scoreTxt(H, A) + '</span><span class="msub">' + sub + "</span></span>" +
+  '<span class="tm tma">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span>" +
+  "</div></div></div>";
+}
+function renderPredMatches(){
+ const body = $("predBody");
+ if(!predCache.at){ body.innerHTML = '<div class="skel"><span class="spinner"></span>' + esc(t("loading")) + "</div>"; return; }
+ let h = "", lastDay = 0;
+ const upcoming = predCache.up.slice(0, 40);
+ if(!upcoming.length) h += '<div class="empty"><div class="big">🗓️</div>' + esc(t("noUpcoming")) + "</div>";
+ for(const e of upcoming){
+  const k = dkey(new Date(e.date));
+  if(k !== lastDay){ lastDay = k; h += '<div class="dhead">' + esc(fmtDayFull(k)) + "</div>"; }
+  h += predCard(e);
+ }
+ const done = (predCache.res || []).slice(0, 20);
+ if(done.length){
+  h += '<div class="dhead">' + esc(t("recentResults")) + "</div>";
+  for(const e of done) h += predResultRow(e);
+ }
+ body.innerHTML = h;
+}
+async function submitPredGk(eid, btn){
+ if(!gkUser) return openAuth("C");
+ const e = EV_INDEX[eid];
+ if(!e) return;
+ if(predLocked(e) || evState(e) !== "pre"){ toastMsg(t("lockedNow")); renderPredMatches(); return; }
+ const hv = $("ph_" + eid), av = $("pa_" + eid);
+ const h = parseInt(hv && hv.value, 10), a = parseInt(av && av.value, 10);
+ if(!(h >= 0 && h <= 20) || !(a >= 0 && a <= 20)) return toastMsg(t("badScore"));
+ if(myPreds[eid]) return renderPredMatches();
+ btn.disabled = true;
+ const key = predKeyFor(gkUser.uid);
+ let ok = false;
+ for(let i = 0; i < 3 && !ok; i++){
+  try{
+   const mineR = await tdbRead(key, null);
+   const mine = mineR && typeof mineR === "object" ? mineR : {};
+   mine.n = gkUser.username;
+   mine.p = mine.p || {};
+   if(!mine.p[eid]) mine.p[eid] = {h:h, a:a, ts:Date.now()};   /* one submission per match, never overwritten */
+   await tdbWrite(key, mine);
+   await sleep(300);
+   const chk = await tdbRead(key, null);
+   if(chk && chk.p && chk.p[eid]){ ok = true; myPreds = chk.p; }
+  }catch(_){ await sleep(350); }
+ }
+ btn.disabled = false;
+ if(!ok) return toastMsg(t("authSaveFail"));
+ try{ localStorage.setItem("gk_preds", JSON.stringify(myPreds)); }catch(_){}
+ const landed = myPreds[eid];
+ toastMsg(landed && (landed.h !== h || landed.a !== a) ? t("alreadyPicked") : t("savedOk"));
+ renderPredMatches();
+}
+let lbCache = {at:0, rows:null};
+async function renderLeaderboard(){
+ const body = $("predBody");
+ if(lbCache.rows && Date.now() - lbCache.at < 60000){ body.innerHTML = lbHtml(lbCache.rows); return; }
+ /* keep last-good rows on screen while refreshing; skeleton only on first ever load */
+ body.innerHTML = lbCache.rows ? lbHtml(lbCache.rows) : '<div class="skel"><span class="spinner"></span>' + esc(t("loading")) + "</div>";
+ try{
+  const acctsR = await tdbRead(ACCT_KEY, null);
+  const accts = acctsR && typeof acctsR === "object" ? acctsR : {};
+  const users = Object.values(accts).slice(0, 100);
+  if(!users.length){ body.innerHTML = '<div class="empty"><div class="big">🏆</div>' + esc(t("lbEmpty")) + "</div>"; return; }
+  if(!predCache.at) await loadPredData(true);
+  if(!predCache.at) throw new Error("no results data"); /* never render an all-zero board off a failed fetch */
+  const doneMap = {};
+  (predCache.res || []).forEach(e => { doneMap[e.id] = e; });
+  const packs = await Promise.all(users.map(u => tdbRead(predKeyFor(u.uid), null).catch(() => null)));
+  const rows = packs.map((pk, i) => {
+   const u = users[i];
+   let pts = 0, exact = 0;
+   if(pk && pk.p) for(const eid in pk.p){ const e = doneMap[eid]; if(!e) continue; const s = scorePredGk(pk.p[eid], e); pts += s; if(s === 3) exact++; }
+   return {name:u.username, uid:u.uid, pts, exact};
+  });
+  rows.sort((a, b) => b.pts - a.pts || b.exact - a.exact || String(a.name).localeCompare(String(b.name)));
+  lbCache = {at:Date.now(), rows};
+  if(mainView === "pred" && predTab === "L") body.innerHTML = lbHtml(rows);
+ }catch(_){
+  if(lbCache.rows){ body.innerHTML = '<div class="stale">⚠️ ' + esc(t("staleNote")) + "</div>" + lbHtml(lbCache.rows); }
+  else body.innerHTML = '<div class="errbox"><div class="big">📡</div>' + esc(t("loadFail")) + '<br><button type="button" class="retrybtn" onclick="lbCache.at=0;renderLeaderboard()">' + esc(t("retry")) + "</button></div>";
+ }
+}
+function lbHtml(rows){
+ const medals = ["🥇", "🥈", "🥉"];
+ let h = '<div class="statcard"><div class="stath"><span class="ic">🏆</span>' + esc(t("leaderboard")) + "</div>";
+ rows.slice(0, 50).forEach((r, i) => {
+  h += '<div class="srow' + (gkUser && r.uid === gkUser.uid ? " meRow" : "") + '"><span class="srank' + (i < 3 ? " top" : "") + '">' + (medals[i] || (i + 1)) + "</span>" +
+   '<span class="sname"><b>' + esc(r.name) + "</b><span>" + esc(t("exactLabel")) + ' <span dir="ltr">' + r.exact + "</span></span></span>" +
+   '<span class="sval" dir="ltr">' + r.pts + "</span></div>";
+ });
+ return h + "</div>";
+}
+let _toastTimer = null;
+function toastMsg(msg){
+ let el = $("gkToast");
+ if(!el){ el = document.createElement("div"); el.id = "gkToast"; el.className = "toast"; document.body.appendChild(el); }
+ el.textContent = msg;
+ el.style.display = "block";
+ clearTimeout(_toastTimer);
+ _toastTimer = setTimeout(() => { el.style.display = "none"; }, 2600);
+}
+$("authModal").addEventListener("click", function(ev){ if(ev.target === this) closeAuth(); });
+
+/* ============ push notifications (client) ============ */
+const GK_VAPID_PUBLIC = "BLyDli3t0W8TTo9gL7s4ibxgVJY6_ism0HIyn8DymerLNs1Bs9mo5ct5i_wti8NNUQ_pfXxMXXZfJKdg1Gc02RM";
+const PUSH_SUBS_KEY = "goalak_push_subs";
+let pushLgs = [];
+try{ pushLgs = JSON.parse(localStorage.getItem("gk_push_lgs") || "[]"); }catch(_){}
+function allLgIds(){ return LEAGUES.map(l => l.id).filter((v, i, a) => a.indexOf(v) === i); }
+function pushUiState(on){
+ const onB = $("pushOnB"), offB = $("pushOffB");
+ if(!onB) return;
+ onB.classList.toggle("on", !!on);
+ offB.classList.toggle("on", !on);
+ $("pushLgRow").classList.toggle("hide", !on);
+ if(on) renderPushLgs();
+}
+function renderPushLgs(){
+ const seenIds = {}; const uniq = [];
+ for(const lg of LEAGUES){ if(!seenIds[lg.id]){ seenIds[lg.id] = 1; uniq.push(lg); } }
+ $("pushLgRow").innerHTML = '<span class="shlab">' + esc(t("pushLeagues")) + "</span>" +
+  uniq.map(lg => '<button type="button" class="chip' + (!pushLgs.length || pushLgs.includes(lg.id) ? " on" : "") + '" onclick="togglePushLg(\'' + lg.id + '\')">' + esc(lgShort(lg)) + "</button>").join("");
+}
+function togglePushLg(id){
+ const all = allLgIds();
+ if(!pushLgs.length) pushLgs = all.slice();
+ if(pushLgs.includes(id)){
+  if(pushLgs.length === 1) return toastMsg(t("pushKeepOne"));
+  pushLgs = pushLgs.filter(x => x !== id);
+ } else pushLgs = pushLgs.concat([id]);
+ if(pushLgs.length === all.length) pushLgs = [];
+ try{ localStorage.setItem("gk_push_lgs", JSON.stringify(pushLgs)); }catch(_){}
+ renderPushLgs();
+ savePushSub();
+}
+function b64urlKey(s){
+ const b64 = s.replace(/-/g, "+").replace(/_/g, "/");
+ const pad = b64 + "=".repeat((4 - b64.length % 4) % 4);
+ const bin = atob(pad);
+ const u = new Uint8Array(bin.length);
+ for(let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+ return u;
+}
+async function setPush(on){
+ if(!on){
+  pushUiState(false);
+  try{
+   const reg = await navigator.serviceWorker.ready;
+   const sub = await reg.pushManager.getSubscription();
+   if(sub){ const ep = sub.endpoint; await sub.unsubscribe().catch(() => {}); await removePushSub(ep); }
+  }catch(_){}
+  return;
+ }
+ if(!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)){ toastMsg(t("pushUnsupported")); pushUiState(false); return; }
+ if(isIOS() && !isStandalone()){ toastMsg(t("pushIosInstall")); pushUiState(false); return; }
+ try{
+  const perm = await Notification.requestPermission();
+  if(perm !== "granted"){ toastMsg(t("pushDenied")); pushUiState(false); return; }
+  const reg = await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:b64urlKey(GK_VAPID_PUBLIC) });
+  const saved = await savePushSub(sub);
+  if(!saved){ try{ await sub.unsubscribe(); }catch(_){} toastMsg(t("authNet")); pushUiState(false); return; }
+  pushUiState(true);
+  toastMsg(t("pushOnOk"));
+ }catch(_){ toastMsg(t("authNet")); pushUiState(false); }
+}
+function subsSeen(){ try{ return +localStorage.getItem("gk_subs_seen") || 0; }catch(_){ return 0; } }
+function subsSeenUpd(n){ try{ if(n > subsSeen()) localStorage.setItem("gk_subs_seen", String(n)); }catch(_){} }
+async function savePushSub(subObj){
+ /* returns true only when the record is CONFIRMED present without shrinking the shared list (wipe guard, QA finding) */
+ try{
+  if(!("serviceWorker" in navigator)) return false;
+  const reg = await navigator.serviceWorker.ready;
+  const sub = subObj || await reg.pushManager.getSubscription();
+  if(!sub) return false;
+  const j = sub.toJSON();
+  const rec = { endpoint:j.endpoint, keys:j.keys, lgs:pushLgs, lang:LANG, uid:gkUser ? gkUser.uid : null, name:gkUser ? gkUser.username : null, ts:Date.now() };
+  for(let i = 0; i < 3; i++){
+   try{
+    const listR = await tdbRead(PUSH_SUBS_KEY, null);
+    const list = Array.isArray(listR) ? listR : [];
+    subsSeenUpd(list.length);
+    if(list.length === 0 && subsSeen() > 1){ await sleep(400); continue; } /* suspicious empty read: never write over it */
+    const next = list.filter(s => s && s.endpoint !== rec.endpoint);
+    next.push(rec);
+    await tdbWrite(PUSH_SUBS_KEY, next);
+    await sleep(300);
+    const chk = await tdbRead(PUSH_SUBS_KEY, null);
+    if(Array.isArray(chk) && chk.some(s => s && s.endpoint === rec.endpoint) && chk.length >= next.length){ subsSeenUpd(chk.length); return true; }
+   }catch(_){ await sleep(300); }
+  }
+ }catch(_){}
+ return false;
+}
+async function removePushSub(ep){
+ for(let i = 0; i < 3; i++){
+  try{
+   const listR = await tdbRead(PUSH_SUBS_KEY, null);
+   const list = Array.isArray(listR) ? listR : [];
+   if(list.length === 0) return; /* nothing to remove; never write an empty list over a failed read */
+   subsSeenUpd(list.length);
+   const next = list.filter(s => s && s.endpoint !== ep);
+   if(next.length === list.length) return;
+   await tdbWrite(PUSH_SUBS_KEY, next);
+   await sleep(250);
+   const chk = await tdbRead(PUSH_SUBS_KEY, null);
+   if(Array.isArray(chk) && !chk.some(s => s && s.endpoint === ep) && chk.length >= next.length) return;
+  }catch(_){ await sleep(300); }
+ }
+}
+async function refreshPushUI(){
+ let on = false;
+ try{
+  if("serviceWorker" in navigator && "PushManager" in window && "Notification" in window && Notification.permission === "granted"){
+   const reg = await navigator.serviceWorker.ready;
+   on = !!(await reg.pushManager.getSubscription());
+  }
+ }catch(_){}
+ pushUiState(on);
+}
+
+/* ============ refresh loop + lifecycle ============ */
+setInterval(function(){
+ if(document.hidden) return;
+ buildStrip(false); /* day rollover rebuilds the strip */
+ if(mainView === "pred"){ loadPredData(false); return; }
+ if(view === "home"){
+  /* keep refreshing yesterday too: late European kickoffs cross local midnight while still live */
+  const tk = todayKey();
+  if(selDay === tk || selDay === addDaysKey(tk, -1)) loadDay(false);
+ }
+ else if(view === "lg" && lgTab === "M") renderLgMatches();
+}, 45000);
+document.addEventListener("visibilitychange", function(){
+ if(document.hidden) return;
+ buildStrip(false);
+ if(mainView === "pred"){ loadPredData(false); return; }
+ if(view === "home") loadDay(false);
+ else paintLeague();
+});
+
+/* ============ boot ============ */
+(function(){
+ document.documentElement.lang = LANG;
+ document.documentElement.dir = LANG === "ar" ? "rtl" : "ltr";
+ $("lgEn").classList.toggle("on", LANG === "en");
+ $("lgAr").classList.toggle("on", LANG === "ar");
+ $("motto").textContent = t("motto");
+ $("footMotto").textContent = t("motto");
+ $("footNote").textContent = t("footNote");
+ $("loadTxt").textContent = t("loading");
+ setTheme(THEME);
+ refreshSettingsUI();
+ tickClock();
+ setInterval(tickClock, 1000);
+ buildRail();
+ buildStrip(true);
+ $("bnScoresL").textContent = t("matchesNav");
+ $("bnPredL").textContent = t("predictions");
+ loadDay(false);
+ syncMyPreds();
+ refreshPushUI();
+ /* deep link: ?lg=<leagueId> opens that league, ?go=pred opens predictions */
+ try{
+  const q = new URLSearchParams(location.search);
+  const lgq = q.get("lg");
+  if(q.get("go") === "pred") showMain("pred");
+  else if(lgq && LEAGUES.some(l => l.id === lgq)) gotoLeague(lgq);
+ }catch(_){}
+ if("serviceWorker" in navigator){ try{ navigator.serviceWorker.register("sw.js").catch(function(){}); }catch(_){} }
+})();
+</script>
+</body>
+</html>
