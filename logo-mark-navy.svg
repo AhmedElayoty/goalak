@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Goalak">
+  <title>Goalak</title>
+  <!-- Goalak mark : official brand-package geometry (goalak-mark-reversed.svg),
+       recolored to the app navy palette as a comparison option -->
+  <defs>
+    <clipPath id="gnnet"><path d="M106 76C74 76 56 96 56 128C56 160 75 180 108 180H181V76ZM122 113H198V143H122Z" fill-rule="evenodd" clip-rule="evenodd"/></clipPath>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="#0a1230"/>
+  <g transform="translate(96 96) scale(1.25)">
+    <!-- frame : G goal gate -->
+    <path id="frame" d="M202 60H106C64 60 40 86 40 128C40 172 66 196 108 196H198V128H122" fill="none" stroke="#eef2ff" stroke-width="30" stroke-linecap="butt" stroke-linejoin="bevel"/>
+    <!-- net -->
+    <g id="net" clip-path="url(#gnnet)" fill="none" stroke="#8493c8" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round" opacity=".82">
+      <path d="M67 77L180 190M55 96L152 193M52 126L120 194M58 160L91 193M97 70L190 163M128 71L191 134"/>
+      <path d="M56 160L139 77M70 188L175 83M101 193L191 103M133 190L192 131M55 130L113 72"/>
+    </g>
+    <!-- swoosh : speed lines -->
+    <g id="swoosh" fill="none" stroke="#ff7a45" stroke-width="8" stroke-linecap="round">
+      <path d="M215 92H246M220 108H253M214 124H242"/>
+    </g>
+    <!-- ball -->
+    <g id="ball" transform="translate(181 108)">
+      <circle r="27" fill="#FFF8F2" stroke="#0D0B12" stroke-width="4"/>
+      <path d="M0-8L7.6-2.5L4.7 6.5H-4.7L-7.6-2.5Z" fill="#0D0B12"/>
+      <path d="M-8-25H8L11-18L0-14L-11-18ZM16-19L25-13L27-2L21 3L14-5ZM26 8L20 20L8 26L4 18L12 11ZM-26 8L-20 20L-8 26L-4 18L-12 11ZM-16-19L-25-13L-27-2L-21 3L-14-5Z" fill="#0D0B12"/>
+      <path d="M0-8V-14M7.6-2.5L14-5M4.7 6.5L12 11M-4.7 6.5L-12 11M-7.6-2.5L-14-5" fill="none" stroke="#0D0B12" stroke-width="2.4" stroke-linecap="round"/>
+    </g>
+  </g>
+</svg>
