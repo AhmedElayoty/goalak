@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Goalak">
+  <title>Goalak</title>
+  <!-- Goalak header mark : official brand-package micro geometry, transparent bg,
+       reversed (warm-white) colorway for dark navy header, legible at 40px -->
+  <defs>
+    <clipPath id="ghnet"><path d="M106 76C74 76 56 96 56 128C56 160 75 180 108 180H181V76ZM122 113H198V143H122Z" fill-rule="evenodd" clip-rule="evenodd"/></clipPath>
+  </defs>
+  <g transform="translate(-2.4 0) scale(.25)">
+    <!-- frame : G goal gate -->
+    <path id="frame" d="M202 60H106C64 60 40 86 40 128C40 172 66 196 108 196H198V128H122" fill="none" stroke="#FFF8F2" stroke-width="32" stroke-linecap="butt" stroke-linejoin="bevel"/>
+    <!-- net : simplified (package micro net) -->
+    <g id="net" clip-path="url(#ghnet)" fill="none" stroke="#FFF8F2" stroke-width="7" stroke-linecap="round" opacity=".9">
+      <path d="M62 82L172 192M55 126L120 191M105 73L190 158M60 171L154 77M91 191L187 95"/>
+    </g>
+    <!-- swoosh : coral speed lines -->
+    <path id="swoosh" d="M216 100H246M218 120H241" fill="none" stroke="#F24B40" stroke-width="10" stroke-linecap="round"/>
+    <!-- ball -->
+    <g id="ball" transform="translate(181 109)">
+      <circle r="25" fill="#FFF8F2" stroke="#0D0B12" stroke-width="5"/>
+      <path d="M0-9L8-3L5 7H-5L-8-3Z" fill="#0D0B12"/>
+    </g>
+  </g>
+</svg>
