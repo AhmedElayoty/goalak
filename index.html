@@ -328,6 +328,12 @@ html[data-theme="light"]{--dim:#44536f;--dim2:#5a6a8e}
 .aubtn{width:100%;margin-top:8px}
 .aunote{font-size:11.5px;color:var(--dim2);padding-top:8px;text-align:center}
 .toast{position:fixed;bottom:84px;inset-inline:0;margin-inline:auto;width:fit-content;max-width:86%;background:rgba(8,10,20,.92);color:#fff;padding:10px 18px;border-radius:12px;font-size:13.5px;font-weight:700;z-index:130;text-align:center}
+
+/* ---------- fantasy teaser ---------- */
+.fantsoon{text-align:center;padding:90px 10px 40px}
+.fantsoon .fbig{font-size:54px;line-height:1}
+.fantsoon .fttl{font-family:'Alexandria','Cairo',system-ui,sans-serif;font-weight:800;font-size:22px;letter-spacing:1.5px;margin:14px 0 6px;color:var(--gold)}
+.fantsoon .fsoon{font-size:16px;color:var(--dim);font-weight:700}
 </style>
 </head>
 <body>
@@ -352,7 +358,7 @@ html[data-theme="light"]{--dim:#44536f;--dim2:#5a6a8e}
   <div class="shrow"><span class="shlab" id="shClock">نظام الوقت</span><div class="seg" role="radiogroup" aria-labelledby="shClock"><button type="button" id="h12b" class="on" onclick="setHour12(true)">AM·PM</button><button type="button" id="h24b" onclick="setHour12(false)">24H</button></div></div>
   <div class="shrow"><span class="shlab" id="shLang">اللغة</span><div class="seg" role="radiogroup" aria-labelledby="shLang"><button type="button" id="lgEn" onclick="setLang('en')">EN</button><button type="button" id="lgAr" class="on" onclick="setLang('ar')">عربي</button></div></div>
   <div class="shrow"><span class="shlab" id="shTheme">🌓 المظهر</span><div class="seg" role="radiogroup" aria-labelledby="shTheme"><button type="button" id="thD" class="on" onclick="setTheme('dark')">داكن</button><button type="button" id="thL" onclick="setTheme('light')">فاتح</button></div></div>
-  <div class="shver">GOALAK · v1.2 · الجول جولك</div>
+  <div class="shver">GOALAK · v1.3 · الجول جولك</div>
  </div>
 
  <nav class="rail" id="rail" aria-label="Leagues"></nav>
@@ -375,6 +381,14 @@ html[data-theme="light"]{--dim:#44536f;--dim2:#5a6a8e}
    <div id="predBody"><div class="skel"><span class="spinner"></span></div></div>
   </section>
 
+  <section id="fantPane" class="hide">
+   <div class="fantsoon">
+    <div class="fbig">⭐</div>
+    <div class="fttl">GOALAK FANTASY</div>
+    <div class="fsoon" id="fantSoon">قريبًا…</div>
+   </div>
+  </section>
+
   <section id="lg" class="hide">
    <div class="lgphead">
     <button type="button" class="backbtn" onclick="gotoHome()"><span>&#8594;</span></button>
@@ -387,7 +401,7 @@ html[data-theme="light"]{--dim:#44536f;--dim2:#5a6a8e}
   </section>
  </main>
 
- <footer><b>GOALAK</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN</span> · <span id="appVer">v1.2</span></footer>
+ <footer><b>GOALAK</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN</span> · <span id="appVer">v1.3</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -413,24 +427,25 @@ html[data-theme="light"]{--dim:#44536f;--dim2:#5a6a8e}
 <nav class="bnav" id="bnav">
  <button type="button" id="bnScores" class="on" onclick="showMain('scores')"><span class="bnico">⚽</span><span id="bnScoresL">المباريات</span></button>
  <button type="button" id="bnPred" onclick="showMain('pred')"><span class="bnico">🎯</span><span id="bnPredL">التوقعات</span></button>
+ <button type="button" id="bnFant" onclick="showMain('fant')"><span class="bnico">⭐</span><span id="bnFantL">فانتازي</span></button>
 </nav>
 
 <script>
 "use strict";
 /* ============ GOALAK v1.0 · الجول جولك ============ */
-const APP_VERSION = "1.2";
+const APP_VERSION = "1.3";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 
 /* League registry. zones = [from,to] ranks: g=green a=amber r=red. Counts are
    best-effort 2026-27 qualification spots; edit here if a league changes. */
 const LEAGUES = [
- {id:"ucl", slug:"uefa.champions", qual:"uefa.champions_qual", uefa:true, en:"Champions League", ar:"دوري أبطال أوروبا", shortEn:"UCL", shortAr:"الأبطال", ico:"🏆",
+ {id:"ucl", slug:"uefa.champions", qual:"uefa.champions_qual", uefa:true, pred:true, en:"Champions League", ar:"دوري أبطال أوروبا", shortEn:"UCL", shortAr:"الأبطال", ico:"🏆",
   zones:{g:[1,8],a:[9,24],r:[25,36]}, zlabAr:["التأهل المباشر لدور الـ16","الملحق","خارج المنافسة"], zlabEn:["Direct to R16","Playoff","Eliminated"]},
  {id:"uel", slug:"uefa.europa", qual:"uefa.europa_qual", uefa:true, en:"Europa League", ar:"الدوري الأوروبي", shortEn:"UEL", shortAr:"يوروبا", ico:"🥈",
   zones:{g:[1,8],a:[9,24],r:[25,36]}, zlabAr:["التأهل المباشر لدور الـ16","الملحق","خارج المنافسة"], zlabEn:["Direct to R16","Playoff","Eliminated"]},
- {id:"epl", slug:"eng.1", en:"Premier League", ar:"الدوري الإنجليزي الممتاز", shortEn:"PL", shortAr:"إنجلترا", flag:"gb-eng", pred:true, zones:{g:[1,4],a:[5,6],r:[18,20]}},
- {id:"liga", slug:"esp.1", en:"La Liga", ar:"الدوري الإسباني", shortEn:"LaLiga", shortAr:"إسبانيا", flag:"es", pred:true, zones:{g:[1,4],a:[5,6],r:[18,20]}},
+ {id:"epl", slug:"eng.1", en:"Premier League", ar:"الدوري الإنجليزي الممتاز", shortEn:"PL", shortAr:"إنجلترا", flag:"gb-eng", zones:{g:[1,4],a:[5,6],r:[18,20]}},
+ {id:"liga", slug:"esp.1", en:"La Liga", ar:"الدوري الإسباني", shortEn:"LaLiga", shortAr:"إسبانيا", flag:"es", zones:{g:[1,4],a:[5,6],r:[18,20]}},
  {id:"bun", slug:"ger.1", en:"Bundesliga", ar:"الدوري الألماني", shortEn:"Bundesliga", shortAr:"ألمانيا", flag:"de", zones:{g:[1,4],a:[5,6],r:[16,18]}},
  {id:"fl1", slug:"fra.1", en:"Ligue 1", ar:"الدوري الفرنسي", shortEn:"Ligue 1", shortAr:"فرنسا", flag:"fr", zones:{g:[1,3],a:[4,5],r:[16,18]}},
  {id:"tsl", slug:"tur.1", en:"Süper Lig", ar:"الدوري التركي", shortEn:"Süper Lig", shortAr:"تركيا", flag:"tr", zones:{g:[1,2],a:[3,4],r:[16,18]}},
@@ -518,7 +533,7 @@ const STR = {
  predictions:["التوقعات","Predictions"],
  predictTab:["سجّل توقعك","Predict"],
  leaderboard:["لوحة الصدارة","Leaderboard"],
- predSignInMsg:["لعبة توقعات الدوري الإنجليزي والإسباني مع أصحابك","The PL & La Liga prediction game with your friends"],
+ predSignInMsg:["لعبة توقعات دوري أبطال أوروبا مع أصحابك","The Champions League prediction game with your friends"],
  joinBtn:["سجّل الآن","Join now"],
  joinShort:["سجّل","Join"],
  signOut:["خروج","Sign out"],
@@ -556,6 +571,8 @@ const STR = {
  pushOnOk:["تم تفعيل التنبيهات ✅","Alerts enabled ✅"],
  pushKeepOne:["اختر بطولة واحدة على الأقل أو أوقف التنبيهات","Keep at least one league or turn alerts off"],
  alreadyPicked:["سبق أن توقعت هذه المباراة من جهاز آخر","You already predicted this match on another device"],
+ fantasyNav:["فانتازي","Fantasy"],
+ soon:["قريبًا…","Soon…"],
 };
 function t(k){ const e = STR[k]; return e ? e[LANG === "ar" ? 0 : 1] : k; }
 function lgName(lg){ return LANG === "ar" ? lg.ar : lg.en; }
@@ -656,9 +673,12 @@ function setLang(x){
  $("footMotto").textContent = t("motto");
  $("footNote").textContent = t("footNote");
  buildRail(); buildStrip(true); refreshSettingsUI(); tickClock();
- const bs = $("bnScoresL"), bp = $("bnPredL");
+ const bs = $("bnScoresL"), bp = $("bnPredL"), bf = $("bnFantL");
  if(bs) bs.textContent = t("matchesNav");
  if(bp) bp.textContent = t("predictions");
+ if(bf) bf.textContent = t("fantasyNav");
+ const fs = $("fantSoon");
+ if(fs) fs.textContent = t("soon");
  if(typeof updateAuthUI === "function" && !$("authModal").classList.contains("hide")) updateAuthUI();
  if(typeof mainView !== "undefined" && mainView === "pred"){ renderPred(); }
  else if(view === "home"){ paintHome(); } else { paintLeague(); }
@@ -1400,14 +1420,17 @@ function showMain(v){
  mainView = v;
  $("bnScores").classList.toggle("on", v === "scores");
  $("bnPred").classList.toggle("on", v === "pred");
+ $("bnFant").classList.toggle("on", v === "fant");
  $("rail").classList.toggle("hide", v !== "scores");
- if(v === "pred"){
-  $("home").classList.add("hide"); $("lg").classList.add("hide"); $("predPane").classList.remove("hide");
-  renderPred(); loadPredData(false); syncMyPreds();
- } else {
-  $("predPane").classList.add("hide");
+ $("predPane").classList.toggle("hide", v !== "pred");
+ $("fantPane").classList.toggle("hide", v !== "fant");
+ if(v === "scores"){
   if(view === "lg") $("lg").classList.remove("hide"); else $("home").classList.remove("hide");
+ } else {
+  $("home").classList.add("hide"); $("lg").classList.add("hide");
  }
+ if(v === "pred"){ renderPred(); loadPredData(false); syncMyPreds(); }
+ if(v === "fant") $("fantSoon").textContent = t("soon");
  window.scrollTo(0, 0);
 }
 async function loadPredData(force){
@@ -1419,14 +1442,20 @@ async function loadPredData(force){
   try{
    /* results window reaches back to season start (2026-08-01) so leaderboard points never decay */
   const resDays = Math.min(150, Math.max(14, Math.floor((Date.now() - Date.UTC(2026, 7, 1)) / 86400000) + 2));
-  const results = await Promise.all(
-    lgs.map(l => jget(API + l.slug + "/scoreboard?dates=" + rangeParam(tk, 0, 14)))
-    .concat(lgs.map(l => jget(API + l.slug + "/scoreboard?dates=" + rangeParam(tk, resDays, 0))))
-   );
+  /* UEFA pred leagues also need their qualifying slug: the main slug is empty until the draw */
+  const jobs = [];
+  for(const l of lgs){
+   const slugs = [{s:l.slug, q:0}].concat(l.qual ? [{s:l.qual, q:1}] : []);
+   for(const sl of slugs){
+    jobs.push({slug:sl.s, id:l.id, q:sl.q, range:rangeParam(tk, 0, 14)});
+    jobs.push({slug:sl.s, id:l.id, q:sl.q, range:rangeParam(tk, resDays, 0)});
+   }
+  }
+  const results = await Promise.all(jobs.map(jb => jget(API + jb.slug + "/scoreboard?dates=" + jb.range)));
    const all = {};
    results.forEach((j, idx) => {
-    const lgid = lgs[idx % lgs.length].id;
-    (j && j.events || []).forEach(e => { if(e && e.id && !all[e.id]){ e._gkLg = lgid; all[e.id] = e; } });
+    const jb = jobs[idx];
+    (j && j.events || []).forEach(e => { if(e && e.id && !all[e.id]){ e._gkLg = jb.id; if(jb.q) e._gkQual = 1; all[e.id] = e; } });
    });
    const evs = Object.values(all);
    evs.forEach(e => { EV_INDEX[e.id] = e; });
@@ -1491,7 +1520,7 @@ function predCard(e){
  }
  return '<div class="lgsec"><div class="lgbody"><div class="mrow prow">' +
   '<span class="tm tmh"><i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + "</span>" +
-  '<span class="mid">' + mid + '<span class="msub"><span dir="ltr">' + esc(fmtTime(e.date)) + "</span>" + (lg ? " · " + esc(lgShort(lg)) : "") + "</span></span>" +
+  '<span class="mid">' + mid + '<span class="msub"><span dir="ltr">' + esc(fmtTime(e.date)) + "</span>" + (lg ? " · " + esc(lgShort(lg)) : "") + (e._gkQual ? " · " + esc(t("qualTag")) : "") + "</span></span>" +
   '<span class="tm tma">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span>" +
   "</div></div></div>";
 }
@@ -1767,6 +1796,8 @@ document.addEventListener("visibilitychange", function(){
  buildStrip(true);
  $("bnScoresL").textContent = t("matchesNav");
  $("bnPredL").textContent = t("predictions");
+ $("bnFantL").textContent = t("fantasyNav");
+ $("fantSoon").textContent = t("soon");
  loadDay(false);
  syncMyPreds();
  refreshPushUI();
@@ -1775,6 +1806,7 @@ document.addEventListener("visibilitychange", function(){
   const q = new URLSearchParams(location.search);
   const lgq = q.get("lg");
   if(q.get("go") === "pred") showMain("pred");
+  else if(q.get("go") === "fant") showMain("fant");
   else if(lgq && LEAGUES.some(l => l.id === lgq)) gotoLeague(lgq);
  }catch(_){}
  if("serviceWorker" in navigator){ try{ navigator.serviceWorker.register("sw.js").catch(function(){}); }catch(_){} }
