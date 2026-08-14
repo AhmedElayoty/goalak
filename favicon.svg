@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">GOALAK favicon</title>
+  <desc id="desc">GOALAK bilingual football live scores brand identity</desc>
+  <metadata>
+    GOALAK / جولك concept identity. Creative territory: The Goal Gate.
+    Brand concept prepared 2026-08-14. Concept-stage only pending formal name and trademark clearance.
+  </metadata>
+  
+  
+  <g transform="translate(3 3) scale(0.2265625)"><defs><clipPath id="goalak-micro-net-clip"><path d="M106 76C74 76 56 96 56 128C56 160 75 180 108 180H181V76ZM122 113H198V143H122Z" fill-rule="evenodd" clip-rule="evenodd"/></clipPath></defs>
+  <path d="M202 60H106C64 60 40 86 40 128C40 172 66 196 108 196H198V128H122" fill="none" stroke="#211235" stroke-width="32" stroke-linecap="butt" stroke-linejoin="bevel"/>
+  <g clip-path="url(#goalak-micro-net-clip)" fill="none" stroke="#F24B40" stroke-width="7" stroke-linecap="round" opacity=".9">
+    <path d="M62 82L172 192M55 126L120 191M105 73L190 158M60 171L154 77M91 191L187 95"/>
+  </g>
+  <path d="M216 100H246M218 120H241" fill="none" stroke="#F24B40" stroke-width="10" stroke-linecap="round"/>
+  <g transform="translate(181 109)"><circle r="25" fill="#FFF8F2" stroke="#0D0B12" stroke-width="5"/><path d="M0-9L8-3L5 7H-5L-8-3Z" fill="#0D0B12"/></g></g>
+</svg>
