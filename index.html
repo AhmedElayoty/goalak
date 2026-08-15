@@ -477,7 +477,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <div class="shrow"><span class="shlab" id="shClock">نظام الوقت</span><div class="seg" role="radiogroup" aria-labelledby="shClock"><button type="button" id="h12b" class="on" onclick="setHour12(true)">AM·PM</button><button type="button" id="h24b" onclick="setHour12(false)">24H</button></div></div>
   <div class="shrow"><span class="shlab" id="shLang">اللغة</span><div class="seg" role="radiogroup" aria-labelledby="shLang"><button type="button" id="lgEn" onclick="setLang('en')">EN</button><button type="button" id="lgAr" class="on" onclick="setLang('ar')">عربي</button></div></div>
   <div class="shrow"><span class="shlab" id="shTheme">🌓 المظهر</span><div class="seg" role="radiogroup" aria-labelledby="shTheme"><button type="button" id="thD" class="on" onclick="setTheme('dark')">داكن</button><button type="button" id="thL" onclick="setTheme('light')">فاتح</button></div></div>
- <div class="shver" id="shVer">جولك · v2.6 · الجول جولك</div>
+ <div class="shver" id="shVer">جولك · v2.7 · الجول جولك</div>
  </div>
 
  <nav class="rail" id="rail" aria-label="Leagues"></nav>
@@ -527,7 +527,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN وFilGoal</span> · <span id="appVer">v2.6</span></footer>
+ <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN وFilGoal</span> · <span id="appVer">v2.7</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -580,7 +580,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <script>
 "use strict";
 /* ============ GOALLAK · الجول جولك ============ */
-const APP_VERSION = "2.6";
+const APP_VERSION = "2.7";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1212,9 +1212,16 @@ async function fetchExtrasInto(day, force){
   if(!force && cached && Date.now() - cached.at < ttl) return;
   try{
    const j = await jget(API + source.slug + "/scoreboard?dates=" + rangeParam(day, 1, 1));
-   const events = (j && Array.isArray(j.events) ? j.events : []).map(event => Object.assign({}, event, {
+   let events = (j && Array.isArray(j.events) ? j.events : []).map(event => Object.assign({}, event, {
     _gkCompetition:{en:source.en, ar:source.ar, slug:source.slug}
    }));
+   if(source.slug === "club.friendly"){
+    const trackedIds = await trackedClubIds();
+    if(trackedIds && trackedIds.size) events = events.filter(event => {
+     const competition = event && event.competitions && event.competitions[0];
+     return !!(competition && Array.isArray(competition.competitors) && competition.competitors.some(item => item && item.team && trackedIds.has(String(item.team.id))));
+    });
+   }
    extraSourceCache[ck] = {at:Date.now(), events};
   }catch(_){ anyFail = true; /* preserve this competition's last-good cache */ }
  }));
@@ -2039,20 +2046,17 @@ async function loadPredData(force){
   try{
    /* results window reaches back to season start (2026-08-01) so leaderboard points never decay */
   const resDays = Math.min(150, Math.max(14, Math.floor((Date.now() - Date.UTC(2026, 7, 1)) / 86400000) + 2));
-  /* UEFA pred leagues also need their qualifying slug: the main slug is empty until the draw */
   const jobs = [];
   for(const l of lgs){
-   const slugs = [{s:l.slug, q:0}].concat(l.qual ? [{s:l.qual, q:1}] : []);
-   for(const sl of slugs){
-    jobs.push({slug:sl.s, id:l.id, q:sl.q, range:rangeParam(tk, 0, 14)});
-    jobs.push({slug:sl.s, id:l.id, q:sl.q, range:rangeParam(tk, resDays, 0)});
-   }
+   /* Predictions are for the Champions League proper only, never qualifying rounds. */
+   jobs.push({slug:l.slug, id:l.id, range:rangeParam(tk, 0, 14)});
+   jobs.push({slug:l.slug, id:l.id, range:rangeParam(tk, resDays, 0)});
   }
   const results = await Promise.all(jobs.map(jb => jget(API + jb.slug + "/scoreboard?dates=" + jb.range)));
    const all = {};
    results.forEach((j, idx) => {
     const jb = jobs[idx];
-    (j && j.events || []).forEach(e => { if(e && e.id && !all[e.id]){ e._gkLg = jb.id; if(jb.q) e._gkQual = 1; all[e.id] = e; } });
+    (j && j.events || []).forEach(e => { if(e && e.id && !all[e.id]){ e._gkLg = jb.id; all[e.id] = e; } });
    });
    const evs = Object.values(all);
    evs.forEach(e => { EV_INDEX[e.id] = e; });
@@ -2267,24 +2271,42 @@ $("authModal").addEventListener("click", function(ev){ if(ev.target === this) cl
 let myClub = null;
 try{ myClub = JSON.parse(localStorage.getItem("gk_club") || "null"); }catch(_){}
 let _teamsCache = null;
+let _teamsInflight = null;
 async function ensureTeams(){
  if(_teamsCache) return _teamsCache;
  try{
   const stored = JSON.parse(localStorage.getItem("gk_teams_v1") || "null");
   if(stored && stored.at && Date.now() - stored.at < 7 * 86400000 && stored.lgs){ _teamsCache = stored.lgs; return _teamsCache; }
  }catch(_){}
- const out = {};
- /* team lists come from the STANDINGS feed: ESPN's /teams endpoint has no CORS header in browsers */
- await Promise.all(LEAGUES.filter(l => !l.uefa).map(async l => {
-  try{
-   const j = await jget(STAND + l.slug + "/standings");
-   const entries = ((j && j.children && j.children[0] && j.children[0].standings && j.children[0].standings.entries) || []);
-   out[l.id] = entries.map(en => en && en.team).filter(Boolean).map(tm => ({id:String(tm.id), n:tm.displayName || tm.shortDisplayName || "", s:tm.shortDisplayName || tm.displayName || ""}));
-  }catch(_){ out[l.id] = []; }
- }));
- _teamsCache = out;
- try{ localStorage.setItem("gk_teams_v1", JSON.stringify({at:Date.now(), lgs:out})); }catch(_){}
- return out;
+ if(_teamsInflight) return _teamsInflight;
+ _teamsInflight = (async function(){
+  const out = {};
+  /* team lists come from the STANDINGS feed: ESPN's /teams endpoint has no CORS header in browsers */
+  await Promise.all(LEAGUES.filter(l => !l.uefa).map(async l => {
+   try{
+    const j = await jget(STAND + l.slug + "/standings");
+    const entries = ((j && j.children && j.children[0] && j.children[0].standings && j.children[0].standings.entries) || []);
+    out[l.id] = entries.map(en => en && en.team).filter(Boolean).map(tm => ({id:String(tm.id), n:tm.displayName || tm.shortDisplayName || "", s:tm.shortDisplayName || tm.displayName || ""}));
+   }catch(_){ out[l.id] = []; }
+  }));
+  _teamsCache = out;
+  try{ localStorage.setItem("gk_teams_v1", JSON.stringify({at:Date.now(), lgs:out})); }catch(_){}
+  return out;
+ })();
+ try{ return await _teamsInflight; }
+ finally{ _teamsInflight = null; }
+}
+let _trackedClubIds = null;
+async function trackedClubIds(){
+ if(_trackedClubIds) return _trackedClubIds;
+ const leagues = await ensureTeams();
+ const ids = new Set();
+ for(const league of LEAGUES){
+  if(league.uefa) continue;
+  for(const team of (leagues && leagues[league.id]) || []) if(team && team.id) ids.add(String(team.id));
+ }
+ if(ids.size) _trackedClubIds = ids;
+ return ids;
 }
 function clubLabel(c){ return c ? clubAr({shortDisplayName:c.s, displayName:c.n}) : t("noClub"); }
 async function buildClubOptions(sel){
