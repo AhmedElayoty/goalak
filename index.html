@@ -42,9 +42,20 @@
  --txt:#eef2ff; --dim:#8493c8; --dim2:#8493c8;
  --acc:#ff7a45; --accdark:#7e2f12; --gold:#ffc02e; --red:#ff5d5d;
  --rz-g:#2fd873; --rz-a:#ffc02e; --rz-r:#ff5d5d;
+ /* 3D icon depth ramp */
+ --gk3d-d1:#b3bfec; --gk3d-d2:#8493c8; --gk3d-d3:#4a5687;
+ --gk3d-d4:#2f3a63; --gk3d-d5:#1b2342; --gk3d-rim:rgba(255,255,255,.22);
 }
+/* inline 3D accent icons replacing emoji (emoji render differently per platform — same reason the
+   country flags had to become images) */
+.gkic{width:1.05em;height:1.05em;display:inline-block;vertical-align:-.16em;flex:none}
+.bnav .gka{display:none}
+.bnav button.on .gki{display:none}
+.bnav button.on .gka{display:inline}
 /* light theme (same family as the WC app light mode) */
 html[data-theme="light"]{
+ --gk3d-d1:#8e9bc6; --gk3d-d2:#57648a; --gk3d-d3:#2e3a58;
+ --gk3d-d4:#1c2540; --gk3d-d5:#0e1424; --gk3d-rim:rgba(18,29,68,.32);
  --bg:#eef1f8; --card:#ffffff; --card2:#e6ebf6; --line:#c3cde2; --line2:#9fb0d4;
  --txt:#0d1533; --dim:#51607e; --dim2:#6b7a9c;
  --acc:#c2451b; --accdark:#c2451b; --gold:#946400; --red:#c62828;
@@ -311,7 +322,8 @@ html[data-theme="light"] .motm .msb,html[data-theme="light"] .motm .mtag{color:#
 .lnic{flex:0 0 auto;font-size:11px;letter-spacing:1px}
 /* ---- two-sided timeline (WC-app design) ---- */
 .tl{position:relative;margin:4px 0 2px;padding:2px 0}
-.tl::before{content:'';position:absolute;left:50%;top:0;bottom:0;width:2px;transform:translateX(-50%);background:linear-gradient(180deg,transparent,var(--line2) 10%,var(--line2) 90%,transparent);z-index:0}
+/* direction-neutral centring (no physical left + translate, which has to be reasoned about per dir) */
+.tl::before{content:'';position:absolute;inset-inline:0;margin-inline:auto;top:0;bottom:0;width:2px;background:linear-gradient(180deg,transparent,var(--line2) 10%,var(--line2) 90%,transparent);z-index:0}
 .tlrow{position:relative;z-index:1;display:flex;align-items:center;gap:8px;padding:5px 0}
 .tlrow.goal.l{background:linear-gradient(90deg,rgba(224,90,43,.18),transparent 62%);border-radius:8px}
 .tlrow.goal.r{background:linear-gradient(270deg,rgba(21,119,196,.18),transparent 62%);border-radius:8px}
@@ -582,6 +594,55 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 </style>
 </head>
 <body>
+<svg id="gk3d" width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute;left:-9999px" xmlns="http://www.w3.org/2000/svg"><defs>
+<linearGradient id="gk3d-rust" x2=".38" y2="1"><stop offset="0" stop-color="#ffb489"/><stop offset=".42" stop-color="#f2703a"/><stop offset="1" stop-color="#a33d17"/></linearGradient>
+<linearGradient id="gk3d-rustd" x2=".38" y2="1"><stop offset="0" stop-color="#c04a1e"/><stop offset="1" stop-color="#6d2810"/></linearGradient>
+<linearGradient id="gk3d-gold" x2=".34" y2="1"><stop offset="0" stop-color="#fff3c4"/><stop offset=".38" stop-color="#ffc02e"/><stop offset="1" stop-color="#b3730a"/></linearGradient>
+<linearGradient id="gk3d-goldd" x2=".34" y2="1"><stop offset="0" stop-color="#e2a017"/><stop offset="1" stop-color="#8a5606"/></linearGradient>
+<linearGradient id="gk3d-dim" x2=".38" y2="1"><stop offset="0" style="stop-color:var(--gk3d-d1,#b3bfec)"/><stop offset=".45" style="stop-color:var(--gk3d-d2,#8493c8)"/><stop offset="1" style="stop-color:var(--gk3d-d3,#4a5687)"/></linearGradient>
+<linearGradient id="gk3d-dimd" x2=".38" y2="1"><stop offset="0" style="stop-color:var(--gk3d-d3,#4a5687)"/><stop offset="1" style="stop-color:var(--gk3d-d4,#2f3a63)"/></linearGradient>
+<linearGradient id="gk3d-dimx" x2=".38" y2="1"><stop offset="0" style="stop-color:var(--gk3d-d4,#2f3a63)"/><stop offset="1" style="stop-color:var(--gk3d-d5,#1b2342)"/></linearGradient>
+<linearGradient id="gk3d-wht" x2=".3" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#fff3ec"/><stop offset="1" stop-color="#ffcdb2"/></linearGradient>
+<radialGradient id="gk3d-sph" cx=".34" cy=".28" r=".8"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#f3f6ff"/><stop offset="1" stop-color="#bdc9e6"/></radialGradient>
+<linearGradient id="gk3d-slate" x2=".3" y2="1"><stop offset="0" stop-color="#6f7fb8"/><stop offset=".45" stop-color="#3d4b7f"/><stop offset="1" stop-color="#1e2750"/></linearGradient>
+<linearGradient id="gk3d-screen" x2=".5" y2="1"><stop offset="0" stop-color="#ff8a53"/><stop offset=".55" stop-color="#e05a2b"/><stop offset="1" stop-color="#7c2f12"/></linearGradient>
+<linearGradient id="gk3d-yel" x2=".35" y2="1"><stop offset="0" stop-color="#ffef9e"/><stop offset=".4" stop-color="#f7c81b"/><stop offset="1" stop-color="#a97c05"/></linearGradient>
+<linearGradient id="gk3d-red" x2=".35" y2="1"><stop offset="0" stop-color="#ff9c86"/><stop offset=".4" stop-color="#e63b28"/><stop offset="1" stop-color="#8c1a0f"/></linearGradient>
+<linearGradient id="gk3d-navy" x2=".35" y2="1"><stop offset="0" stop-color="#31406f"/><stop offset="1" stop-color="#141c3f"/></linearGradient>
+<radialGradient id="gk3d-gloss" cx=".32" cy=".24" r=".66"><stop offset="0" stop-color="#fff" stop-opacity=".62"/><stop offset=".5" stop-color="#fff" stop-opacity=".15"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<radialGradient id="gk3d-shade"><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".32"/></radialGradient>
+<radialGradient id="gk3d-shade2"><stop offset=".72" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></radialGradient>
+<path id="gk3d-p-jersey" d="M8.6 2.8 3.6 5.5a1.2 1.2 0 0 0-.58 1.45L4.3 10.4a1.1 1.1 0 0 0 1.45.65l.75-.33V20a1.2 1.2 0 0 0 1.2 1.2h8.6a1.2 1.2 0 0 0 1.2-1.2v-9.28l.75.33a1.1 1.1 0 0 0 1.45-.65l1.28-3.45a1.2 1.2 0 0 0-.58-1.45L15.4 2.8a3.5 3.5 0 0 1-6.8 0Z"/>
+<path id="gk3d-p-collar" d="M8.6 2.8a3.5 3.5 0 0 0 6.8 0l1.15.62a4.9 4.9 0 0 1-9.1 0Z"/>
+<path id="gk3d-p-bub" d="M6.6 3.4h10.8a4.6 4.6 0 0 1 4.6 4.6v4.6a4.6 4.6 0 0 1-4.6 4.6h-3.6L12 20.6l-1.8-3.4H6.6A4.6 4.6 0 0 1 2 12.6V8a4.6 4.6 0 0 1 4.6-4.6Z"/>
+<path id="gk3d-p-gear" d="M9.74 4.85 10.02 1.79A10.4 10.4 0 0 1 13.98 1.79L14.26 4.85A7.5 7.5 0 0 1 15.46 5.35L17.82 3.38A10.4 10.4 0 0 1 20.62 6.18L18.65 8.54A7.5 7.5 0 0 1 19.15 9.74L22.21 10.02A10.4 10.4 0 0 1 22.21 13.98L19.15 14.26A7.5 7.5 0 0 1 18.65 15.46L20.62 17.82A10.4 10.4 0 0 1 17.82 20.62L15.46 18.65A7.5 7.5 0 0 1 14.26 19.15L13.98 22.21A10.4 10.4 0 0 1 10.02 22.21L9.74 19.15A7.5 7.5 0 0 1 8.54 18.65L6.18 20.62A10.4 10.4 0 0 1 3.38 17.82L5.35 15.46A7.5 7.5 0 0 1 4.85 14.26L1.79 13.98A10.4 10.4 0 0 1 1.79 10.02L4.85 9.74A7.5 7.5 0 0 1 5.35 8.54L3.38 6.18A10.4 10.4 0 0 1 6.18 3.38L8.54 5.35A7.5 7.5 0 0 1 9.74 4.85Z"/>
+<path id="gk3d-p-star" d="M16 3.4 19.23 12.15 28.55 12.52 21.23 18.3 23.76 27.28 16 22.1 8.24 27.28 10.77 18.3 3.45 12.52 12.77 12.15Z"/>
+<path id="gk3d-p-starf" d="M16 16.6 12.77 12.15 16 3.4ZM16 16.6 19.23 12.15 28.55 12.52ZM16 16.6 21.23 18.3 23.76 27.28ZM16 16.6 16 22.1 8.24 27.28ZM16 16.6 10.77 18.3 3.45 12.52Z"/>
+<path id="gk3d-p-cup" d="M9.8 7h12.4l-1 6.4a5.4 5.4 0 0 1-10.4 0Z"/>
+<clipPath id="gk3d-c24"><circle cx="12" cy="12" r="9.2"/></clipPath>
+<clipPath id="gk3d-c32"><circle cx="16" cy="16" r="12.3"/></clipPath>
+<path id="gk3d-pp" d="M0-3.9 3.71-1.21 2.29 3.16-2.29 3.16-3.71-1.21Z"/>
+<g id="gk3d-p-b24"><path d="M12 9 14.85 11.07 13.76 14.43 10.24 14.43 9.15 11.07Z"/><use href="#gk3d-pp" transform="translate(18.35 3.26)rotate(216)"/><use href="#gk3d-pp" transform="translate(22.27 15.34)rotate(288)"/><use href="#gk3d-pp" transform="translate(12 22.8)"/><use href="#gk3d-pp" transform="translate(1.73 15.34)rotate(72)"/><use href="#gk3d-pp" transform="translate(5.65 3.26)rotate(144)"/></g>
+<path id="gk3d-p-b24s" d="M12 9 12 6.5M14.85 11.07 17.23 10.3M13.76 14.43 15.23 16.45M10.24 14.43 8.77 16.45M9.15 11.07 6.77 10.3"/>
+</defs>
+<symbol id="gk3d-pred-i" viewBox="0 0 24 24"><circle cx="12" cy="12.9" r="9" fill="#000" opacity=".2"/><circle cx="12" cy="12" r="9.2" fill="url(#gk3d-dim)"/><circle cx="12" cy="12" r="6.5" fill="url(#gk3d-dimx)"/><circle cx="12" cy="12" r="3.6" fill="url(#gk3d-dim)"/><circle cx="12" cy="12" r="1.5" fill="url(#gk3d-dimx)"/><circle cx="12" cy="12" r="9.2" fill="url(#gk3d-gloss)"/><circle cx="12" cy="12" r="9.2" fill="url(#gk3d-shade)"/></symbol>
+<symbol id="gk3d-pred-a" viewBox="0 0 24 24"><circle cx="12" cy="13" r="9" fill="#6d2810" opacity=".55"/><circle cx="12" cy="12" r="9.2" fill="url(#gk3d-wht)"/><circle cx="12" cy="12" r="6.5" fill="url(#gk3d-rustd)"/><circle cx="12" cy="12" r="3.6" fill="url(#gk3d-wht)"/><circle cx="12" cy="12" r="1.5" fill="url(#gk3d-gold)"/><circle cx="12" cy="12" r="9.2" fill="url(#gk3d-gloss)"/><circle cx="12" cy="12" r="9.2" fill="url(#gk3d-shade)"/></symbol>
+<symbol id="gk3d-fant-i" viewBox="0 0 24 24"><use href="#gk3d-p-jersey" y=".85" fill="#000" opacity=".2"/><use href="#gk3d-p-jersey" fill="url(#gk3d-dim)"/><use href="#gk3d-p-collar" fill="url(#gk3d-dimd)"/><path d="M8.35 3.3 6.5 10.9M15.65 3.3 17.5 10.9" stroke="#000" stroke-opacity=".22" stroke-width=".8" fill="none"/><use href="#gk3d-p-jersey" fill="url(#gk3d-gloss)"/></symbol>
+<symbol id="gk3d-fant-a" viewBox="0 0 24 24"><use href="#gk3d-p-jersey" y=".85" fill="#6d2810" opacity=".5"/><use href="#gk3d-p-jersey" fill="url(#gk3d-wht)"/><use href="#gk3d-p-collar" fill="url(#gk3d-rustd)"/><path d="M8.35 3.3 6.5 10.9M15.65 3.3 17.5 10.9" stroke="#a03e18" stroke-opacity=".45" stroke-width=".8" fill="none"/><use href="#gk3d-p-jersey" fill="url(#gk3d-gloss)"/></symbol>
+<symbol id="gk3d-ball-orb" viewBox="0 0 24 24"><circle cx="12" cy="12.95" r="8.9" fill="#5e2310" opacity=".5"/><circle cx="12" cy="12" r="9.2" fill="url(#gk3d-sph)"/><g clip-path="url(#gk3d-c24)" fill="#8f3a18"><use href="#gk3d-p-b24"/><use href="#gk3d-p-b24s" stroke="#8f3a18" stroke-width=".85" fill="none"/></g><circle cx="12" cy="12" r="9.2" fill="url(#gk3d-gloss)"/><circle cx="12" cy="12" r="9.2" fill="url(#gk3d-shade2)"/></symbol>
+<symbol id="gk3d-chat-i" viewBox="0 0 24 24"><use href="#gk3d-p-bub" y=".85" fill="#000" opacity=".2"/><use href="#gk3d-p-bub" fill="url(#gk3d-dim)"/><g fill="url(#gk3d-dimd)"><circle cx="7.6" cy="10.3" r="1.3"/><circle cx="12" cy="10.3" r="1.3"/><circle cx="16.4" cy="10.3" r="1.3"/></g><use href="#gk3d-p-bub" fill="url(#gk3d-gloss)"/></symbol>
+<symbol id="gk3d-chat-a" viewBox="0 0 24 24"><use href="#gk3d-p-bub" y=".85" fill="#6d2810" opacity=".5"/><use href="#gk3d-p-bub" fill="url(#gk3d-wht)"/><g fill="url(#gk3d-rustd)"><circle cx="7.6" cy="10.3" r="1.3"/><circle cx="12" cy="10.3" r="1.3"/><circle cx="16.4" cy="10.3" r="1.3"/></g><use href="#gk3d-p-bub" fill="url(#gk3d-gloss)"/></symbol>
+<symbol id="gk3d-set-i" viewBox="0 0 24 24"><use href="#gk3d-p-gear" y=".85" fill="#000" opacity=".2"/><use href="#gk3d-p-gear" fill="url(#gk3d-dim)"/><circle cx="12" cy="12" r="4.1" fill="url(#gk3d-dimd)"/><circle cx="12" cy="12" r="2.5" fill="url(#gk3d-dim)"/><use href="#gk3d-p-gear" fill="url(#gk3d-gloss)"/></symbol>
+<symbol id="gk3d-set-a" viewBox="0 0 24 24"><use href="#gk3d-p-gear" y=".85" fill="#6d2810" opacity=".5"/><use href="#gk3d-p-gear" fill="url(#gk3d-wht)"/><circle cx="12" cy="12" r="4.1" fill="url(#gk3d-rustd)"/><circle cx="12" cy="12" r="2.5" fill="url(#gk3d-gold)"/><use href="#gk3d-p-gear" fill="url(#gk3d-gloss)"/></symbol>
+<symbol id="gk3d-star" viewBox="0 0 32 32"><use href="#gk3d-p-star" y="1.1" fill="#000" opacity=".22"/><use href="#gk3d-p-star" fill="url(#gk3d-gold)"/><use href="#gk3d-p-starf" fill="#fff" opacity=".26"/><use href="#gk3d-p-star" fill="url(#gk3d-gloss)"/></symbol>
+<symbol id="gk3d-trophy" viewBox="0 0 32 32"><g fill="#000" opacity=".2"><use href="#gk3d-p-cup" y="1.1"/><rect x="8.6" y="5.7" width="14.8" height="2.5" rx="1.2"/><rect x="14.1" y="17.6" width="3.8" height="4.2"/><rect x="9.4" y="24.1" width="13.2" height="3.4" rx="1.3"/></g><path d="M9.9 8.8C5.6 8.8 4.6 15.6 10.1 16.2M22.1 8.8C26.4 8.8 27.4 15.6 21.9 16.2" fill="none" stroke="url(#gk3d-goldd)" stroke-width="2.1" stroke-linecap="round"/><use href="#gk3d-p-cup" fill="url(#gk3d-gold)"/><rect x="14.1" y="16.6" width="3.8" height="4.4" fill="url(#gk3d-goldd)"/><rect x="11.2" y="20.6" width="9.6" height="2.9" rx="1.1" fill="url(#gk3d-gold)"/><rect x="9.4" y="23" width="13.2" height="3.6" rx="1.4" fill="url(#gk3d-gold)"/><rect x="8.6" y="4.6" width="14.8" height="2.7" rx="1.3" fill="url(#gk3d-gold)"/><use href="#gk3d-p-cup" fill="url(#gk3d-gloss)"/><path d="M12.3 8.2h2.1l-.5 6.3a3 3 0 0 1-2.3-2.4Z" fill="#fff" opacity=".34"/></symbol>
+<symbol id="gk3d-target" viewBox="0 0 32 32"><circle cx="16" cy="17.2" r="12" fill="#000" opacity=".22"/><circle cx="16" cy="16" r="12.3" fill="url(#gk3d-rust)"/><circle cx="16" cy="16" r="8.4" fill="url(#gk3d-wht)"/><circle cx="16" cy="16" r="4.7" fill="url(#gk3d-rust)"/><circle cx="16" cy="16" r="2" fill="url(#gk3d-gold)"/><circle cx="16" cy="16" r="12.3" fill="url(#gk3d-gloss)"/><circle cx="16" cy="16" r="12.3" fill="url(#gk3d-shade)"/></symbol>
+<symbol id="gk3d-tv" viewBox="0 0 32 32"><rect x="10.4" y="26.3" width="11.2" height="2.6" rx="1.3" fill="#000" opacity=".2"/><rect x="14.4" y="21.6" width="3.2" height="4.6" fill="url(#gk3d-slate)"/><rect x="10.2" y="25.4" width="11.6" height="2.7" rx="1.35" fill="url(#gk3d-slate)"/><rect x="2.4" y="5.6" width="27.2" height="19.2" rx="3.4" fill="#000" opacity=".2"/><rect x="2.4" y="4.6" width="27.2" height="19.2" rx="3.4" fill="url(#gk3d-slate)"/><rect x="4.9" y="6.9" width="22.2" height="13.5" rx="2.1" fill="url(#gk3d-screen)"/><path d="M6.4 6.9h5.2L6.6 20.4H5.3a.4.4 0 0 1-.4-.4v-2.7Z" fill="#fff" opacity=".17"/><circle cx="16" cy="22.1" r=".85" fill="url(#gk3d-gold)"/><rect x="2.4" y="4.6" width="27.2" height="19.2" rx="3.4" fill="url(#gk3d-gloss)"/></symbol>
+<symbol id="gk3d-ball" viewBox="0 0 32 32"><circle cx="16" cy="17.2" r="12" fill="#000" opacity=".22"/><circle cx="16" cy="16" r="12.3" fill="url(#gk3d-sph)"/><g clip-path="url(#gk3d-c32)"><g transform="scale(1.3369)"><use href="#gk3d-p-b24" fill="url(#gk3d-navy)"/><use href="#gk3d-p-b24s" stroke="#26315e" stroke-width=".82" fill="none"/></g></g><circle cx="16" cy="16" r="12.3" fill="url(#gk3d-gloss)"/><circle cx="16" cy="16" r="12.3" fill="url(#gk3d-shade2)"/><circle cx="16" cy="16" r="12.3" fill="none" stroke="var(--gk3d-rim,rgba(255,255,255,.22))" stroke-width=".9"/></symbol>
+<symbol id="gk3d-ycard" viewBox="0 0 32 32"><g transform="rotate(-9 16 16)"><rect x="9" y="6.6" width="14.4" height="21.2" rx="2.6" fill="#000" opacity=".22"/><rect x="9" y="5.4" width="14.4" height="21.2" rx="2.6" fill="url(#gk3d-yel)"/><path d="M11.6 5.4h4.1L11 26.6H9.6a.6.6 0 0 1-.6-.6v-3.1Z" fill="#fff" opacity=".3"/><rect x="9" y="5.4" width="14.4" height="21.2" rx="2.6" fill="none" stroke="#8a6404" stroke-opacity=".45" stroke-width=".8"/></g></symbol>
+<symbol id="gk3d-rcard" viewBox="0 0 32 32"><g transform="rotate(-9 16 16)"><rect x="9" y="6.6" width="14.4" height="21.2" rx="2.6" fill="#000" opacity=".22"/><rect x="9" y="5.4" width="14.4" height="21.2" rx="2.6" fill="url(#gk3d-red)"/><path d="M11.6 5.4h4.1L11 26.6H9.6a.6.6 0 0 1-.6-.6v-3.1Z" fill="#fff" opacity=".3"/><rect x="9" y="5.4" width="14.4" height="21.2" rx="2.6" fill="none" stroke="#7a1408" stroke-opacity=".45" stroke-width=".8"/></g></symbol>
+</svg>
+
 <div id="app">
  <header class="gkhead">
   <div class="gklogo"><img id="logoImg" src="logo-head.svg" alt="جولك"></div>
@@ -606,7 +667,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <div class="shrow"><span class="shlab" id="shClock">نظام الوقت</span><div class="seg" role="radiogroup" aria-labelledby="shClock"><button type="button" id="h12b" class="on" onclick="setHour12(true)">AM·PM</button><button type="button" id="h24b" onclick="setHour12(false)">24H</button></div></div>
   <div class="shrow"><span class="shlab" id="shLang">اللغة</span><div class="seg" role="radiogroup" aria-labelledby="shLang"><button type="button" id="lgEn" onclick="setLang('en')">EN</button><button type="button" id="lgAr" class="on" onclick="setLang('ar')">عربي</button></div></div>
   <div class="shrow"><span class="shlab" id="shTheme">🌓 المظهر</span><div class="seg" role="radiogroup" aria-labelledby="shTheme"><button type="button" id="thD" class="on" onclick="setTheme('dark')">داكن</button><button type="button" id="thL" onclick="setTheme('light')">فاتح</button></div></div>
- <div class="shver" id="shVer">جولك · v4.0 · الجول جولك</div>
+ <div class="shver" id="shVer">جولك · v4.1 · الجول جولك</div>
  </section>
 
  <nav class="rail" id="rail" aria-label="Leagues"></nav>
@@ -656,7 +717,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="appVer">v4.0</span></footer>
+ <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="appVer">v4.1</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -705,17 +766,17 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 </div>
 
 <nav class="bnav" id="bnav">
- <button type="button" id="bnPred" onclick="showMain('pred')"><span class="bnic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.6"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg></span><span id="bnPredL">التوقعات</span></button>
- <button type="button" id="bnFant" onclick="showMain('fant')"><span class="bnic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M8.6 3.4L3.6 6.3l1.9 3.8 1.9-1v10.5h9.2V9.1l1.9 1 1.9-3.8-5-2.9a3.1 3.1 0 01-6.2 0z"/></svg></span><span id="bnFantL">فانتازي</span></button>
- <button type="button" id="bnScores" class="on ctr" onclick="showMain('scores')"><span class="bnorb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.2l4.1 3-1.6 4.8H9.5L7.9 10.2z" fill="currentColor" stroke="none"/><path d="M12 3v4.2M5.3 8.6l2.6 1.6M18.7 8.6l-2.6 1.6M7.2 20l2.3-5M16.8 20l-2.3-5"/></svg></span><span id="bnScoresL">المباريات</span></button>
- <button type="button" id="bnChat" onclick="showMain('chat')"><span class="bnic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.6a8.4 8.4 0 01-8.4 8.4H4.2l2.1-3.2A8.4 8.4 0 1121 11.6z"/></svg></span><span id="bnChatL">دردشة</span><span class="navbadge hide" id="chatBadge"></span></button>
- <button type="button" id="bnSet" onclick="showMain('set')"><span class="bnic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.14.31.4.55.71.66H21a2 2 0 110 4h-.09c-.34.02-.65.2-.51.34z"/></svg></span><span id="bnSetL">الإعدادات</span></button>
+ <button type="button" id="bnPred" onclick="showMain('pred')"><span class="bnic"><svg viewBox="0 0 24 24" aria-hidden="true"><use class="gki" href="#gk3d-pred-i"/><use class="gka" href="#gk3d-pred-a"/></svg></span><span id="bnPredL">التوقعات</span></button>
+ <button type="button" id="bnFant" onclick="showMain('fant')"><span class="bnic"><svg viewBox="0 0 24 24" aria-hidden="true"><use class="gki" href="#gk3d-fant-i"/><use class="gka" href="#gk3d-fant-a"/></svg></span><span id="bnFantL">فانتازي</span></button>
+ <button type="button" id="bnScores" class="on ctr" onclick="showMain('scores')"><span class="bnorb"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#gk3d-ball-orb"/></svg></span><span id="bnScoresL">المباريات</span></button>
+ <button type="button" id="bnChat" onclick="showMain('chat')"><span class="bnic"><svg viewBox="0 0 24 24" aria-hidden="true"><use class="gki" href="#gk3d-chat-i"/><use class="gka" href="#gk3d-chat-a"/></svg></span><span id="bnChatL">دردشة</span><span class="navbadge hide" id="chatBadge"></span></button>
+ <button type="button" id="bnSet" onclick="showMain('set')"><span class="bnic"><svg viewBox="0 0 24 24" aria-hidden="true"><use class="gki" href="#gk3d-set-i"/><use class="gka" href="#gk3d-set-a"/></svg></span><span id="bnSetL">الإعدادات</span></button>
 </nav>
 
 <script>
 "use strict";
 /* ============ GOALLAK · الجول جولك ============ */
-const APP_VERSION = "4.0";
+const APP_VERSION = "4.1";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
 const FORCE_RELOAD = "2026-08-15-v33";
@@ -1083,6 +1144,9 @@ function countLine(nM, nC){
 
 /* ============ utils ============ */
 function $(id){ return document.getElementById(id); }
+/* 3D accent icon inside a text run — replaces emoji, which render differently on every platform
+   (the same reason the country flags had to become images) */
+function gki(name){ return '<svg class="gkic" aria-hidden="true"><use href="#gk3d-' + name + '"/></svg>'; }
 function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 let _dkf = null, _dkfTz = "";
 function dkey(d){
@@ -1992,8 +2056,8 @@ function detIcon(txt, d){
  if(d && d.ownGoal) return "🔴⚽";
  if(s.includes("own")) return "🔴⚽";
  if(s.includes("penalty") && s.includes("miss")) return "❌";
- if(s.includes("goal") || (d && d.scoringPlay)) return "⚽";
- if(s.includes("yellow")) return "🟨";
+ if(s.includes("goal") || (d && d.scoringPlay)) return gki("ball");
+ if(s.includes("yellow")) return gki("ycard");
  if(s.includes("red")) return "🟥";
  if(s.includes("sub")) return "🔁";
  return "•";
@@ -2226,7 +2290,7 @@ function scorerListHtml(e, side){
   const og = d.ownGoal ? " (OG)" : "";
   (by[who + og] = by[who + og] || []).push(min);
  }
- const rows = Object.keys(by).map(n => '<span class="scln">⚽ ' + esc(n) + ' <span dir="ltr">' + esc(by[n].filter(Boolean).join(", ")) + "</span></span>");
+ const rows = Object.keys(by).map(n => '<span class="scln">' + gki("ball") + " " + esc(n) + ' <span dir="ltr">' + esc(by[n].filter(Boolean).join(", ")) + "</span></span>");
  return rows.length ? '<span class="sclist">' + rows.join("") + "</span>" : "";
 }
 /* Two-sided timeline ported from the WC app: a centre spine, home events on one side and away on the
@@ -2256,9 +2320,9 @@ function mdEventsHtml(e, H, A, sum){
    const assist = (d.athletesInvolved && d.athletesInvolved[1] && (d.athletesInvolved[1].shortName || d.athletesInvolved[1].displayName)) || "";
    const txt = "<b>" + esc(who || t("goalWord")) + "</b>" + (d.penaltyKick ? " (P)" : "") + (d.ownGoal ? " (OG)" : "") +
     (assist ? '<span class="tlas">' + esc(t("mdAssist")) + ": " + esc(assist) + "</span>" : "");
-   row(" goal " + (home ? "l" : "r"), home, txt, "⚽", mins, d._rs);
+   row(" goal " + (home ? "l" : "r"), home, txt, gki("ball"), mins, d._rs);
   } else {
-   row("", home, esc(who || (d.type && d.type.text) || ""), d.redCard ? "🟥" : "🟨", mins, "");
+   row("", home, esc(who || (d.type && d.type.text) || ""), d.redCard ? gki("rcard") : gki("ycard"), mins, "");
   }
  }
  ((sum && sum.keyEvents) || []).forEach(k => {
