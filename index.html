@@ -358,7 +358,13 @@ html[dir="rtl"] .tlside.r{text-align:right}
 .stbar i{display:block;height:100%}
 .stbar .sh{background:var(--acc)}
 .stbar .sa{background:var(--dim2)}
-.mbox{background:var(--card);border:1px solid var(--line2);border-radius:18px 18px 0 0;width:100%;max-width:520px;max-height:82vh;overflow-y:auto;padding:18px 16px 26px}
+/* overscroll-behavior:contain stops the scroll from chaining into the page behind the sheet
+   (owner: "when I scroll down it sometimes scrolls the main page with me") */
+.mbox{background:var(--card);border:1px solid var(--line2);border-radius:18px 18px 0 0;width:100%;max-width:520px;max-height:82vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:18px 16px 26px}
+#modal,#playerCard,#authModal{overscroll-behavior:contain;touch-action:none}
+.mbox{touch-action:pan-y}
+/* while a sheet is open the page underneath must not move at all */
+body.gk-lock{overflow:hidden}
 @media(min-width:520px){.mbox{border-radius:18px}}
 .mx{position:sticky;top:0;float:inline-end;background:var(--card2);border-radius:50%;width:30px;height:30px;font-size:15px;color:var(--dim)}
 .mvs{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:6px 0 4px}
@@ -667,7 +673,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <div class="shrow"><span class="shlab" id="shClock">نظام الوقت</span><div class="seg" role="radiogroup" aria-labelledby="shClock"><button type="button" id="h12b" class="on" onclick="setHour12(true)">AM·PM</button><button type="button" id="h24b" onclick="setHour12(false)">24H</button></div></div>
   <div class="shrow"><span class="shlab" id="shLang">اللغة</span><div class="seg" role="radiogroup" aria-labelledby="shLang"><button type="button" id="lgEn" onclick="setLang('en')">EN</button><button type="button" id="lgAr" class="on" onclick="setLang('ar')">عربي</button></div></div>
   <div class="shrow"><span class="shlab" id="shTheme">🌓 المظهر</span><div class="seg" role="radiogroup" aria-labelledby="shTheme"><button type="button" id="thD" class="on" onclick="setTheme('dark')">داكن</button><button type="button" id="thL" onclick="setTheme('light')">فاتح</button></div></div>
- <div class="shver" id="shVer">جولك · v4.1 · الجول جولك</div>
+ <div class="shver" id="shVer">جولك · v4.2 · الجول جولك</div>
  </section>
 
  <nav class="rail" id="rail" aria-label="Leagues"></nav>
@@ -717,7 +723,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="appVer">v4.1</span></footer>
+ <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="appVer">v4.2</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -776,7 +782,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <script>
 "use strict";
 /* ============ GOALLAK · الجول جولك ============ */
-const APP_VERSION = "4.1";
+const APP_VERSION = "4.2";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
 const FORCE_RELOAD = "2026-08-15-v33";
@@ -793,6 +799,7 @@ const LEAGUES = [
   zones:{g:[1,8],a:[9,24],r:[25,36]}, zlabAr:["التأهل المباشر لدور الـ16","الملحق","خارج المنافسة"], zlabEn:["Direct to R16","Playoff","Eliminated"]},
  {id:"epl", slug:"eng.1", en:"Premier League", ar:"الدوري الإنجليزي الممتاز", shortEn:"PL", shortAr:"إنجلترا", flag:"gb-eng", zones:{g:[1,4],a:[5,6],r:[18,20]}},
  {id:"liga", slug:"esp.1", en:"La Liga", ar:"الدوري الإسباني", shortEn:"LaLiga", shortAr:"إسبانيا", flag:"es", zones:{g:[1,4],a:[5,6],r:[18,20]}},
+ {id:"seriea", slug:"ita.1", en:"Serie A", ar:"الدوري الإيطالي", shortEn:"Serie A", shortAr:"إيطاليا", flag:"it", zones:{g:[1,4],a:[5,6],r:[18,20]}},
  {id:"bun", slug:"ger.1", en:"Bundesliga", ar:"الدوري الألماني", shortEn:"Bundesliga", shortAr:"ألمانيا", flag:"de", zones:{g:[1,4],a:[5,6],r:[16,18]}},
  {id:"fl1", slug:"fra.1", en:"Ligue 1", ar:"الدوري الفرنسي", shortEn:"Ligue 1", shortAr:"فرنسا", flag:"fr", zones:{g:[1,3],a:[4,5],r:[16,18]}},
  {id:"tsl", slug:"tur.1", en:"Süper Lig", ar:"الدوري التركي", shortEn:"Süper Lig", shortAr:"تركيا", flag:"tr", zones:{g:[1,2],a:[3,4],r:[16,18]}},
@@ -901,6 +908,12 @@ const AR_TEAMS = {
  "s bratislava":"سلوفان براتيسلافا","slovan bratislava":"سلوفان براتيسلافا","nk celje":"تسيليه","celje":"تسيليه",
  "ki klaksvik":"كي كلاكسفيك","kí klaksvík":"كي كلاكسفيك","galway united":"غالواي يونايتد",
  /* QA sweep: these were the only top-division sides still rendering in Latin inside Arabic lists */
+ /* Serie A */
+ "atalanta":"أتالانتا","bologna":"بولونيا","cagliari":"كالياري","como":"كومو","cremonese":"كريمونيزي",
+ "empoli":"إمبولي","fiorentina":"فيورنتينا","genoa":"جنوى","hellas verona":"هيلاس فيرونا","verona":"هيلاس فيرونا",
+ "inter milan":"إنتر ميلان","internazionale":"إنتر ميلان","juventus":"يوفنتوس","lazio":"لاتسيو","lecce":"ليتشي",
+ "ac milan":"ميلان","monza":"مونزا","napoli":"نابولي","parma":"بارما","pisa":"بيزا","roma":"روما",
+ "sassuolo":"ساسولو","torino":"تورينو","udinese":"أودينيزي","venezia":"فينيتسيا","salernitana":"ساليرنيتانا",
  "hull":"هال","hull city":"هال سيتي","deportivo":"ديبورتيفو","deportivo la coruña":"ديبورتيفو لاكورونيا",
  "málaga":"ملقا","malaga":"ملقا","elversberg":"إلفرسبرغ","paderborn":"بادربورن","sc paderborn":"بادربورن",
  "schalke":"شالكه","schalke 04":"شالكه","le havre ac":"لوهافر","le havre":"لوهافر","le mans":"لومان","troyes":"تروا"
@@ -1696,9 +1709,13 @@ function paintHome(){
   if(evs === null){ anyUnknown = true; continue; }
   if(!evs.length) continue;
   comps++; totalM += evs.length;
-   liveN += evs.filter(e => evState(e) === "in").length;   /* count friendlies/internationals too */
+   /* liveN is computed from the date-independent live set below, not from the browsed day */
   perLg.push({lg, evs});
  }
+ /* live count spans today + yesterday and is gated on state only, so a match that kicked off
+    before midnight keeps showing after it (WC lesson v2.66) */
+ const liveSet = liveNowSet();
+ liveN = liveSet.length;
  /* never leave a chip selected that can no longer render anything */
  if(chip === "live" && liveN === 0) chip = "all";
  if(chip !== "all" && chip !== "live" && !perLg.some(p => !p.lg.allOnly && p.lg.id === chip)) chip = "all";
@@ -1719,11 +1736,22 @@ function paintHome(){
  if(cd) cd.classList.toggle("bad", !!dayFailed);
  /* list */
  let h = "";
- for(const p of perLg){
+ /* LIVE is built from the live set itself, NOT from the browsed day's leagues — otherwise a match
+    that kicked off yesterday and is still running has no section to live in after midnight */
+ let sections = perLg;
+ if(chip === "live"){
+  const byLg = {};
+  for(const e of liveSet){
+   const id = e._gkLeagueId || "";
+   (byLg[id] = byLg[id] || []).push(e);
+  }
+  sections = SCORE_GROUPS.filter(lg => byLg[lg.id] && byLg[lg.id].length)
+   .map(lg => ({lg:lg, evs:byLg[lg.id].slice().sort((a, b) => new Date(a.date) - new Date(b.date))}));
+ }
+ for(const p of sections){
    if(p.lg.allOnly && chip !== "all" && chip !== "live") continue;   /* LIVE must reach them as well */
    let list = p.evs;
-  if(chip === "live"){ list = list.filter(e => evState(e) === "in"); if(!list.length) continue; }
-  else if(chip !== "all" && chip !== p.lg.id) continue;
+  if(chip !== "all" && chip !== "live" && chip !== p.lg.id) continue;
   const foldKey = "gk_fold_" + p.lg.id;
   let folded = false;
   try{ folded = chip === "all" && localStorage.getItem(foldKey) === "1"; }catch(_){}
@@ -1753,24 +1781,36 @@ function paintHome(){
 function renderLiveStrip(){
  const el = $("liveStrip");
  if(!el) return;
- const tk = todayKey();
  const chips = [];
- for(const lg of SCORE_GROUPS){   /* friendlies/internationals are live football too - they were invisible here */
-  const evs = eventsFor(lg, tk) || [];
-  for(const e of evs){
-   if(evState(e) !== "in" || voidedKey(e)) continue;
-   const comp = e.competitions && e.competitions[0] || {};
-   const cs = comp.competitors || [];
-   const H = cs.find(c => c.homeAway === "home") || cs[0] || {}, A = cs.find(c => c.homeAway === "away") || cs[1] || {};
-   EV_INDEX[e.id] = e;
-   const clock = isHT(e) ? t("ht") : ((e.status && e.status.displayClock) || "");
-   chips.push('<button type="button" class="lvchip" data-eid="' + esc(e.id) + '" onclick="openMatch(this.dataset.eid)"><span class="lvdot"></span>' +
-    esc(teamName(H)) + ' <span class="lvsc" dir="ltr">' + scoreTxt(H, A) + "</span> " + esc(teamName(A)) +
-    ' <span dir="ltr">' + esc(clock) + "</span></button>");
-  }
+ for(const e of liveNowSet()){
+  const comp = e.competitions && e.competitions[0] || {};
+  const cs = comp.competitors || [];
+  const H = cs.find(c => c.homeAway === "home") || cs[0] || {}, A = cs.find(c => c.homeAway === "away") || cs[1] || {};
+  EV_INDEX[e.id] = e;
+  const clock = isHT(e) ? t("ht") : ((e.status && e.status.displayClock) || "");
+  chips.push('<button type="button" class="lvchip" data-eid="' + esc(e.id) + '" onclick="openMatch(this.dataset.eid)"><span class="lvdot"></span>' +
+   esc(teamName(H)) + ' <span class="lvsc" dir="ltr">' + scoreTxt(H, A) + "</span> " + esc(teamName(A)) +
+   ' <span dir="ltr">' + esc(clock) + "</span></button>");
  }
  el.innerHTML = chips.join("");
  el.classList.toggle("hide", !chips.length);
+}
+/* LESSON (WC app v2.66): a match that kicked off before midnight is STILL LIVE after it. Gate the
+   live set on state only — never on the calendar day — and span today + the previous day so a
+   late kick-off never disappears at 00:00 while it is still being played. */
+function liveNowSet(){
+ const tk = todayKey(), seen = {}, out = [];
+ for(const day of [tk, addDaysKey(tk, -1)]){
+  for(const lg of SCORE_GROUPS){
+   for(const e of (eventsFor(lg, day) || [])){
+    if(!e || !e.id || seen[e.id]) continue;
+    if(evState(e) !== "in" || voidedKey(e)) continue;
+    seen[e.id] = 1;
+    out.push(e);
+   }
+  }
+ }
+ return out;
 }
 function setChip(c){ chip = c; paintHome(); }
 function toggleFold(id, btn){
@@ -1805,11 +1845,11 @@ function gotoLeague(id){
 /* Android/installed-PWA back button: close overlays first, then leave the league page, never exit-with-overlay */
 window.addEventListener("popstate", function(){
  const pc = $("playerCard");
- if(pc && !pc.classList.contains("hide")){ pc.classList.add("hide"); return; }
+ if(pc && !pc.classList.contains("hide")){ hideSheet("playerCard"); return; }
  const modal = $("modal");
- if(!modal.classList.contains("hide")){ modal.classList.add("hide"); return; }
+ if(!modal.classList.contains("hide")){ _mdEid = null; hideSheet("modal"); return; }
  const am = $("authModal");
- if(am && !am.classList.contains("hide")){ am.classList.add("hide"); return; }
+ if(am && !am.classList.contains("hide")){ hideSheet("authModal"); return; }
  /* a tab entry we pushed: go back to Matches without consuming another entry */
  if(mainView !== "scores"){ showMain("scores", true); return; }
  if(view === "lg") gotoHome();
@@ -2576,8 +2616,9 @@ function openPlayerCard(pid){
   (rt ? '<span class="pcrate ' + rateCls(rt.rating) + '" dir="ltr">' + rt.rating.toFixed(1) + "</span>" : "") + "</div>" +
   (rows ? '<div class="pcstats">' + rows + "</div>" : '<div class="mnoev">' + esc(t("mdNoStats")) + "</div>");
  $("playerCard").classList.remove("hide");
+ lockScroll(true);
 }
-function closePlayerCard(){ $("playerCard").classList.add("hide"); }
+function closePlayerCard(){ hideSheet("playerCard"); }
 function setMdTab(x){ _mdTab = x; renderMdBody(); }
 async function renderMdBody(){
  const eid = _mdEid;
@@ -2611,7 +2652,27 @@ function openMatch(eid){
  _mdTab = "E";
  if(!renderMatchModal(eid)) return;
  $("modal").classList.remove("hide");
+ lockScroll(true);
  try{ history.pushState({gkm:1}, ""); }catch(_){}
+}
+/* freeze the page behind any open sheet, and restore the exact scroll position on close */
+let _scrollY = 0;
+function lockScroll(on){
+ const b = document.body;
+ if(on){
+  if(b.classList.contains("gk-lock")) return;
+  _scrollY = window.scrollY || 0;
+  b.classList.add("gk-lock");
+  b.style.position = "fixed"; b.style.width = "100%"; b.style.top = (-_scrollY) + "px";
+ } else {
+  if(!b.classList.contains("gk-lock")) return;
+  b.classList.remove("gk-lock");
+  b.style.position = ""; b.style.width = ""; b.style.top = "";
+  window.scrollTo(0, _scrollY);
+ }
+}
+function anySheetOpen(){
+ return ["modal", "playerCard", "authModal"].some(id => { const el = $(id); return el && !el.classList.contains("hide"); });
 }
 /* header + tabs render, WITHOUT touching history — so a language switch can repaint an open sheet */
 function renderMatchModal(eid){
@@ -2666,11 +2727,17 @@ function renderMatchModal(eid){
  if(hasDetail || preLineups) renderMdBody();
  return true;
 }
+/* single place a sheet is actually hidden, so the scroll lock is always released with it */
+function hideSheet(id){
+ const el = $(id);
+ if(el) el.classList.add("hide");
+ if(!anySheetOpen()) lockScroll(false);
+}
 function closeModal(){
  if($("modal").classList.contains("hide")) return; /* stray Escape must not pop unrelated history */
  _mdEid = null;
- if(history.state && history.state.gkm){ try{ history.back(); return; }catch(_){} }
- $("modal").classList.add("hide");
+ if(history.state && history.state.gkm){ try{ history.back(); return; }catch(_){} }   /* popstate hides it and releases the lock */
+ hideSheet("modal");
 }
 $("modal").addEventListener("click", function(ev){ if(ev.target === this) closeModal(); });
 document.addEventListener("keydown", function(ev){ if(ev.key === "Escape"){ closePlayerCard(); closeModal(); } });
@@ -2764,8 +2831,8 @@ async function renewStoredChatSession(){
 
 /* ---- auth (same scheme as the WC app: salt + sha256(salt+password), wipe guard, verify-after-write) ---- */
 let _am = "C";
-function openAuth(mode){ _am = mode || "C"; updateAuthUI(); $("authModal").classList.remove("hide"); }
-function closeAuth(){ $("authModal").classList.add("hide"); }
+function openAuth(mode){ _am = mode || "C"; updateAuthUI(); $("authModal").classList.remove("hide"); lockScroll(true); }
+function closeAuth(){ hideSheet("authModal"); }
 function authMode(m){ _am = m; updateAuthUI(); }
 function updateAuthUI(){
  $("auTitle").textContent = t("authTitle");
@@ -3783,9 +3850,13 @@ setInterval(function(){
  if(mainView === "pred"){ loadPredData(false); return; }
  if(view === "home"){
   /* keep refreshing yesterday too: late European kickoffs cross local midnight while still live */
-  const tk = todayKey();
-  if(selDay === tk || selDay === addDaysKey(tk, -1)) loadDay(false);
-  else fetchDayInto(tk, false).then(function(){ if(view === "home" && mainView === "scores") renderLiveStrip(); }); /* LIVE strip stays fresh while browsing other days */
+  const tk = todayKey(), yd = addDaysKey(tk, -1);
+  if(selDay === tk || selDay === yd) loadDay(false);
+  /* whatever day is on screen, keep TODAY and YESTERDAY warm so the live strip/chip never
+     goes blank right after midnight while a match is still being played */
+  const others = [tk, yd].filter(d => d !== selDay);
+  if(others.length) Promise.all(others.map(d => fetchDayInto(d, false)))
+   .then(function(){ if(view === "home" && mainView === "scores"){ renderLiveStrip(); paintHome(); } });
  }
  else if(view === "lg" && lgTab === "M") renderLgMatches();
 }, 25000);
