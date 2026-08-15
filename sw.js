@@ -1,5 +1,6 @@
 /* Goallak service worker
    CACHE changelog (bump on EVERY deploy, newest first):
+   goalak-v20  2026-08-15  v2.6: club friendlies plus senior national-team official and friendly matches appear in All only; chat names now show each user's favourite club.
    goalak-v19  2026-08-15  v2.5: named TV channels are now shown only for exact fixture matches; league-rights fallback is labelled channel not confirmed instead of claiming a generic broadcaster.
    goalak-v18  2026-08-15  v2.4: selecting match-alert leagues no longer closes Settings after the league buttons re-render.
    goalak-v17  2026-08-15  v2.3: active live-match score refresh reduced from about 45 seconds to about 25 seconds; non-live schedules remain throttled.
@@ -20,7 +21,7 @@
    goalak-v2   2026-08-14  QA pass: WCup navy palette; precise shell matching vs SW scope; non-ok responses fall back to cached shell; redirected responses re-wrapped before use/caching; cache writes tied to event lifetime.
    goalak-v1   2026-08-14  v1.0 initial build: 7 leagues, all-leagues day view, league pages (matches / table / stats), AR/EN RTL.
 */
-const CACHE = "goalak-v19";
+const CACHE = "goalak-v20";
 const SHELL = ["./", "index.html", "manifest.json", "icon-192.png", "icon-512.png", "icon-180.png", "favicon.svg", "logo-head.svg", "logo-mark-pos.svg", "logo-mark-rev.svg", "badge.png"];
 /* Third-party hosts are never intercepted (live data + shared state must ride the network). */
 const BYPASS = /espn\.com|espncdn\.com|googleapis\.com|gstatic\.com|flagcdn\.com|textdb\.online|workers\.dev/;
