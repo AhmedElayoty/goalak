@@ -237,6 +237,29 @@ html[data-theme="light"] .ico-sun{display:none}
 /* ---------- modal ---------- */
 #modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;display:flex;align-items:flex-end;justify-content:center}
 @media(min-width:520px){#modal{align-items:center}}
+/* ---------- match detail tabs (summary / line-ups / stats) ---------- */
+.mdtabs{display:flex;gap:6px;padding:10px 0 4px;position:sticky;top:0;background:var(--card);z-index:2}
+.mdtab{flex:1;padding:8px 0;border-radius:10px;background:var(--card2);border:1px solid var(--line);font-size:12.5px;font-weight:800;color:var(--dim)}
+.mdtab.on{background:var(--accdark);border-color:var(--acc);color:#fff}
+.mdload{text-align:center;padding:26px 0;color:var(--dim2);font-size:13px}
+.lnform{display:flex;justify-content:space-between;gap:8px;padding:10px 2px 8px;font-size:12px;font-weight:800;color:var(--gold)}
+.lnform span{max-width:48%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lncols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.lnhead{font-size:11px;font-weight:800;color:var(--dim2);padding:8px 2px 4px;letter-spacing:.3px}
+.lnrow{display:flex;align-items:center;gap:6px;padding:4px 2px;font-size:12.5px;border-bottom:1px solid var(--line)}
+.lnrow:last-child{border-bottom:none}
+.lnnum{flex:0 0 20px;text-align:center;font-size:10.5px;font-weight:900;color:var(--dim2)}
+.lnname{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
+.lnpos{flex:0 0 auto;font-size:9.5px;color:var(--dim2);font-weight:800}
+.lnic{flex:0 0 auto;font-size:11px;letter-spacing:1px}
+.stline{padding:9px 2px;border-bottom:1px solid var(--line)}
+.stline:last-child{border-bottom:none}
+.sttop{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;font-weight:800;padding-bottom:5px}
+.sttop .stlab{color:var(--dim);font-size:11.5px;font-weight:700}
+.stbar{display:flex;height:7px;border-radius:4px;overflow:hidden;background:var(--card2)}
+.stbar i{display:block;height:100%}
+.stbar .sh{background:var(--acc)}
+.stbar .sa{background:var(--dim2)}
 .mbox{background:var(--card);border:1px solid var(--line2);border-radius:18px 18px 0 0;width:100%;max-width:520px;max-height:82vh;overflow-y:auto;padding:18px 16px 26px}
 @media(min-width:520px){.mbox{border-radius:18px}}
 .mx{position:sticky;top:0;float:inline-end;background:var(--card2);border-radius:50%;width:30px;height:30px;font-size:15px;color:var(--dim)}
@@ -527,7 +550,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN وFilGoal وYallakora</span> · <span id="appVer">v2.8</span></footer>
+ <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN وFilGoal وYallakora</span> · <span id="appVer">v2.9</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -580,7 +603,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <script>
 "use strict";
 /* ============ GOALLAK · الجول جولك ============ */
-const APP_VERSION = "2.8";
+const APP_VERSION = "2.9";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -873,6 +896,26 @@ const STR = {
   tvSource:["المصدر","Source"],
   predHeroTitle:["توقع مباريات الأبطال واكسب النقاط","Predict the Champions League & earn points"],
  predComp:["توقعات دوري أبطال أوروبا","Champions League Predictions"],
+ mdSummary:["الملخص","Summary"],
+ mdLineups:["التشكيل","Line-ups"],
+ mdStats:["الإحصائيات","Stats"],
+ mdStarters:["التشكيل الأساسي","Starting XI"],
+ mdSubs:["البدلاء","Substitutes"],
+ mdNoLineups:["لم تُعلن التشكيلة بعد","Line-ups not announced yet"],
+ mdNoStats:["لا توجد إحصائيات متاحة لهذه المباراة","No stats available for this match"],
+ mdAssist:["صناعة","assist"],
+ mdLoadFail:["تعذر تحميل تفاصيل المباراة","Could not load match details"],
+ stPossession:["الاستحواذ %","Possession %"],
+ stShots:["التسديدات","Shots"],
+ stOnTarget:["على المرمى","On target"],
+ stCorners:["الركنيات","Corners"],
+ stFouls:["الأخطاء","Fouls"],
+ stOffsides:["التسلل","Offsides"],
+ stSaves:["التصديات","Saves"],
+ stPasses:["التمريرات","Passes"],
+ stPassAcc:["دقة التمرير %","Pass accuracy %"],
+ stYellow:["البطاقات الصفراء","Yellow cards"],
+ stRed:["البطاقات الحمراء","Red cards"],
 };
 function t(k){ const e = STR[k]; return e ? e[LANG === "ar" ? 0 : 1] : k; }
 function lgName(lg){ return LANG === "ar" ? lg.ar : lg.en; }
@@ -1734,6 +1777,152 @@ function detIcon(txt, d){
  if(s.includes("sub")) return "🔁";
  return "•";
 }
+/* ---- match detail: summary feed (line-ups, formations, per-player + team stats) ---- */
+const sumCache = {};      // eventId -> {at, json} | {at, failed:true}
+let _mdEid = null, _mdTab = "E";
+function slugForEvent(e){
+ if(e && e._gkCompetition && e._gkCompetition.slug) return e._gkCompetition.slug;
+ const lg = SCORE_GROUPS.find(l => l.id === (e && e._gkLeagueId));
+ if(!lg) return null;
+ return (e && e._gkQual && lg.qual) ? lg.qual : lg.slug;
+}
+async function ensureSummary(eid){
+ const c = sumCache[eid];
+ if(c && (c.json || (c.failed && Date.now() - c.at < 60000))) return c.json || null;
+ const e = EV_INDEX[eid];
+ const slug = slugForEvent(e);
+ if(!slug){ sumCache[eid] = {at:Date.now(), failed:true}; return null; }
+ try{
+  const j = await jget(API + slug + "/summary?event=" + encodeURIComponent(eid));
+  sumCache[eid] = {at:Date.now(), json:j};
+  return j;
+ }catch(_){ sumCache[eid] = {at:Date.now(), failed:true}; return null; }
+}
+function pstat(p, name){
+ const s = (p && p.stats || []).find(x => x && x.name === name);
+ if(!s) return 0;
+ const v = Number(s.value != null ? s.value : s.displayValue);
+ return isNaN(v) ? 0 : v;
+}
+function subMinute(p){
+ const play = (p && p.plays || []).find(x => x && x.clock && x.clock.displayValue);
+ return play ? play.clock.displayValue : "";
+}
+function playerIcons(p){
+ let ic = "";
+ const g = pstat(p, "totalGoals"), og = pstat(p, "ownGoals"), a = pstat(p, "goalAssists");
+ const y = pstat(p, "yellowCards"), r = pstat(p, "redCards");
+ for(let i = 0; i < g; i++) ic += "⚽";
+ for(let i = 0; i < og; i++) ic += "🔴";
+ for(let i = 0; i < a; i++) ic += "🅰️";
+ if(y) ic += "🟨";
+ if(r) ic += "🟥";
+ if(p && p.subbedOut) ic += "🔻";
+ if(p && p.subbedIn) ic += "🔺";
+ return ic;
+}
+function lineupCol(r){
+ const list = (r && r.roster) || [];
+ /* bench players carry formationPlace "0", so only a positive place (or an explicit starter flag) counts */
+ const isStart = p => p && (p.starter === true || Number(p.formationPlace) > 0);
+ const starters = list.filter(isStart).slice().sort((x, y) => (Number(x.formationPlace) || 99) - (Number(y.formationPlace) || 99));
+ const bench = list.filter(p => !isStart(p) && (p.subbedIn || pstat(p, "appearances") > 0 || pstat(p, "subIns") > 0));
+ const row = p => {
+  const a = p.athlete || {};
+  const min = (p.subbedIn || p.subbedOut) ? subMinute(p) : "";
+  return '<div class="lnrow"><span class="lnnum" dir="ltr">' + esc(p.jersey || a.jersey || "") + "</span>" +
+   '<span class="lnname">' + esc(a.displayName || "?") + "</span>" +
+   (min ? '<span class="lnpos" dir="ltr">' + esc(min) + "</span>" : "") +
+   '<span class="lnpos">' + esc((p.position && (p.position.abbreviation || p.position.name)) || "") + "</span>" +
+   '<span class="lnic">' + playerIcons(p) + "</span></div>";
+ };
+ let h = '<div class="lnhead">' + esc(t("mdStarters")) + "</div>" + starters.map(row).join("");
+ if(bench.length) h += '<div class="lnhead">' + esc(t("mdSubs")) + "</div>" + bench.map(row).join("");
+ return h;
+}
+function mdLineupsHtml(sum, H, A){
+ const ros = (sum && sum.rosters) || [];
+ if(!ros.length || !ros.some(r => (r.roster || []).length)) return '<div class="mnoev">' + esc(t("mdNoLineups")) + "</div>";
+ const find = tm => ros.find(r => r.team && tm && tm.team && String(r.team.id) === String(tm.team.id)) || null;
+ const rh = find(H) || ros[0], ra = find(A) || ros[1];
+ const form = r => (r && (r.formation || r.displayFormation)) || "";
+ return '<div class="lnform"><span dir="ltr">' + esc(teamName(H)) + (form(rh) ? " · " + esc(form(rh)) : "") + "</span>" +
+  '<span dir="ltr">' + esc(teamName(A)) + (form(ra) ? " · " + esc(form(ra)) : "") + "</span></div>" +
+  '<div class="lncols"><div>' + lineupCol(rh) + "</div><div>" + lineupCol(ra) + "</div></div>";
+}
+const MD_STAT_ROWS = [
+ {n:"possessionPct", k:"stPossession", pct:true},
+ {n:"totalShots", k:"stShots"},
+ {n:"shotsOnTarget", k:"stOnTarget"},
+ {n:"wonCorners", k:"stCorners"},
+ {n:"saves", k:"stSaves"},
+ {n:"foulsCommitted", k:"stFouls"},
+ {n:"offsides", k:"stOffsides"},
+ {n:"totalPasses", k:"stPasses"},
+ {n:"yellowCards", k:"stYellow"},
+ {n:"redCards", k:"stRed"}
+];
+function tstat(team, name){
+ const s = ((team && team.statistics) || []).find(x => x && x.name === name);
+ if(!s) return null;
+ const v = Number(String(s.displayValue != null ? s.displayValue : s.value).replace("%", ""));
+ return isNaN(v) ? null : v;
+}
+function mdStatsHtml(sum, H, A){
+ const teams = (sum && sum.boxscore && sum.boxscore.teams) || [];
+ if(teams.length < 2) return '<div class="mnoev">' + esc(t("mdNoStats")) + "</div>";
+ const find = tm => teams.find(x => x.team && tm && tm.team && String(x.team.id) === String(tm.team.id)) || null;
+ const th = find(H) || teams[0], ta = find(A) || teams[1];
+ let h = "";
+ for(const row of MD_STAT_ROWS){
+  const vh = tstat(th, row.n), va = tstat(ta, row.n);
+  if(vh == null && va == null) continue;
+  const a = vh || 0, b = va || 0, tot = a + b;
+  const pa = tot ? Math.round(a / tot * 100) : 50;
+  h += '<div class="stline"><div class="sttop"><b dir="ltr">' + esc(a + (row.pct ? "%" : "")) + '</b><span class="stlab">' + esc(t(row.k)) + '</span><b dir="ltr">' + esc(b + (row.pct ? "%" : "")) + "</b></div>" +
+   '<div class="stbar"><i class="sh" style="width:' + pa + '%"></i><i class="sa" style="width:' + (100 - pa) + '%"></i></div></div>';
+ }
+ return h || '<div class="mnoev">' + esc(t("mdNoStats")) + "</div>";
+}
+function mdEventsHtml(e, H, A){
+ const comp = e.competitions && e.competitions[0] || {};
+ const dets = (comp.details || []).slice().sort((x, y) => ((x.clock && x.clock.value) || 0) - ((y.clock && y.clock.value) || 0));
+ let evh = "";
+ for(const d of dets){
+  const typeTxt = d.type && d.type.text || "";
+  const who = (d.athletesInvolved && d.athletesInvolved[0] && d.athletesInvolved[0].displayName) || "";
+  if(!typeTxt && !who) continue;
+  const assist = (d.scoringPlay && d.athletesInvolved && d.athletesInvolved[1] && d.athletesInvolved[1].displayName) || "";
+  const isH = d.team && H.team && String(d.team.id) === String(H.team.id);
+  const sideNm = d.team ? (isH ? teamName(H) : teamName(A)) : "";
+  evh += '<div class="evline"><span class="evmin" dir="ltr">' + esc((d.clock && d.clock.displayValue) || "") + "</span>" +
+   '<span class="evico">' + detIcon(typeTxt, d) + "</span>" +
+   '<span class="evtxt">' + esc(who || typeTxt) + (assist ? ' <span class="evside">(' + esc(t("mdAssist")) + ": " + esc(assist) + ")</span>" : "") + "</span>" +
+   '<span class="evside">' + esc(sideNm) + "</span></div>";
+ }
+ return evh ? '<div class="dhead">' + esc(t("matchEvents")) + "</div>" + evh : '<div class="mnoev">' + esc(t("noEvents")) + "</div>";
+}
+function setMdTab(x){ _mdTab = x; renderMdBody(); }
+async function renderMdBody(){
+ const eid = _mdEid;
+ const e = EV_INDEX[eid];
+ if(!e) return;
+ const tabsEl = $("mdTabs"), body = $("mdBody");
+ if(!tabsEl || !body) return;
+ tabsEl.innerHTML = [["E", "mdSummary"], ["L", "mdLineups"], ["S", "mdStats"]]
+  .map(p => '<button type="button" class="mdtab' + (_mdTab === p[0] ? " on" : "") + '" onclick="setMdTab(\'' + p[0] + '\')">' + esc(t(p[1])) + "</button>").join("");
+ const comp = e.competitions && e.competitions[0] || {};
+ const cs = comp.competitors || [];
+ const H = cs.find(c => c.homeAway === "home") || cs[0] || {};
+ const A = cs.find(c => c.homeAway === "away") || cs[1] || {};
+ if(_mdTab === "E"){ body.innerHTML = mdEventsHtml(e, H, A); return; }
+ const cached = sumCache[eid] && sumCache[eid].json;
+ if(!cached) body.innerHTML = '<div class="mdload"><span class="spinner"></span>' + esc(t("loading")) + "</div>";
+ const sum = cached || await ensureSummary(eid);
+ if(_mdEid !== eid) return;                       /* user moved on while fetching */
+ if(!sum){ body.innerHTML = '<div class="mnoev">' + esc(t("mdLoadFail")) + "</div>"; return; }
+ body.innerHTML = _mdTab === "L" ? mdLineupsHtml(sum, H, A) : mdStatsHtml(sum, H, A);
+}
 function openMatch(eid){
  const e = EV_INDEX[eid];
  if(!e) return;
@@ -1765,25 +1954,9 @@ function openMatch(eid){
    if(tv.sourceUrl) meta += '<a class="tvsource" href="' + esc(tv.sourceUrl) + '" target="_blank" rel="noopener noreferrer">' + esc(t("tvSource") + ": " + tv.source) + "</a>";
   } else meta += '<br><span class="tvmeta">📺 ' + esc(t("tvUnconfirmed")) + "</span>";
  }
- const dets = (comp.details || []).slice().sort((x, y) => {
-  const xv = x.clock && x.clock.value || 0, yv = y.clock && y.clock.value || 0;
-  return xv - yv;
- });
- let evh = "";
- for(const d of dets){
-  const typeTxt = d.type && d.type.text || "";
-  const who = (d.athletesInvolved && d.athletesInvolved[0] && d.athletesInvolved[0].displayName) || "";
-  if(!typeTxt && !who) continue;
-  const isH = d.team && H.team && String(d.team.id) === String(H.team.id);
-  const sideNm = d.team ? (isH ? teamName(H) : teamName(A)) : "";
-  evh += '<div class="evline"><span class="evmin" dir="ltr">' + esc(d.clock && d.clock.displayValue || "") + "</span>" +
-   '<span class="evico">' + detIcon(typeTxt, d) + "</span>" +
-   '<span class="evtxt">' + esc(who || typeTxt) + "</span>" +
-   '<span class="evside">' + esc(sideNm) + "</span></div>";
- }
- const evsBlock = evh
-  ? '<div class="dhead">' + esc(t("matchEvents")) + "</div>" + evh
-  : (s === "pre" ? "" : '<div class="mnoev">' + esc(t("noEvents")) + "</div>");
+ /* played or in-play matches get the full tabbed detail (summary / line-ups / stats) */
+ const hasDetail = !vk && (s === "in" || s === "post");
+ _mdEid = eid; _mdTab = "E";
  $("mbox").innerHTML =
   '<button type="button" class="mx" onclick="closeModal()">✕</button>' +
   '<div class="mvs">' +
@@ -1791,12 +1964,17 @@ function openMatch(eid){
    scoreLine +
    '<span class="mvt">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span>" +
   "</div>" +
-  '<div class="mmeta">' + meta + "</div>" + evsBlock;
+  '<div class="mmeta">' + meta + "</div>" +
+  (hasDetail
+   ? '<div class="mdtabs" id="mdTabs"></div><div id="mdBody"></div>'
+   : (s === "pre" ? "" : '<div class="mnoev">' + esc(t("noEvents")) + "</div>"));
  $("modal").classList.remove("hide");
+ if(hasDetail) renderMdBody();
  try{ history.pushState({gkm:1}, ""); }catch(_){}
 }
 function closeModal(){
  if($("modal").classList.contains("hide")) return; /* stray Escape must not pop unrelated history */
+ _mdEid = null;
  if(history.state && history.state.gkm){ try{ history.back(); return; }catch(_){} }
  $("modal").classList.add("hide");
 }
