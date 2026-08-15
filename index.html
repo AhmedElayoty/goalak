@@ -344,6 +344,31 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 .clubhero .chsub{text-align:center;font-size:11.5px;color:var(--dim);font-weight:700}
 .setchip .han{max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
+/* ---------- chat ---------- */
+.chatnote{text-align:center;font-size:12px;color:var(--dim2);font-weight:700;padding:2px 0 10px}
+#chatLog{padding-bottom:76px}
+.cmsg{background:var(--card);border:1px solid var(--line);border-radius:14px;border-start-start-radius:4px;padding:8px 12px 6px;margin:0 0 8px;max-width:86%;width:fit-content}
+.cmsg.own{margin-inline-start:auto;background:var(--accdark);border-color:var(--acc);border-start-start-radius:14px;border-start-end-radius:4px}
+.cmsg .cname{font-size:10.5px;font-weight:800;color:var(--gold);letter-spacing:.3px}
+.cmsg.own .cname{color:#ffd9c7}
+.cmsg .ctxt{font-size:14.5px;font-weight:600;white-space:pre-wrap;word-break:break-word;color:var(--txt)}
+.cmsg.own .ctxt{color:#fff}
+.cmsg .ctime{font-size:9.5px;color:var(--dim2);text-align:end;padding-top:2px}
+.cmsg.own .ctime{color:#f4cdbb}
+.chatbar{position:fixed;bottom:calc(64px + env(safe-area-inset-bottom));inset-inline:10px;max-width:660px;margin-inline:auto;z-index:58;display:flex;gap:8px;align-items:flex-end;background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:8px 10px;box-shadow:0 8px 26px rgba(0,0,0,.35)}
+.chatbar textarea{flex:1;min-width:0;background:var(--card2);border:1px solid var(--line);border-radius:10px;color:var(--txt);font-family:inherit;font-size:16px;font-weight:600;padding:8px 11px;resize:none;max-height:110px}
+.chatbar #chatSend{flex:0 0 auto;width:40px;height:40px;border-radius:50%;background:var(--accdark);border:1px solid var(--acc);color:#fff;font-size:16px}
+[dir=rtl] .chatbar #chatSend{transform:scaleX(-1)}
+.navbadge{position:absolute;top:4px;inset-inline-end:18%;background:var(--red);color:#fff;font-size:9px;font-weight:900;border-radius:9px;padding:1px 5px;line-height:1.3}
+.bnav button{position:relative}
+
+/* ---------- install bar (WC-app style, sits above the bottom nav) ---------- */
+.instbar{position:fixed;bottom:calc(64px + env(safe-area-inset-bottom));inset-inline:10px;max-width:660px;margin-inline:auto;z-index:59;display:flex;align-items:center;gap:9px;background:linear-gradient(90deg,#2c1a40,#211235);border:1px solid var(--gold);border-radius:13px;padding:9px 12px;box-shadow:0 8px 26px rgba(0,0,0,.4)}
+.instbar .ibico{flex:0 0 auto}
+.instbar .ibtx{flex:1;min-width:0;font-size:12.5px;font-weight:700;color:#fff8f2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.instbar .ibgo{flex:0 0 auto;background:var(--gold);color:#211235;font-weight:900;font-size:12.5px;border-radius:9px;padding:6px 16px}
+.instbar .ibx{flex:0 0 auto;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.12);color:#fff8f2;font-size:14px;line-height:1}
+
 /* ---------- fantasy teaser ---------- */
 .fantsoon{text-align:center;padding:90px 10px 40px}
 .fantsoon .fbig{font-size:54px;line-height:1}
@@ -376,7 +401,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <div class="shrow"><span class="shlab" id="shClock">نظام الوقت</span><div class="seg" role="radiogroup" aria-labelledby="shClock"><button type="button" id="h12b" class="on" onclick="setHour12(true)">AM·PM</button><button type="button" id="h24b" onclick="setHour12(false)">24H</button></div></div>
   <div class="shrow"><span class="shlab" id="shLang">اللغة</span><div class="seg" role="radiogroup" aria-labelledby="shLang"><button type="button" id="lgEn" onclick="setLang('en')">EN</button><button type="button" id="lgAr" class="on" onclick="setLang('ar')">عربي</button></div></div>
   <div class="shrow"><span class="shlab" id="shTheme">🌓 المظهر</span><div class="seg" role="radiogroup" aria-labelledby="shTheme"><button type="button" id="thD" class="on" onclick="setTheme('dark')">داكن</button><button type="button" id="thL" onclick="setTheme('light')">فاتح</button></div></div>
-  <div class="shver">GOALAK · v1.4 · الجول جولك</div>
+  <div class="shver">GOALAK · v1.5 · الجول جولك</div>
  </div>
 
  <nav class="rail" id="rail" aria-label="Leagues"></nav>
@@ -401,6 +426,11 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    <div id="predBody"><div class="skel"><span class="spinner"></span></div></div>
   </section>
 
+  <section id="chatPane" class="hide">
+   <div class="chatnote" id="chatNote">غرفة الأصحاب المشتركة · خلّيها كورة 🏆</div>
+   <div id="chatLog"><div class="skel"><span class="spinner"></span></div></div>
+  </section>
+
   <section id="fantPane" class="hide">
    <div class="fantsoon">
     <div class="fbig">⭐</div>
@@ -421,7 +451,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b>GOALAK</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN</span> · <span id="appVer">v1.4</span></footer>
+ <footer><b>GOALAK</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN</span> · <span id="appVer">v1.5</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -445,16 +475,29 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
  </div>
 </div>
 
+<div class="chatbar hide" id="chatBar">
+ <textarea id="chatIn" rows="1" maxlength="500" placeholder="اكتب رسالة…"></textarea>
+ <button type="button" id="chatSend" onclick="sendChat()" aria-label="Send">➤</button>
+</div>
+
+<div class="instbar hide" id="instBar">
+ <span class="ibico">⬇️</span>
+ <span class="ibtx" id="instBarTxt">ثبّت جولك على جهازك — يعمل كتطبيق كامل</span>
+ <button type="button" class="ibgo" id="instBarBtn" onclick="installApp()">تثبيت</button>
+ <button type="button" class="ibx" onclick="dismissInstBar()" aria-label="Dismiss">&#215;</button>
+</div>
+
 <nav class="bnav" id="bnav">
  <button type="button" id="bnScores" class="on" onclick="showMain('scores')"><span class="bnico">⚽</span><span id="bnScoresL">المباريات</span></button>
  <button type="button" id="bnPred" onclick="showMain('pred')"><span class="bnico">🎯</span><span id="bnPredL">التوقعات</span></button>
  <button type="button" id="bnFant" onclick="showMain('fant')"><span class="bnico">⭐</span><span id="bnFantL">فانتازي</span></button>
+ <button type="button" id="bnChat" onclick="showMain('chat')"><span class="bnico">💬</span><span id="bnChatL">دردشة</span><span class="navbadge hide" id="chatBadge"></span></button>
 </nav>
 
 <script>
 "use strict";
 /* ============ GOALAK v1.0 · الجول جولك ============ */
-const APP_VERSION = "1.4";
+const APP_VERSION = "1.5";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 
@@ -679,6 +722,15 @@ const STR = {
  noClub:["بدون فريق مفضل","No favourite club"],
  clubNext:["مباراة فريقك القادمة","Your club's next match"],
  clubSaved:["تم حفظ فريقك المفضل ⭐","Favourite club saved ⭐"],
+ installBarTxt:["ثبّت جولك على جهازك — يعمل كتطبيق كامل","Install Goalak on your device — works as a full app"],
+ installBtn:["تثبيت","Install"],
+ installHow:["للتثبيت: افتح قائمة المتصفح (⋮ أو زر المشاركة) ثم اختر \"تثبيت التطبيق\" أو \"إضافة إلى الشاشة الرئيسية\"","To install: open the browser menu (⋮ or Share) and choose 'Install app' or 'Add to Home Screen'"],
+ chatNav:["دردشة","Chat"],
+ chatNote:["غرفة الأصحاب المشتركة · خلّيها كورة 🏆","Shared team room · be nice, it's football 🏆"],
+ chatPlaceholder:["اكتب رسالة…","Type a message…"],
+ chatJoin:["سجّل دخولك للمشاركة في الدردشة","Sign in to join the chat"],
+ chatEmpty:["ابدأ الدردشة — أول رسالة لك 🎉","Start the chat — the first message is yours 🎉"],
+ chatFail:["تعذر إرسال الرسالة · حاول مرة أخرى","Message failed to send · try again"],
 };
 function t(k){ const e = STR[k]; return e ? e[LANG === "ar" ? 0 : 1] : k; }
 function lgName(lg){ return LANG === "ar" ? lg.ar : lg.en; }
@@ -785,6 +837,12 @@ function setLang(x){
  if(bf) bf.textContent = t("fantasyNav");
  const fs = $("fantSoon");
  if(fs) fs.textContent = t("soon");
+ const bc = $("bnChatL");
+ if(bc) bc.textContent = t("chatNav");
+ const cn = $("chatNote");
+ if(cn) cn.textContent = t("chatNote");
+ if(typeof refreshChatBar === "function") refreshChatBar();
+ if(typeof renderChat === "function" && mainView === "chat") renderChat();
  if(typeof updateAuthUI === "function" && !$("authModal").classList.contains("hide")) updateAuthUI();
  if(typeof mainView !== "undefined" && mainView === "pred"){ renderPred(); }
  else if(view === "home"){ paintHome(); } else { paintLeague(); }
@@ -861,6 +919,11 @@ function refreshSettingsUI(){
  const it = $("instTxt");
  if(it) it.textContent = t("installLab");
  if(typeof updInstallRow === "function") updInstallRow();
+ const ibt = $("instBarTxt");
+ if(ibt) ibt.textContent = t("installBarTxt");
+ const ibb = $("instBarBtn");
+ if(ibb) ibb.textContent = t("installBtn");
+ if(typeof updInstBar === "function") updInstBar();
  const al = $("shAlerts");
  if(al) al.textContent = t("alertsLab");
  if(typeof renderPushLgs === "function" && !$("pushLgRow").classList.contains("hide")) renderPushLgs();
@@ -1125,15 +1188,24 @@ window.addEventListener("popstate", function(){
  if(!$("setSheet").classList.contains("hide")){ closeSettings(); return; }
  if(view === "lg") gotoHome();
 });
-/* install prompt (Android exposes the event; iOS gets instructions) */
+/* install prompt: native prompt when the browser offers one, clear instructions otherwise.
+   The option is ALWAYS visible when the app is not installed (WC-app behaviour). */
 let _bip = null;
-window.addEventListener("beforeinstallprompt", function(e){ e.preventDefault(); _bip = e; updInstallRow(); });
+window.addEventListener("beforeinstallprompt", function(e){ e.preventDefault(); _bip = e; updInstallRow(); updInstBar(); });
 function isStandalone(){ try{ return matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; }catch(_){ return false; } }
 function isIOS(){ const ua = navigator.userAgent; return /iphone|ipad|ipod/i.test(ua) || (/macintosh/i.test(ua) && navigator.maxTouchPoints > 1); }
-function updInstallRow(){ const r = $("installRow"); if(r) r.classList.toggle("hide", isStandalone() || (!_bip && !isIOS())); }
+function updInstallRow(){ const r = $("installRow"); if(r) r.classList.toggle("hide", isStandalone()); }
+function instBarDismissed(){ try{ return localStorage.getItem("gk_inst_optout") === "1"; }catch(_){ return false; } }
+function updInstBar(){ const b = $("instBar"); if(b) b.classList.toggle("hide", isStandalone() || instBarDismissed()); }
+function dismissInstBar(){ try{ localStorage.setItem("gk_inst_optout", "1"); }catch(_){} updInstBar(); }
 function installApp(){
- if(_bip){ try{ _bip.prompt(); }catch(_){} _bip = null; updInstallRow(); }
- else if(isIOS()) alert(t("iosHint"));
+ if(_bip){
+  try{ _bip.prompt(); }catch(_){}
+  _bip = null;
+  try{ localStorage.setItem("gk_inst_optout", "1"); }catch(_){}
+  updInstBar();
+ }
+ else alert(t(isIOS() ? "iosHint" : "installHow"));
 }
 
 /* ============ league page ============ */
@@ -1548,12 +1620,14 @@ function finishAuth(a){
  savePushSub(); /* attach uid/name to an existing push subscription */
  refreshHdrAuth();
  renderClubHero(true);
+ refreshChatBar();
  renderPred();
 }
 function signOut(){
  gkUser = null; myPreds = {};
  try{ localStorage.removeItem("gk_user"); localStorage.removeItem("gk_preds"); }catch(_){}
  refreshHdrAuth();
+ refreshChatBar();
  renderPred();
 }
 async function syncMyPreds(){
@@ -1578,9 +1652,11 @@ function showMain(v){
  $("bnScores").classList.toggle("on", v === "scores");
  $("bnPred").classList.toggle("on", v === "pred");
  $("bnFant").classList.toggle("on", v === "fant");
+ $("bnChat").classList.toggle("on", v === "chat");
  $("rail").classList.toggle("hide", v !== "scores");
  $("predPane").classList.toggle("hide", v !== "pred");
  $("fantPane").classList.toggle("hide", v !== "fant");
+ $("chatPane").classList.toggle("hide", v !== "chat");
  if(v === "scores"){
   if(view === "lg") $("lg").classList.remove("hide"); else $("home").classList.remove("hide");
  } else {
@@ -1588,7 +1664,12 @@ function showMain(v){
  }
  if(v === "pred"){ renderPred(); loadPredData(false); syncMyPreds(); }
  if(v === "fant") $("fantSoon").textContent = t("soon");
- window.scrollTo(0, 0);
+ if(v === "chat"){ renderChat(); loadChat(); }
+ chatPoll(v === "chat");
+ refreshChatBar();
+ if(typeof updInstBar === "function") $("instBar").classList.toggle("hide", v === "chat" || isStandalone() || instBarDismissed());
+ if(v === "chat") window.scrollTo(0, document.body.scrollHeight);
+ else window.scrollTo(0, 0);
 }
 async function loadPredData(force){
  if(_predInflight && !force) return _predInflight;
@@ -1904,6 +1985,103 @@ function refreshHdrAuth(){
  if(ab) ab.textContent = gkUser ? gkUser.username : t("login");
 }
 
+/* ============ chat (WC room rules: cap 80, dedupe by id, wipe guard, verify-after-write) ============ */
+const CHAT_KEY = "goalak_room";
+let chatMsgs = [];
+try{ chatMsgs = JSON.parse(localStorage.getItem("gk_chat_cache") || "[]"); }catch(_){}
+let chatTimer = null;
+let chatSeenTs = 0;
+try{ chatSeenTs = +localStorage.getItem("gk_chat_seents") || 0; }catch(_){}
+function chatCntSeen(){ try{ return +localStorage.getItem("gk_chat_seen") || 0; }catch(_){ return 0; } }
+function chatCntSeenUpd(n){ try{ if(n > chatCntSeen()) localStorage.setItem("gk_chat_seen", String(n)); }catch(_){} }
+function normChat(list){
+ const seen = {};
+ return (Array.isArray(list) ? list : [])
+  .filter(m => m && m.id && m.txt && !seen[m.id] && (seen[m.id] = 1))
+  .sort((a, b) => (a.ts || 0) - (b.ts || 0))
+  .slice(-80);
+}
+async function loadChat(){
+ try{
+  const fresh = await tdbRead(CHAT_KEY, null);
+  const list = normChat(fresh);
+  /* empty-read refusal: a suddenly-empty room after seeing messages is treated as a bad read */
+  if(!list.length && chatCntSeen() > 0) return;
+  chatCntSeenUpd(list.length);
+  chatMsgs = list;
+  try{ localStorage.setItem("gk_chat_cache", JSON.stringify(chatMsgs.slice(-60))); }catch(_){}
+ }catch(_){ /* keep last-good */ }
+ if(mainView === "chat") renderChat();
+ updateChatBadge();
+}
+function renderChat(){
+ const log = $("chatLog");
+ if(!log) return;
+ if(!chatMsgs.length){
+  log.innerHTML = '<div class="empty"><div class="big">💬</div>' + esc(t("chatEmpty")) + "</div>";
+ } else {
+  const nearBottom = (window.innerHeight + window.scrollY) >= (document.body.scrollHeight - 220);
+  log.innerHTML = chatMsgs.map(m => {
+   const own = gkUser && m.uid === gkUser.uid;
+   return '<div class="cmsg' + (own ? " own" : "") + '"><div class="cname">' + esc(m.name || "?") + '</div><div class="ctxt" dir="auto">' + esc(m.txt) + '</div><div class="ctime" dir="ltr">' + esc(fmtTime(new Date(m.ts || 0).toISOString())) + "</div></div>";
+  }).join("");
+  if(nearBottom) window.scrollTo(0, document.body.scrollHeight);
+ }
+ if(mainView === "chat"){
+  chatSeenTs = Date.now();
+  try{ localStorage.setItem("gk_chat_seents", String(chatSeenTs)); }catch(_){}
+  updateChatBadge();
+ }
+}
+function updateChatBadge(){
+ const b = $("chatBadge");
+ if(!b) return;
+ const n = chatMsgs.filter(m => (m.ts || 0) > chatSeenTs && (!gkUser || m.uid !== gkUser.uid)).length;
+ b.textContent = n > 9 ? "9+" : String(n);
+ b.classList.toggle("hide", n === 0 || mainView === "chat");
+}
+function refreshChatBar(){
+ const bar = $("chatBar");
+ if(!bar) return;
+ const show = mainView === "chat" && !!gkUser;
+ bar.classList.toggle("hide", !show);
+ $("chatIn").placeholder = t("chatPlaceholder");
+}
+async function sendChat(){
+ if(!gkUser) return openAuth("L");
+ const ta = $("chatIn");
+ const txt = (ta.value || "").trim().slice(0, 500);
+ if(!txt) return;
+ const btn = $("chatSend");
+ btn.disabled = true;
+ const msg = {id:"m" + Math.random().toString(36).slice(2, 10), uid:gkUser.uid, name:gkUser.username, txt:txt, ts:Date.now()};
+ let ok = false;
+ for(let i = 0; i < 3 && !ok; i++){
+  try{
+   const fresh = await tdbRead(CHAT_KEY, null);
+   const list = normChat(fresh);
+   if(!list.length && chatCntSeen() > 0){ await sleep(450); continue; } /* wipe guard */
+   chatCntSeenUpd(list.length);
+   list.push(msg);
+   const next = normChat(list);
+   await tdbWrite(CHAT_KEY, next);
+   await sleep(300);
+   const chk = normChat(await tdbRead(CHAT_KEY, null));
+   if(chk.some(m => m.id === msg.id)){ ok = true; chatMsgs = chk; }
+  }catch(_){ await sleep(350); }
+ }
+ btn.disabled = false;
+ if(!ok) return toastMsg(t("chatFail"));
+ ta.value = "";
+ try{ localStorage.setItem("gk_chat_cache", JSON.stringify(chatMsgs.slice(-60))); }catch(_){}
+ renderChat();
+ window.scrollTo(0, document.body.scrollHeight);
+}
+function chatPoll(start){
+ if(chatTimer){ clearInterval(chatTimer); chatTimer = null; }
+ if(start) chatTimer = setInterval(function(){ if(!document.hidden) loadChat(); }, 12000);
+}
+
 /* ============ push notifications (client) ============ */
 const GK_VAPID_PUBLIC = "BLyDli3t0W8TTo9gL7s4ibxgVJY6_ism0HIyn8DymerLNs1Bs9mo5ct5i_wti8NNUQ_pfXxMXXZfJKdg1Gc02RM";
 const PUSH_SUBS_KEY = "goalak_push_subs";
@@ -2026,6 +2204,8 @@ async function refreshPushUI(){
 setInterval(function(){
  if(document.hidden) return;
  buildStrip(false); /* day rollover rebuilds the strip */
+ if(mainView === "chat") return; /* chat has its own 12s poll */
+ loadChat(); /* background room check keeps the unread badge honest */
  if(mainView === "pred"){ loadPredData(false); return; }
  if(view === "home"){
   /* keep refreshing yesterday too: late European kickoffs cross local midnight while still live */
@@ -2063,9 +2243,12 @@ document.addEventListener("visibilitychange", function(){
  $("bnPredL").textContent = t("predictions");
  $("bnFantL").textContent = t("fantasyNav");
  $("fantSoon").textContent = t("soon");
+ $("bnChatL").textContent = t("chatNav");
+ $("chatNote").textContent = t("chatNote");
  loadDay(false);
  syncMyPreds();
  refreshPushUI();
+ loadChat();
  /* deep link: ?lg=<leagueId> opens that league, ?go=pred opens predictions */
  try{
   const q = new URLSearchParams(location.search);
