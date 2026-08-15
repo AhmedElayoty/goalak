@@ -1,5 +1,6 @@
 /* Goalak service worker
    CACHE changelog (bump on EVERY deploy, newest first):
+   goalak-v10  2026-08-15  v1.6 owner design pass: 3D bottom nav (gradient bar, gold hairline, raised glowing orb on the active tab, custom SVG icons - fantasy star replaced with an FPL-style jersey); leaderboard podium (top-3 with crown + gold/silver/bronze avatar rings); "Predict now" hero card with the live count of open UCL matches.
    goalak-v9   2026-08-15  v1.5: (a) install/download option visible like the WC app - dismissible install bar above the bottom nav (native prompt when offered, clear AR/EN instructions otherwise) + Settings install row always shown when not installed; (b) CHAT ported - new دردشة nav tab, fresh goalak_room textdb key with the WC room rules (80-message cap, dedupe by id, wipe guard, verify-after-write), fixed composer, unread badge, 12s poll in-tab + background badge checks.
    goalak-v8   2026-08-15  v1.4 WC-app essentials (owner call-outs): LIVE NOW strip (today's in-play matches across all leagues, fresh even while browsing other days); Arabic club names everywhere (~150-club FilGoal-register map, owner to validate spellings); header sign-in button + account row in Settings; favourite club (signup + Settings picker, leaderboard/userchip badges, home hero card with the club's next fixture); "التفاصيل" hint on live/finished rows pointing to the goals/cards timeline modal.
    goalak-v7   2026-08-15  v1.3: predictions now UCL-ONLY (owner call; qualifying play-offs predictable now, league phase auto-follows the draw); new third bottom-nav tab GOALAK Fantasy showing a branded "قريبًا / Soon" teaser only.
@@ -10,7 +11,7 @@
    goalak-v2   2026-08-14  QA pass: WCup navy palette; precise shell matching vs SW scope; non-ok responses fall back to cached shell; redirected responses re-wrapped before use/caching; cache writes tied to event lifetime.
    goalak-v1   2026-08-14  v1.0 initial build: 7 leagues, all-leagues day view, league pages (matches / table / stats), AR/EN RTL.
 */
-const CACHE = "goalak-v9";
+const CACHE = "goalak-v10";
 const SHELL = ["./", "index.html", "manifest.json", "icon-192.png", "icon-512.png", "icon-180.png", "favicon.svg", "logo-head.svg", "logo-mark-pos.svg", "logo-mark-rev.svg", "badge.png"];
 /* Third-party hosts are never intercepted (live data + shared state must ride the network). */
 const BYPASS = /espn\.com|espncdn\.com|googleapis\.com|gstatic\.com|flagcdn\.com|textdb\.online/;

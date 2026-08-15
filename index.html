@@ -298,14 +298,33 @@ footer{font-size:11px;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
 /* light theme: darker secondary text so small labels stay crisp on white */
 html[data-theme="light"]{--dim:#44536f;--dim2:#5a6a8e}
 
-/* ---------- bottom nav (mobile-app tabs) ---------- */
-#app{padding-bottom:96px}
-.bnav{position:fixed;bottom:0;inset-inline:0;max-width:680px;margin-inline:auto;z-index:60;display:flex;background:var(--card);border-top:1px solid var(--line2);padding-bottom:env(safe-area-inset-bottom)}
-.bnav button{flex:1;padding:9px 0 7px;display:flex;flex-direction:column;align-items:center;gap:1px;font-size:11.5px;font-weight:800;color:var(--dim2)}
-.bnav button.on{color:var(--acc)}
-.bnav .bnico{font-size:19px;line-height:1.1}
+/* ---------- bottom nav (3D bar: gradient body, gold hairline, raised glowing orb on the active tab) ---------- */
+#app{padding-bottom:104px}
+.bnav{position:fixed;bottom:0;inset-inline:0;max-width:680px;margin-inline:auto;z-index:60;display:flex;background:linear-gradient(180deg,#182553 0%,#141f4a 8%,#0c1434 100%);background-color:#0e1736;border-top:1px solid var(--line2);padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -10px 28px rgba(0,0,0,.5)}
+.bnav::before{content:"";position:absolute;top:-1px;inset-inline:0;height:2px;background:linear-gradient(90deg,transparent 8%,var(--gold) 50%,transparent 92%);opacity:.55;pointer-events:none}
+.bnav button{flex:1;padding:10px 0 6px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11.5px;font-weight:800;color:var(--dim2);transition:color .22s}
+.bnav button.on{color:var(--gold)}
+.bnic{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:transform .22s,box-shadow .22s,background .22s;color:inherit}
+.bnic svg{width:21px;height:21px}
+.bnav button.on .bnic{background:radial-gradient(circle at 32% 26%,#ff9a6b,#e05a2b 58%,#7e2f12);box-shadow:0 8px 20px rgba(224,90,43,.55),inset 0 1px 3px rgba(255,255,255,.4);transform:translateY(-9px);color:#fff}
+html[data-theme="light"] .bnav{background:linear-gradient(180deg,#ffffff,#e8edf8);border-top-color:#c3cde2;box-shadow:0 -8px 22px rgba(20,30,70,.14)}
 
 /* ---------- predictions ---------- */
+.predhero{background:linear-gradient(120deg,#2c1a40 0%,#7e2f12 130%);border:1px solid var(--acc);border-radius:16px;padding:14px 16px;margin-bottom:12px;position:relative;overflow:hidden}
+.predhero::after{content:"⚽";position:absolute;inset-inline-end:-6px;bottom:-14px;font-size:64px;opacity:.14;transform:rotate(-15deg)}
+.predhero .phl1{font-family:'Alexandria','Cairo',sans-serif;font-weight:800;font-size:16.5px;color:#fff8f2}
+.predhero .phl2{font-size:12.5px;font-weight:700;color:var(--gold);padding-top:2px}
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:14px;padding:16px 6px 14px;margin-bottom:10px;background:var(--card);border:1px solid var(--line);border-radius:16px}
+.pod{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;max-width:118px;min-width:0}
+.pod .pava{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:900;color:#fff;background:linear-gradient(135deg,#2c3d78,#16244f);border:2.5px solid #8493c8;position:relative}
+.pod.p1 .pava{width:66px;height:66px;font-size:27px;border-color:var(--gold);box-shadow:0 0 22px rgba(255,192,46,.4)}
+.pod.p3 .pava{border-color:#c9803a}
+.pod .pcrown{position:absolute;top:-19px;inset-inline:0;text-align:center;font-size:17px}
+.pod .prank{font-size:10px;font-weight:900;color:var(--dim2)}
+.pod .pname{font-size:12px;font-weight:800;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pod.p1 .pname{font-size:13.5px;color:var(--gold)}
+.pod .ppts{font-size:15px;font-weight:900;color:var(--gold)}
+.pod .pclub{font-size:9.5px;color:var(--dim2);max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .authcard{background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:16px;text-align:center;margin-bottom:12px}
 .authcard .autxt{font-size:14px;font-weight:700;color:var(--dim);margin-bottom:10px}
 .userchip{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 14px;margin-bottom:12px;font-size:14px}
@@ -401,7 +420,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <div class="shrow"><span class="shlab" id="shClock">نظام الوقت</span><div class="seg" role="radiogroup" aria-labelledby="shClock"><button type="button" id="h12b" class="on" onclick="setHour12(true)">AM·PM</button><button type="button" id="h24b" onclick="setHour12(false)">24H</button></div></div>
   <div class="shrow"><span class="shlab" id="shLang">اللغة</span><div class="seg" role="radiogroup" aria-labelledby="shLang"><button type="button" id="lgEn" onclick="setLang('en')">EN</button><button type="button" id="lgAr" class="on" onclick="setLang('ar')">عربي</button></div></div>
   <div class="shrow"><span class="shlab" id="shTheme">🌓 المظهر</span><div class="seg" role="radiogroup" aria-labelledby="shTheme"><button type="button" id="thD" class="on" onclick="setTheme('dark')">داكن</button><button type="button" id="thL" onclick="setTheme('light')">فاتح</button></div></div>
-  <div class="shver">GOALAK · v1.5 · الجول جولك</div>
+  <div class="shver">GOALAK · v1.6 · الجول جولك</div>
  </div>
 
  <nav class="rail" id="rail" aria-label="Leagues"></nav>
@@ -451,7 +470,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b>GOALAK</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN</span> · <span id="appVer">v1.5</span></footer>
+ <footer><b>GOALAK</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN</span> · <span id="appVer">v1.6</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -488,16 +507,16 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 </div>
 
 <nav class="bnav" id="bnav">
- <button type="button" id="bnScores" class="on" onclick="showMain('scores')"><span class="bnico">⚽</span><span id="bnScoresL">المباريات</span></button>
- <button type="button" id="bnPred" onclick="showMain('pred')"><span class="bnico">🎯</span><span id="bnPredL">التوقعات</span></button>
- <button type="button" id="bnFant" onclick="showMain('fant')"><span class="bnico">⭐</span><span id="bnFantL">فانتازي</span></button>
- <button type="button" id="bnChat" onclick="showMain('chat')"><span class="bnico">💬</span><span id="bnChatL">دردشة</span><span class="navbadge hide" id="chatBadge"></span></button>
+ <button type="button" id="bnScores" class="on" onclick="showMain('scores')"><span class="bnic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.2l4.1 3-1.6 4.8H9.5L7.9 10.2z" fill="currentColor" stroke="none"/><path d="M12 3v4.2M5.3 8.6l2.6 1.6M18.7 8.6l-2.6 1.6M7.2 20l2.3-5M16.8 20l-2.3-5"/></svg></span><span id="bnScoresL">المباريات</span></button>
+ <button type="button" id="bnPred" onclick="showMain('pred')"><span class="bnic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.6"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg></span><span id="bnPredL">التوقعات</span></button>
+ <button type="button" id="bnFant" onclick="showMain('fant')"><span class="bnic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M8.6 3.4L3.6 6.3l1.9 3.8 1.9-1v10.5h9.2V9.1l1.9 1 1.9-3.8-5-2.9a3.1 3.1 0 01-6.2 0z"/></svg></span><span id="bnFantL">فانتازي</span></button>
+ <button type="button" id="bnChat" onclick="showMain('chat')"><span class="bnic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.6a8.4 8.4 0 01-8.4 8.4H4.2l2.1-3.2A8.4 8.4 0 1121 11.6z"/></svg></span><span id="bnChatL">دردشة</span><span class="navbadge hide" id="chatBadge"></span></button>
 </nav>
 
 <script>
 "use strict";
 /* ============ GOALAK v1.0 · الجول جولك ============ */
-const APP_VERSION = "1.5";
+const APP_VERSION = "1.6";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 
@@ -731,6 +750,7 @@ const STR = {
  chatJoin:["سجّل دخولك للمشاركة في الدردشة","Sign in to join the chat"],
  chatEmpty:["ابدأ الدردشة — أول رسالة لك 🎉","Start the chat — the first message is yours 🎉"],
  chatFail:["تعذر إرسال الرسالة · حاول مرة أخرى","Message failed to send · try again"],
+ predHeroTitle:["توقع مباريات الأبطال واكسب النقاط","Predict the Champions League & earn points"],
 };
 function t(k){ const e = STR[k]; return e ? e[LANG === "ar" ? 0 : 1] : k; }
 function lgName(lg){ return LANG === "ar" ? lg.ar : lg.en; }
@@ -1728,6 +1748,14 @@ function renderPred(){
  } else {
   top.innerHTML = '<div class="userchip">👤 <b>' + esc(gkUser.username) + "</b>" + (myClub ? ' <span class="uclub">⭐ ' + esc(clubLabel(myClub)) + "</span>" : "") + '<button type="button" class="signout" onclick="signOut()">' + esc(t("signOut")) + "</button></div>";
  }
+ /* hero banner: how many matches are open right now */
+ const openN = (predCache.up || []).filter(e => evState(e) === "pre" && !predLocked(e) && !myPreds[e.id]).length;
+ if(openN > 0 && predTab === "M"){
+  const cnt = LANG === "ar"
+   ? (openN === 1 ? "مباراة واحدة متاحة للتوقع الآن" : openN === 2 ? "مباراتان متاحتان للتوقع الآن" : openN <= 10 ? openN + " مباريات متاحة للتوقع الآن" : openN + " مباراة متاحة للتوقع الآن")
+   : openN + (openN === 1 ? " match" : " matches") + " open for predictions now";
+  top.innerHTML += '<div class="predhero"><div class="phl1">🎯 ' + esc(t("predHeroTitle")) + '</div><div class="phl2">' + esc(cnt) + "</div></div>";
+ }
  $("ptabs").innerHTML =
   '<button type="button" class="ltab' + (predTab === "M" ? " on" : "") + '" onclick="setPredTab(\'M\')">' + esc(t("predictTab")) + "</button>" +
   '<button type="button" class="ltab' + (predTab === "L" ? " on" : "") + '" onclick="setPredTab(\'L\')">' + esc(t("leaderboard")) + "</button>";
@@ -1858,14 +1886,31 @@ async function renderLeaderboard(){
  }
 }
 function lbHtml(rows){
- const medals = ["🥇", "🥈", "🥉"];
- let h = '<div class="statcard"><div class="stath"><span class="ic">🏆</span>' + esc(t("leaderboard")) + "</div>";
- rows.slice(0, 50).forEach((r, i) => {
-  h += '<div class="srow' + (gkUser && r.uid === gkUser.uid ? " meRow" : "") + '"><span class="srank' + (i < 3 ? " top" : "") + '">' + (medals[i] || (i + 1)) + "</span>" +
-   '<span class="sname"><b>' + esc(r.name) + "</b><span>" + (r.club ? "⭐ " + esc(clubAr({shortDisplayName:r.club.s, displayName:r.club.n})) + " · " : "") + esc(t("exactLabel")) + ' <span dir="ltr">' + r.exact + "</span></span></span>" +
-   '<span class="sval" dir="ltr">' + r.pts + "</span></div>";
- });
- return h + "</div>";
+ let h = "";
+ /* podium for the top 3 (visual order: 2nd - 1st - 3rd), once there are at least 2 players */
+ if(rows.length >= 2){
+  const top = [rows[1], rows[0], rows[2]].filter(Boolean);
+  h += '<div class="podium">' + top.map(r => {
+   const rank = rows.indexOf(r) + 1;
+   return '<div class="pod p' + rank + '"><span class="pava">' + (rank === 1 ? '<span class="pcrown">👑</span>' : "") + esc(String(r.name || "?").charAt(0).toUpperCase()) +
+    '</span><span class="prank" dir="ltr">#' + rank + '</span><span class="pname">' + esc(r.name) + "</span>" +
+    (r.club ? '<span class="pclub">⭐ ' + esc(clubAr({shortDisplayName:r.club.s, displayName:r.club.n})) + "</span>" : "") +
+    '<span class="ppts" dir="ltr">' + r.pts + "</span></div>";
+  }).join("") + "</div>";
+ }
+ const podiumUsed = rows.length >= 2;
+ const rest = podiumUsed ? rows.slice(3) : rows;
+ if(rest.length || !podiumUsed){
+  h += '<div class="statcard"><div class="stath"><span class="ic">🏆</span>' + esc(t("leaderboard")) + "</div>";
+  (podiumUsed ? rest : rows).slice(0, 50).forEach((r, i) => {
+   const rank = (podiumUsed ? i + 4 : i + 1);
+   h += '<div class="srow' + (gkUser && r.uid === gkUser.uid ? " meRow" : "") + '"><span class="srank">' + (podiumUsed ? rank : (["🥇", "🥈", "🥉"][i] || rank)) + "</span>" +
+    '<span class="sname"><b>' + esc(r.name) + "</b><span>" + (r.club ? "⭐ " + esc(clubAr({shortDisplayName:r.club.s, displayName:r.club.n})) + " · " : "") + esc(t("exactLabel")) + ' <span dir="ltr">' + r.exact + "</span></span></span>" +
+    '<span class="sval" dir="ltr">' + r.pts + "</span></div>";
+  });
+  h += "</div>";
+ }
+ return h;
 }
 let _toastTimer = null;
 function toastMsg(msg){
