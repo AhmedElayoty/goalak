@@ -310,6 +310,7 @@ html[data-theme="light"]{--dim:#44536f;--dim2:#5a6a8e}
 html[data-theme="light"] .bnav{background:linear-gradient(180deg,#ffffff,#e8edf8);border-top-color:#c3cde2;box-shadow:0 -8px 22px rgba(20,30,70,.14)}
 
 /* ---------- predictions ---------- */
+.predcomp{font-family:'Alexandria','Cairo',sans-serif;font-weight:800;font-size:17px;color:var(--gold);text-align:center;padding:2px 0 10px;letter-spacing:.3px}
 .predhero{background:linear-gradient(120deg,#2c1a40 0%,#7e2f12 130%);border:1px solid var(--acc);border-radius:16px;padding:14px 16px;margin-bottom:12px;position:relative;overflow:hidden}
 .predhero::after{content:"⚽";position:absolute;inset-inline-end:-6px;bottom:-14px;font-size:64px;opacity:.14;transform:rotate(-15deg)}
 .predhero .phl1{font-family:'Alexandria','Cairo',sans-serif;font-weight:800;font-size:16.5px;color:#fff8f2}
@@ -420,7 +421,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <div class="shrow"><span class="shlab" id="shClock">نظام الوقت</span><div class="seg" role="radiogroup" aria-labelledby="shClock"><button type="button" id="h12b" class="on" onclick="setHour12(true)">AM·PM</button><button type="button" id="h24b" onclick="setHour12(false)">24H</button></div></div>
   <div class="shrow"><span class="shlab" id="shLang">اللغة</span><div class="seg" role="radiogroup" aria-labelledby="shLang"><button type="button" id="lgEn" onclick="setLang('en')">EN</button><button type="button" id="lgAr" class="on" onclick="setLang('ar')">عربي</button></div></div>
   <div class="shrow"><span class="shlab" id="shTheme">🌓 المظهر</span><div class="seg" role="radiogroup" aria-labelledby="shTheme"><button type="button" id="thD" class="on" onclick="setTheme('dark')">داكن</button><button type="button" id="thL" onclick="setTheme('light')">فاتح</button></div></div>
-  <div class="shver">GOALAK · v1.6 · الجول جولك</div>
+  <div class="shver">GOALAK · v1.7 · الجول جولك</div>
  </div>
 
  <nav class="rail" id="rail" aria-label="Leagues"></nav>
@@ -470,7 +471,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b>GOALAK</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN</span> · <span id="appVer">v1.6</span></footer>
+ <footer><b>GOALAK</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN</span> · <span id="appVer">v1.7</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -516,7 +517,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <script>
 "use strict";
 /* ============ GOALAK v1.0 · الجول جولك ============ */
-const APP_VERSION = "1.6";
+const APP_VERSION = "1.7";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 
@@ -751,6 +752,7 @@ const STR = {
  chatEmpty:["ابدأ الدردشة — أول رسالة لك 🎉","Start the chat — the first message is yours 🎉"],
  chatFail:["تعذر إرسال الرسالة · حاول مرة أخرى","Message failed to send · try again"],
  predHeroTitle:["توقع مباريات الأبطال واكسب النقاط","Predict the Champions League & earn points"],
+ predComp:["توقعات دوري أبطال أوروبا","Champions League Predictions"],
 };
 function t(k){ const e = STR[k]; return e ? e[LANG === "ar" ? 0 : 1] : k; }
 function lgName(lg){ return LANG === "ar" ? lg.ar : lg.en; }
@@ -1743,10 +1745,11 @@ function scorePredGk(pred, e){
 }
 function renderPred(){
  const top = $("predTop");
+ top.innerHTML = '<div class="predcomp">🏆 ' + esc(t("predComp")) + "</div>";
  if(!gkUser){
-  top.innerHTML = '<div class="authcard"><div class="autxt">🎯 ' + esc(t("predSignInMsg")) + '</div><button type="button" class="retrybtn" onclick="openAuth(\'C\')">' + esc(t("joinBtn")) + "</button></div>";
+  top.innerHTML += '<div class="authcard"><div class="autxt">🎯 ' + esc(t("predSignInMsg")) + '</div><button type="button" class="retrybtn" onclick="openAuth(\'C\')">' + esc(t("joinBtn")) + "</button></div>";
  } else {
-  top.innerHTML = '<div class="userchip">👤 <b>' + esc(gkUser.username) + "</b>" + (myClub ? ' <span class="uclub">⭐ ' + esc(clubLabel(myClub)) + "</span>" : "") + '<button type="button" class="signout" onclick="signOut()">' + esc(t("signOut")) + "</button></div>";
+  top.innerHTML += '<div class="userchip">👤 <b>' + esc(gkUser.username) + "</b>" + (myClub ? ' <span class="uclub">⭐ ' + esc(clubLabel(myClub)) + "</span>" : "") + '<button type="button" class="signout" onclick="signOut()">' + esc(t("signOut")) + "</button></div>";
  }
  /* hero banner: how many matches are open right now */
  const openN = (predCache.up || []).filter(e => evState(e) === "pre" && !predLocked(e) && !myPreds[e.id]).length;
