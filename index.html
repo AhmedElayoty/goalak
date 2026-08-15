@@ -499,6 +499,17 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 .cmsg.own .cclub{color:#f4cdbb}
 .cmsg .ctxt{font-size:14.5px;font-weight:600;white-space:pre-wrap;word-break:break-word;color:var(--txt)}
 .cmsg.own .ctxt{color:#fff}
+.cmsg{position:relative}
+.cdel{position:absolute;top:4px;inset-inline-end:6px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.28);color:#ffd6cc;opacity:.75}
+.cdel svg{width:13px;height:13px}
+.cdel:active{opacity:1;background:var(--red);color:#fff}
+.cmsg.own .ctxt,.cmsg.own .cname{padding-inline-end:24px}
+/* voice-note preview: play it, send it, or bin it — nothing uploads until Send */
+.vnprev{position:absolute;bottom:100%;inset-inline:0;margin-bottom:8px;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--acc);border-radius:12px;padding:8px 10px;box-shadow:0 10px 26px rgba(0,0,0,.4)}
+.vnprev .vnlab{font-size:11.5px;font-weight:800;color:var(--gold);white-space:nowrap}
+.vnprev .vnaud{flex:1;min-width:0;height:32px}
+.vnprev .vnx{flex:0 0 auto;width:32px;height:32px;border-radius:50%;background:var(--card2);border:1px solid var(--line2);font-size:14px}
+.vnprev .vnsend{flex:0 0 auto;background:var(--accdark);border:1px solid var(--acc);color:#fff;font-weight:800;font-size:12.5px;border-radius:10px;padding:7px 14px}
 .cmsg .ctime{font-size:9.5px;color:var(--dim2);text-align:end;padding-top:2px}
 .cmsg.own .ctime{color:#f4cdbb}
 .cmedia{display:block;max-width:min(74vw,300px);margin-top:4px;border-radius:10px;overflow:hidden;background:#090712}
@@ -626,7 +637,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="appVer">v3.7</span></footer>
+ <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="appVer">v3.8</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -655,6 +666,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <button type="button" class="chattool" id="chatPhoto" onclick="pickChatMedia('image')" aria-label="Photo" title="Photo">📷</button>
   <button type="button" class="chattool" id="chatVideo" onclick="pickChatMedia('video')" aria-label="Video" title="Video">🎬</button>
   <button type="button" class="chattool" id="chatVoice" onclick="toggleVoiceNote()" aria-label="Voice note" title="Voice note">🎙️</button>
+  <div class="vnprev hide" id="vnPrev"></div>
  </div>
  <textarea id="chatIn" rows="1" maxlength="500" placeholder="اكتب رسالة…"></textarea>
  <button type="button" id="chatSend" onclick="sendChat()" aria-label="Send">➤</button>
@@ -680,7 +692,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <script>
 "use strict";
 /* ============ GOALLAK · الجول جولك ============ */
-const APP_VERSION = "3.7";
+const APP_VERSION = "3.8";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
 const FORCE_RELOAD = "2026-08-15-v33";
@@ -971,6 +983,11 @@ const STR = {
   chatPhoto:["صورة","Photo"],
   chatVideo:["فيديو","Video"],
   chatVoice:["رسالة صوتية","Voice note"],
+  chatDelete:["حذف الرسالة","Delete message"],
+  chatDeleteConfirm:["حذف هذه الرسالة للجميع؟","Delete this message for everyone?"],
+  chatDeleteFail:["تعذر حذف الرسالة · حاول مرة أخرى","Could not delete the message · try again"],
+  chatDiscard:["حذف التسجيل","Discard recording"],
+  chatSendVn:["إرسال","Send"],
   chatSessionExpired:["أنت مسجل الدخول · أدخل كلمة السر مرة واحدة لإعادة توصيل الدردشة الآمنة","You are signed in · enter your password once to reconnect secure chat"],
   chatReconnectBtn:["توصيل الدردشة","Reconnect chat"],
   tvChannel:["القناة","TV channel"],
@@ -1322,6 +1339,40 @@ async function fetchBroadcastInto(day, force){
 }
 
 /* ============ home: data ============ */
+/* ESPN sometimes publishes the SAME fixture twice under two event ids with different kick-off times
+   (seen on Liverpool v Como: a ghost 10:30Z entry with no venue alongside the real 17:00Z one at
+   Anfield). Keep the better-sourced record: a real venue, then an in-play/finished status, then
+   broadcast/odds detail — falling back to the first seen so the list stays stable. */
+function fixtureKey(e){
+ const cs = (e.competitions && e.competitions[0] && e.competitions[0].competitors) || [];
+ const ids = cs.map(c => (c && c.team && c.team.id) || "").filter(Boolean).sort().join("-");
+ return ids ? ids + "|" + dkey(new Date(e.date)) : null;
+}
+function fixtureScore(e){
+ const c = (e.competitions && e.competitions[0]) || {};
+ let s = 0;
+ if(c.venue && c.venue.fullName) s += 4;
+ const st = evState(e);
+ if(st === "in" || st === "post") s += 3;
+ if((c.broadcasts || []).length) s += 1;
+ if((c.odds || []).length) s += 0.5;
+ if((c.details || []).length) s += 1;
+ return s;
+}
+function dedupeFixtures(list){
+ const best = {}, order = [];
+ for(const e of list){
+  const k = fixtureKey(e);
+  if(!k){ order.push(e); continue; }
+  const prev = best[k];
+  if(!prev){ best[k] = e; order.push(e); continue; }
+  if(fixtureScore(e) > fixtureScore(prev)){
+   best[k] = e;
+   order[order.indexOf(prev)] = e;   /* swap in place: keeps ordering stable */
+  }
+ }
+ return order;
+}
 function eventsFor(lg, day){
  const c = dayCache[lg.id + "|" + day];
  if(!c) return null;
@@ -1331,8 +1382,9 @@ function eventsFor(lg, day){
   seen[e.id] = 1;
   if(dkey(new Date(e.date)) === day) out.push(e);
  }
- out.sort((a, b) => new Date(a.date) - new Date(b.date));
- return out;
+ const deduped = dedupeFixtures(out);
+ deduped.sort((a, b) => new Date(a.date) - new Date(b.date));
+ return deduped;
 }
 async function fetchDayInto(day, force){
  const tk = todayKey();
@@ -3184,7 +3236,8 @@ function renderChat(){
    const text = m.text ? '<div class="ctxt" dir="auto">' + esc(m.text) + "</div>" : "";
     const club = chatClubFor(m);
     const clubHtml = club ? '<span class="cclub">⭐ ' + esc(clubLabel(club)) + "</span>" : "";
-    return '<div class="cmsg' + (own ? " own" : "") + '"><div class="cname"><span class="cuser">' + esc(m.name || "?") + "</span>" + clubHtml + "</div>" + text + renderChatMedia(m) + '<div class="ctime" dir="ltr">' + esc(fmtTime(new Date(m.ts || 0).toISOString())) + "</div></div>";
+    const del = own ? '<button type="button" class="cdel" title="' + esc(t("chatDelete")) + '" aria-label="' + esc(t("chatDelete")) + '" data-mid="' + esc(m.id) + '" onclick="deleteChatMsg(this.dataset.mid)"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>' : "";
+    return '<div class="cmsg' + (own ? " own" : "") + '">' + del + '<div class="cname"><span class="cuser">' + esc(m.name || "?") + "</span>" + clubHtml + "</div>" + text + renderChatMedia(m) + '<div class="ctime" dir="ltr">' + esc(fmtTime(new Date(m.ts || 0).toISOString())) + "</div></div>";
   }).join("");
   if(nearBottom) setTimeout(function(){ window.scrollTo(0, document.body.scrollHeight); }, 0);
  }
@@ -3223,7 +3276,16 @@ function connectChat(){
   chatSocket.onopen = function(){ chatReconnectAttempt = 0; setChatConnection("online"); };
   chatSocket.onmessage = function(event){
    if(event.data === "pong") return;
-   try{ const value = JSON.parse(event.data); if(value.type === "message") addChatMessage(value.message, true); }catch(_){}
+   try{
+    const value = JSON.parse(event.data);
+    if(value.type === "message") addChatMessage(value.message, true);
+    else if(value.type === "delete"){   /* someone removed their own message: drop it everywhere */
+     chatMsgs = chatMsgs.filter(m => m.id !== value.id);
+     try{ localStorage.setItem("gk_chat_cache", JSON.stringify(chatMsgs.slice(-60))); }catch(_){}
+     if(mainView === "chat") renderChat();
+     updateChatBadge();
+    }
+   }catch(_){}
   };
   chatSocket.onerror = function(){ setChatConnection("offline"); };
   chatSocket.onclose = function(event){
@@ -3303,8 +3365,54 @@ function voiceMimeType(){
  const choices = ["audio/webm;codecs=opus","audio/mp4","audio/ogg;codecs=opus","audio/webm"];
  return choices.find(type => MediaRecorder.isTypeSupported(type)) || "";
 }
+/* delete one of YOUR OWN messages, for everyone (the worker re-checks ownership) */
+async function deleteChatMsg(id){
+ if(!id || !gkUser) return;
+ const m = chatMsgs.find(x => x.id === id);
+ if(!m || m.uid !== gkUser.uid) return;
+ if(!confirm(t("chatDeleteConfirm"))) return;
+ if(!validChatSession()) return chatReauth();
+ const keep = chatMsgs.slice();
+ chatMsgs = chatMsgs.filter(x => x.id !== id);          /* optimistic */
+ renderChat();
+ try{
+  const r = await fetch(CHAT_API + "/api/chat/message?id=" + encodeURIComponent(id), {method:"DELETE", headers:chatAuthHeaders()});
+  if(!r.ok) throw new Error("delete " + r.status);
+  try{ localStorage.setItem("gk_chat_cache", JSON.stringify(chatMsgs.slice(-60))); }catch(_){}
+ }catch(_){
+  chatMsgs = keep;                                      /* put it back if the server refused */
+  renderChat();
+  toastMsg(t("chatDeleteFail"));
+ }
+}
+
+/* ---- voice note: record → PREVIEW (play / send / discard) → upload. Nothing uploads on stop. ---- */
+let vnPreview = null;   // {blob, durationMs, url}
+function vnClearPreview(){
+ if(vnPreview && vnPreview.url){ try{ URL.revokeObjectURL(vnPreview.url); }catch(_){} }
+ vnPreview = null;
+ const box = $("vnPrev");
+ if(box){ box.innerHTML = ""; box.classList.add("hide"); }
+}
+function vnRenderPreview(){
+ const box = $("vnPrev");
+ if(!box || !vnPreview) return;
+ const secs = Math.max(1, Math.round(vnPreview.durationMs / 1000));
+ box.innerHTML = '<span class="vnlab">🎤 ' + esc(t("chatVoice")) + ' · <span dir="ltr">' + secs + 's</span></span>' +
+  '<audio class="vnaud" controls preload="metadata" src="' + esc(vnPreview.url) + '"></audio>' +
+  '<button type="button" class="vnx" onclick="vnClearPreview()" aria-label="' + esc(t("chatDiscard")) + '" title="' + esc(t("chatDiscard")) + '">🗑</button>' +
+  '<button type="button" class="vnsend" onclick="vnSend()">' + esc(t("chatSendVn")) + "</button>";
+ box.classList.remove("hide");
+}
+function vnSend(){
+ if(!vnPreview) return;
+ const blob = vnPreview.blob, dur = vnPreview.durationMs;
+ vnClearPreview();
+ uploadChatBlob(blob, dur);
+}
 async function toggleVoiceNote(){
  if(voiceRecorder && voiceRecorder.state === "recording"){ voiceRecorder.stop(); return; }
+ vnClearPreview();
  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !("MediaRecorder" in window)) return toastMsg(t("chatVoiceUnsupported"));
  try{
   voiceStream = await navigator.mediaDevices.getUserMedia({audio:true});
@@ -3321,7 +3429,8 @@ async function toggleVoiceNote(){
    voiceStream = null; voiceRecorder = null; voiceChunks = [];
    $("chatVoice").classList.remove("recording");
    setChatStatus("");
-   if(blob.size) uploadChatBlob(blob, duration);
+   /* preview instead of uploading straight away, so it can be sent or thrown away */
+   if(blob.size){ vnPreview = {blob:blob, durationMs:duration, url:URL.createObjectURL(blob)}; vnRenderPreview(); }
   };
   voiceRecorder.start(500);
   voiceStarted = Date.now();
