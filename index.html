@@ -277,8 +277,8 @@ body{font-size:16px}
 .sval{font-size:20px}
 .srank{font-size:13px}
 .htile .hcap{font-size:11px}
-.htile .hname{font-size:15px}
-.htile .hteam{font-size:11.5px}
+.htile .hname{font-size:15px;padding-inline-end:38px}
+.htile .hteam{font-size:11.5px;padding-inline-end:44px}
 .htile .hnum{font-size:28px}
 .mvt i{font-size:14px}
 .mvsc{font-size:32px}
@@ -421,7 +421,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <div class="shrow"><span class="shlab" id="shClock">نظام الوقت</span><div class="seg" role="radiogroup" aria-labelledby="shClock"><button type="button" id="h12b" class="on" onclick="setHour12(true)">AM·PM</button><button type="button" id="h24b" onclick="setHour12(false)">24H</button></div></div>
   <div class="shrow"><span class="shlab" id="shLang">اللغة</span><div class="seg" role="radiogroup" aria-labelledby="shLang"><button type="button" id="lgEn" onclick="setLang('en')">EN</button><button type="button" id="lgAr" class="on" onclick="setLang('ar')">عربي</button></div></div>
   <div class="shrow"><span class="shlab" id="shTheme">🌓 المظهر</span><div class="seg" role="radiogroup" aria-labelledby="shTheme"><button type="button" id="thD" class="on" onclick="setTheme('dark')">داكن</button><button type="button" id="thL" onclick="setTheme('light')">فاتح</button></div></div>
-  <div class="shver">GOALAK · v1.7 · الجول جولك</div>
+  <div class="shver">GOALAK · v1.8 · الجول جولك</div>
  </div>
 
  <nav class="rail" id="rail" aria-label="Leagues"></nav>
@@ -471,7 +471,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b>GOALAK</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN</span> · <span id="appVer">v1.7</span></footer>
+ <footer><b>GOALAK</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN</span> · <span id="appVer">v1.8</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -517,7 +517,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <script>
 "use strict";
 /* ============ GOALAK v1.0 · الجول جولك ============ */
-const APP_VERSION = "1.7";
+const APP_VERSION = "1.8";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 
@@ -751,6 +751,7 @@ const STR = {
  chatJoin:["سجّل دخولك للمشاركة في الدردشة","Sign in to join the chat"],
  chatEmpty:["ابدأ الدردشة — أول رسالة لك 🎉","Start the chat — the first message is yours 🎉"],
  chatFail:["تعذر إرسال الرسالة · حاول مرة أخرى","Message failed to send · try again"],
+ chatLocked:["الدردشة للأعضاء فقط · سجّل دخولك لعرضها","The chat is members-only · sign in to view it"],
  predHeroTitle:["توقع مباريات الأبطال واكسب النقاط","Predict the Champions League & earn points"],
  predComp:["توقعات دوري أبطال أوروبا","Champions League Predictions"],
 };
@@ -1643,6 +1644,7 @@ function finishAuth(a){
  refreshHdrAuth();
  renderClubHero(true);
  refreshChatBar();
+ loadChat(); /* the room unlocks on sign-in */
  renderPred();
 }
 function signOut(){
@@ -1650,6 +1652,8 @@ function signOut(){
  try{ localStorage.removeItem("gk_user"); localStorage.removeItem("gk_preds"); }catch(_){}
  refreshHdrAuth();
  refreshChatBar();
+ if(mainView === "chat") renderChat();
+ updateChatBadge();
  renderPred();
 }
 async function syncMyPreds(){
@@ -2050,6 +2054,7 @@ function normChat(list){
   .slice(-80);
 }
 async function loadChat(){
+ if(!gkUser){ if(mainView === "chat") renderChat(); updateChatBadge(); return; } /* members-only: no reads while signed out */
  try{
   const fresh = await tdbRead(CHAT_KEY, null);
   const list = normChat(fresh);
@@ -2065,6 +2070,10 @@ async function loadChat(){
 function renderChat(){
  const log = $("chatLog");
  if(!log) return;
+ if(!gkUser){
+  log.innerHTML = '<div class="authcard"><div class="autxt">🔒 ' + esc(t("chatLocked")) + '</div><button type="button" class="retrybtn" onclick="openAuth(\'L\')">' + esc(t("login")) + "</button></div>";
+  return;
+ }
  if(!chatMsgs.length){
   log.innerHTML = '<div class="empty"><div class="big">💬</div>' + esc(t("chatEmpty")) + "</div>";
  } else {
@@ -2084,7 +2093,8 @@ function renderChat(){
 function updateChatBadge(){
  const b = $("chatBadge");
  if(!b) return;
- const n = chatMsgs.filter(m => (m.ts || 0) > chatSeenTs && (!gkUser || m.uid !== gkUser.uid)).length;
+ if(!gkUser){ b.classList.add("hide"); return; }
+ const n = chatMsgs.filter(m => (m.ts || 0) > chatSeenTs && m.uid !== gkUser.uid).length;
  b.textContent = n > 9 ? "9+" : String(n);
  b.classList.toggle("hide", n === 0 || mainView === "chat");
 }
