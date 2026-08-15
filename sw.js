@@ -1,5 +1,6 @@
 /* Goallak service worker
    CACHE changelog (bump on EVERY deploy, newest first):
+   goalak-v30  2026-08-15  v3.6 QA-sweep fixes: BLOCKER penalty-shootout kicks were listed as goals under each club (5 "goals" beside a 1-1 scoreline) - now excluded like the timeline already did; Android Back no longer exits the app from Predictions/Fantasy/Chat/Settings (each tab pushes a history entry, Back returns to Matches); alerts toggle localised (إيقاف/تشغيل); 9 top-division clubs added to the Arabic name map (هال، ديبورتيفو، ملقا، إلفرسبرغ، بادربورن، شالكه، لوهافر، لومان، تروا); day-key arithmetic moved to UTC so picking a zone west of the device no longer shifts the date strip by a day; a deep link while Chat/Settings was open no longer renders two panes; leaderboard shows a specific "results unavailable" banner instead of a generic load error; chat badge no longer clips its icon; the day auto-advances at midnight; player ratings now derive goal difference from the scoreline so team-mates are judged on the same rule; aria-labels localised and the settings gear got an accessible name.
    goalak-v29  2026-08-15  v3.5: Summary is now the WC app's TWO-SIDED timeline - centre spine, home events on one side and away on the other, newest first, running score under each goal, substitutions included, goal rows tinted on the scoring side, and the whole thing mirrored for Arabic. Line-ups: subs lists stack full-width on phones and each carries its club name, so nothing needs sideways reading.
    goalak-v28  2026-08-15  v3.4: owner call - the "unofficial app" line is gone entirely (footer is now just brand · motto · version); string, markup and both JS setters removed, nothing left anywhere in the app.
    goalak-v27  2026-08-15  v3.3: FIX bottom-nav labels stayed Arabic on a fresh English load (they were only repainted on a language CHANGE, never at boot) - all five labels now come from one paintNavLabels() used by boot and setLang. Also ported the WC app's FORCE_RELOAD token: bump it and every already-open client hard-reloads exactly once.
@@ -30,7 +31,7 @@
    goalak-v2   2026-08-14  QA pass: WCup navy palette; precise shell matching vs SW scope; non-ok responses fall back to cached shell; redirected responses re-wrapped before use/caching; cache writes tied to event lifetime.
    goalak-v1   2026-08-14  v1.0 initial build: 7 leagues, all-leagues day view, league pages (matches / table / stats), AR/EN RTL.
 */
-const CACHE = "goalak-v29";
+const CACHE = "goalak-v30";
 const SHELL = ["./", "index.html", "manifest.json", "icon-192.png", "icon-512.png", "icon-180.png", "favicon.svg", "logo-head.svg", "logo-mark-pos.svg", "logo-mark-rev.svg", "badge.png"];
 /* Third-party hosts are never intercepted (live data + shared state must ride the network). */
 const BYPASS = /espn\.com|espncdn\.com|googleapis\.com|gstatic\.com|flagcdn\.com|textdb\.online|workers\.dev/;

@@ -517,7 +517,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 .chatstate:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--dim2)}
 .chatstate.online:before{background:#32c46f;box-shadow:0 0 7px rgba(50,196,111,.65)}
 .chatstate.connecting:before{background:var(--gold)}
-.navbadge{position:absolute;top:4px;inset-inline-end:18%;background:var(--red);color:#fff;font-size:9px;font-weight:900;border-radius:9px;padding:1px 5px;line-height:1.3}
+.navbadge{position:absolute;top:2px;inset-inline-end:12%;background:var(--red);color:#fff;font-size:9px;font-weight:900;border-radius:9px;padding:1px 5px;line-height:1.3}
 .bnav button{position:relative}
 
 /* ---------- install bar (WC-app style, sits above the bottom nav) ---------- */
@@ -626,7 +626,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="appVer">v3.5</span></footer>
+ <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="appVer">v3.6</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -680,7 +680,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <script>
 "use strict";
 /* ============ GOALLAK · الجول جولك ============ */
-const APP_VERSION = "3.5";
+const APP_VERSION = "3.6";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
 const FORCE_RELOAD = "2026-08-15-v33";
@@ -803,7 +803,11 @@ const AR_TEAMS = {
  "lask linz":"لاسك لينتس","lask":"لاسك لينتس","levski sofia":"ليفسكي صوفيا","viking fk":"فايكينغ","viking":"فايكينغ",
  "hapoel be'er sheva":"هبوعيل بئر السبع","hapoel be'er":"هبوعيل بئر السبع","sabah":"صباح","nec":"نايميخن","nec nijmegen":"نايميخن",
  "s bratislava":"سلوفان براتيسلافا","slovan bratislava":"سلوفان براتيسلافا","nk celje":"تسيليه","celje":"تسيليه",
- "ki klaksvik":"كي كلاكسفيك","kí klaksvík":"كي كلاكسفيك","galway united":"غالواي يونايتد"
+ "ki klaksvik":"كي كلاكسفيك","kí klaksvík":"كي كلاكسفيك","galway united":"غالواي يونايتد",
+ /* QA sweep: these were the only top-division sides still rendering in Latin inside Arabic lists */
+ "hull":"هال","hull city":"هال سيتي","deportivo":"ديبورتيفو","deportivo la coruña":"ديبورتيفو لاكورونيا",
+ "málaga":"ملقا","malaga":"ملقا","elversberg":"إلفرسبرغ","paderborn":"بادربورن","sc paderborn":"بادربورن",
+ "schalke":"شالكه","schalke 04":"شالكه","le havre ac":"لوهافر","le havre":"لوهافر","le mans":"لومان","troyes":"تروا"
 };
 function clubArabic(tm){
  if(!tm) return "?";
@@ -984,6 +988,9 @@ const STR = {
  mdNoStats:["لا توجد إحصائيات متاحة لهذه المباراة","No stats available for this match"],
  mdAssist:["صناعة","assist"],
  kickoffMark:["انطلاق المباراة","KICK-OFF"],
+ offLab:["إيقاف","OFF"],
+ onLab:["تشغيل","ON"],
+ lbNoResults:["تعذر تحميل نتائج المباريات · النقاط قد تكون غير مكتملة","Match results unavailable · points may be incomplete"],
  mdLoadFail:["تعذر تحميل تفاصيل المباراة","Could not load match details"],
  stPossession:["الاستحواذ %","Possession %"],
  stShots:["التسديدات","Shots"],
@@ -1038,8 +1045,15 @@ function dkey(d){
  }catch(_){ return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
 }
 function todayKey(){ return dkey(new Date()); }
-function keyToDate(k){ return new Date(Math.floor(k / 10000), Math.floor(k / 100) % 100 - 1, k % 100); }
-function addDaysKey(k, n){ const d = keyToDate(k); d.setDate(d.getDate() + n); return dkey(d); }
+/* A day key is a CALENDAR LABEL, so its arithmetic must not involve any timezone. Anchoring at
+   12:00 UTC and stepping in UTC keeps it exact; the old local-midnight + dkey() round-trip lost a
+   day whenever the chosen zone sat west of the device (QA: Dubai device + London zone). */
+function keyToDate(k){ return new Date(Date.UTC(Math.floor(k / 10000), Math.floor(k / 100) % 100 - 1, k % 100, 12)); }
+function addDaysKey(k, n){
+ const d = keyToDate(k);
+ d.setUTCDate(d.getUTCDate() + n);
+ return d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate();
+}
 function rangeParam(k, before, after){ return addDaysKey(k, -(before)) + "-" + addDaysKey(k, after); }
 function locale(){ return LANG === "ar" ? "ar-EG-u-nu-latn" : "en-GB"; }
 function fmtTime(iso){ try{ return new Intl.DateTimeFormat(locale(), {hour:"numeric", minute:"2-digit", hour12:H12, timeZone:TZ}).format(new Date(iso)); }catch(_){ try{ return new Intl.DateTimeFormat(locale(), {hour:"numeric", minute:"2-digit", hour12:H12}).format(new Date(iso)); }catch(__){ return ""; } } }
@@ -1143,7 +1157,7 @@ function paintNavLabels(){
 
 /* ============ settings (ported from the WC app: sheet + grouped zones + theme + clock) ============ */
 function toggleSettings(){ showMain(mainView === "set" ? "scores" : "set"); }
-function closeSettings(){ if(mainView === "set") showMain("scores"); }
+function closeSettings(){ if(mainView === "set") showMain("scores", true); }
 /* (settings used to be a dropdown that closed on an outside tap — it is a full nav page now,
    so no outside-click handler: tapping anything inside it must never dismiss it) */
 function toggleTheme(){ setTheme(THEME === "dark" ? "light" : "dark"); }
@@ -1216,6 +1230,14 @@ function refreshSettingsUI(){
  if(typeof updInstBar === "function") updInstBar();
  const al = $("shAlerts");
  if(al) al.textContent = t("alertsLab");
+ const pOff = $("pushOffB"), pOn = $("pushOnB");
+ if(pOff) pOff.textContent = t("offLab");
+ if(pOn) pOn.textContent = t("onLab");
+ /* accessible names follow the language too */
+ const sb = $("setBtn"); if(sb) sb.setAttribute("aria-label", t("settings"));
+ const ha = $("hdrAuth"); if(ha) ha.setAttribute("aria-label", t("account"));
+ const ts = $("tzSel"); if(ts) ts.setAttribute("aria-label", t("tzLab"));
+ const ss = $("setSheet"); if(ss) ss.setAttribute("aria-label", t("settings"));
  if(typeof renderPushLgs === "function" && !$("pushLgRow").classList.contains("hide")) renderPushLgs();
  const ac = $("shAcct");
  if(ac) ac.textContent = t("account");
@@ -1616,6 +1638,7 @@ function gotoHome(){
 function gotoLeague(id){
  const lg = LEAGUES.find(l => l.id === id);
  if(!lg) return;
+ if(mainView !== "scores") showMain("scores");   /* a deep link opened while Chat/Settings was up left TWO panes rendered */
  if(view !== "lg"){ try{ history.pushState({gkv:"lg"}, ""); }catch(_){} }
  view = "lg"; selLg = lg; lgTab = "M"; lgSeg = "up"; statsSeason = 0; statsOpen = {g:false, a:false};
  $("home").classList.add("hide"); $("lg").classList.remove("hide");
@@ -1628,7 +1651,8 @@ window.addEventListener("popstate", function(){
  if(!modal.classList.contains("hide")){ modal.classList.add("hide"); return; }
  const am = $("authModal");
  if(am && !am.classList.contains("hide")){ am.classList.add("hide"); return; }
- if(mainView === "set"){ closeSettings(); return; }
+ /* a tab entry we pushed: go back to Matches without consuming another entry */
+ if(mainView !== "scores"){ showMain("scores", true); return; }
  if(view === "lg") gotoHome();
 });
 /* install prompt: native prompt when the browser offers one, clear instructions otherwise.
@@ -2083,7 +2107,9 @@ function mdStatsHtml(sum, H, A){
 /* goal scorers listed under each club in the match header (WC-app behaviour) */
 function scorerListHtml(e, side){
  const comp = e.competitions && e.competitions[0] || {};
- const dets = (comp.details || []).filter(d => d && d.scoringPlay && d.team && side.team && String(d.team.id) === String(side.team.id));
+ /* !d.shootout: penalty-shootout kicks are NOT goals — they used to be listed here as scorers,
+    contradicting the 1-1 scoreline right next to them (QA blocker) */
+ const dets = (comp.details || []).filter(d => d && d.scoringPlay && !d.shootout && d.team && side.team && String(d.team.id) === String(side.team.id));
  if(!dets.length) return "";
  const by = {};
  for(const d of dets){
@@ -2222,6 +2248,15 @@ async function loadRatings(eid){
    const tn = (r.team && (r.team.displayName || r.team.shortDisplayName)) || "";
    (r.roster || []).forEach(p => { const a = p.athlete || {}; sm[String(a.id)] = {name:a.displayName || a.shortName || "", pos:(p.position && (p.position.abbreviation || p.position.name)) || "", team:tn}; });
   });
+  /* per-player goalDifference is unreliable in the feed (team-mates disagree), so derive it once
+     from the actual scoreline and apply it by team — otherwise the win bonus lands unevenly */
+  let gdHome = null, homeNm = "";
+  try{
+   const c0 = (e.competitions && e.competitions[0]) || {}, cs0 = c0.competitors || [];
+   const Hc = cs0.find(c => c.homeAway === "home") || {}, Ac = cs0.find(c => c.homeAway === "away") || {};
+   homeNm = (Hc.team && (Hc.team.displayName || Hc.team.shortDisplayName)) || "";
+   if(Hc.score != null && Ac.score != null) gdHome = (parseInt(Hc.score, 10) || 0) - (parseInt(Ac.score, 10) || 0);
+  }catch(_){}
   const cev = await gj(RATE_CORE + slug + "/events/" + eid);
   const comp = await gj(cev.competitions[0].$ref);
   const refs = [];
@@ -2238,6 +2273,7 @@ async function loadRatings(eid){
     cats.forEach(c => (c.stats || []).forEach(s => m[s.name] = s.value));
     if((m.minutes || 0) <= 0) return;
     const meta = sm[rf.pid] || {}, pos = meta.pos || "";
+    if(gdHome != null && meta.team && homeNm) m.goalDifference = (meta.team === homeNm) ? gdHome : -gdHome;
     const gk = /^g|keeper/i.test(pos) || (m.saves > 0 || m.punches > 0 || m.crossesCaught > 0);
     const cl = motmCls(pos, gk), rt = motmRate(m, cl);
     if(rt == null) return;
@@ -2594,7 +2630,15 @@ let mainView = "scores";
 let predTab = "M";
 const predCache = {up:null, res:null, at:0};
 let _predInflight = null;
-function showMain(v){
+function showMain(v, fromPop){
+ /* push a history entry for every non-Matches tab so Android Back returns to Matches
+    instead of leaving the app (QA: Back exited from Predictions/Fantasy/Chat/Settings) */
+ if(!fromPop && v !== mainView){
+  try{
+   if(v !== "scores") history.pushState({gkv:"tab", tab:v}, "");
+   else if(history.state && history.state.gkv === "tab"){ history.back(); return; }
+  }catch(_){}
+ }
  mainView = v;
  $("bnScores").classList.toggle("on", v === "scores");
  $("bnPred").classList.toggle("on", v === "pred");
@@ -2796,7 +2840,12 @@ async function renderLeaderboard(){
   const users = Object.values(accts).slice(0, 100);
   if(!users.length){ body.innerHTML = '<div class="empty"><div class="big">🏆</div>' + esc(t("lbEmpty")) + "</div>"; return; }
   if(!predCache.at) await loadPredData(true);
-  if(!predCache.at) throw new Error("no results data"); /* never render an all-zero board off a failed fetch */
+  /* results feed down: say so specifically instead of a generic "could not load" over a healthy board */
+  if(!predCache.at){
+   body.innerHTML = '<div class="stale">⚠️ ' + esc(t("lbNoResults")) + "</div>" +
+    (lbCache.rows ? lbHtml(lbCache.rows) : '<div class="errbox"><div class="big">📡</div><button type="button" class="retrybtn" onclick="lbCache.at=0;renderLeaderboard()">' + esc(t("retry")) + "</button></div>");
+   return;
+  }
   const doneMap = {};
   (predCache.res || []).forEach(e => { doneMap[e.id] = e; });
   const packs = await Promise.all(users.map(u => tdbRead(predKeyFor(u.uid), null).catch(() => null)));
@@ -3410,6 +3459,8 @@ async function refreshPushUI(){
 /* ============ refresh loop + lifecycle ============ */
 setInterval(function(){
  if(document.hidden) return;
+ /* at midnight, follow the user onto the new day instead of leaving them on yesterday */
+ (function(){ const tk = todayKey(); if(stripBuiltFor && stripBuiltFor !== tk && selDay === stripBuiltFor && mainView === "scores" && view === "home"){ selectDay(tk); } })();
  buildStrip(false); /* day rollover rebuilds the strip */
  if(mainView === "chat") return; /* chat has its own 12s poll */
  loadChat(); /* background room check keeps the unread badge honest */
