@@ -371,7 +371,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 
 /* ---------- chat ---------- */
 .chatnote{text-align:center;font-size:12px;color:var(--dim2);font-weight:700;padding:2px 0 10px}
-#chatLog{padding-bottom:76px}
+#chatLog{padding-bottom:116px}
 .cmsg{background:var(--card);border:1px solid var(--line);border-radius:14px;border-start-start-radius:4px;padding:8px 12px 6px;margin:0 0 8px;max-width:86%;width:fit-content}
 .cmsg.own{margin-inline-start:auto;background:var(--accdark);border-color:var(--acc);border-start-start-radius:14px;border-start-end-radius:4px}
 .cmsg .cname{font-size:10.5px;font-weight:800;color:var(--gold);letter-spacing:.3px}
@@ -380,10 +380,22 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 .cmsg.own .ctxt{color:#fff}
 .cmsg .ctime{font-size:9.5px;color:var(--dim2);text-align:end;padding-top:2px}
 .cmsg.own .ctime{color:#f4cdbb}
-.chatbar{position:fixed;bottom:calc(64px + env(safe-area-inset-bottom));inset-inline:10px;max-width:660px;margin-inline:auto;z-index:58;display:flex;gap:8px;align-items:flex-end;background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:8px 10px;box-shadow:0 8px 26px rgba(0,0,0,.35)}
-.chatbar textarea{flex:1;min-width:0;background:var(--card2);border:1px solid var(--line);border-radius:10px;color:var(--txt);font-family:inherit;font-size:16px;font-weight:600;padding:8px 11px;resize:none;max-height:110px}
+.cmedia{display:block;max-width:min(74vw,300px);margin-top:4px;border-radius:10px;overflow:hidden;background:#090712}
+.cmedia img,.cmedia video{display:block;width:100%;max-height:360px;object-fit:contain;background:#090712}
+.cmedia audio{display:block;width:min(68vw,280px);height:42px}
+.chatbar{position:fixed;bottom:calc(64px + env(safe-area-inset-bottom));inset-inline:10px;max-width:660px;margin-inline:auto;z-index:58;display:flex;gap:7px;align-items:flex-end;flex-wrap:wrap;background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:8px 10px;box-shadow:0 8px 26px rgba(0,0,0,.35)}
+.chattools{display:flex;gap:4px;align-items:center;flex:0 0 auto}
+.chattool{width:34px;height:40px;border-radius:10px;background:var(--card2);border:1px solid var(--line);color:var(--txt);font-size:17px;line-height:1}
+.chattool.recording{background:#7d1823;border-color:#ff6b77;color:#fff;animation:recpulse 1.1s infinite}
+@keyframes recpulse{50%{box-shadow:0 0 0 4px rgba(255,75,90,.17)}}
+.chatbar textarea{flex:1 1 130px;min-width:0;background:var(--card2);border:1px solid var(--line);border-radius:10px;color:var(--txt);font-family:inherit;font-size:16px;font-weight:600;padding:8px 11px;resize:none;max-height:110px}
 .chatbar #chatSend{flex:0 0 auto;width:40px;height:40px;border-radius:50%;background:var(--accdark);border:1px solid var(--acc);color:#fff;font-size:16px}
 [dir=rtl] .chatbar #chatSend{transform:scaleX(-1)}
+.chatstatus{flex:0 0 100%;font-size:11px;font-weight:800;color:var(--gold);text-align:center;padding-top:1px}
+.chatstate{display:inline-flex;align-items:center;gap:5px;margin-inline-start:7px}
+.chatstate:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--dim2)}
+.chatstate.online:before{background:#32c46f;box-shadow:0 0 7px rgba(50,196,111,.65)}
+.chatstate.connecting:before{background:var(--gold)}
 .navbadge{position:absolute;top:4px;inset-inline-end:18%;background:var(--red);color:#fff;font-size:9px;font-weight:900;border-radius:9px;padding:1px 5px;line-height:1.3}
 .bnav button{position:relative}
 
@@ -426,7 +438,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <div class="shrow"><span class="shlab" id="shClock">نظام الوقت</span><div class="seg" role="radiogroup" aria-labelledby="shClock"><button type="button" id="h12b" class="on" onclick="setHour12(true)">AM·PM</button><button type="button" id="h24b" onclick="setHour12(false)">24H</button></div></div>
   <div class="shrow"><span class="shlab" id="shLang">اللغة</span><div class="seg" role="radiogroup" aria-labelledby="shLang"><button type="button" id="lgEn" onclick="setLang('en')">EN</button><button type="button" id="lgAr" class="on" onclick="setLang('ar')">عربي</button></div></div>
   <div class="shrow"><span class="shlab" id="shTheme">🌓 المظهر</span><div class="seg" role="radiogroup" aria-labelledby="shTheme"><button type="button" id="thD" class="on" onclick="setTheme('dark')">داكن</button><button type="button" id="thL" onclick="setTheme('light')">فاتح</button></div></div>
-  <div class="shver">GOALLAK · v1.9 · الجول جولك</div>
+  <div class="shver">GOALLAK · v2.0 · الجول جولك</div>
  </div>
 
  <nav class="rail" id="rail" aria-label="Leagues"></nav>
@@ -476,7 +488,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b>GOALLAK</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN</span> · <span id="appVer">v1.9</span></footer>
+ <footer><b>GOALLAK</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN</span> · <span id="appVer">v2.0</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -501,8 +513,15 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 </div>
 
 <div class="chatbar hide" id="chatBar">
+ <div class="chattools">
+  <button type="button" class="chattool" id="chatPhoto" onclick="pickChatMedia('image')" aria-label="Photo" title="Photo">📷</button>
+  <button type="button" class="chattool" id="chatVideo" onclick="pickChatMedia('video')" aria-label="Video" title="Video">🎬</button>
+  <button type="button" class="chattool" id="chatVoice" onclick="toggleVoiceNote()" aria-label="Voice note" title="Voice note">🎙️</button>
+ </div>
  <textarea id="chatIn" rows="1" maxlength="500" placeholder="اكتب رسالة…"></textarea>
  <button type="button" id="chatSend" onclick="sendChat()" aria-label="Send">➤</button>
+ <div class="chatstatus hide" id="chatStatus"></div>
+ <input type="file" class="hide" id="chatFile" onchange="chatFilePicked(this)">
 </div>
 
 <div class="instbar hide" id="instBar">
@@ -522,7 +541,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <script>
 "use strict";
 /* ============ GOALLAK · الجول جولك ============ */
-const APP_VERSION = "1.8";
+const APP_VERSION = "2.0";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 
@@ -755,9 +774,23 @@ const STR = {
  chatPlaceholder:["اكتب رسالة…","Type a message…"],
  chatJoin:["سجّل دخولك للمشاركة في الدردشة","Sign in to join the chat"],
  chatEmpty:["ابدأ الدردشة — أول رسالة لك 🎉","Start the chat — the first message is yours 🎉"],
- chatFail:["تعذر إرسال الرسالة · حاول مرة أخرى","Message failed to send · try again"],
- chatLocked:["الدردشة للأعضاء فقط · سجّل دخولك لعرضها","The chat is members-only · sign in to view it"],
- predHeroTitle:["توقع مباريات الأبطال واكسب النقاط","Predict the Champions League & earn points"],
+  chatFail:["تعذر إرسال الرسالة · حاول مرة أخرى","Message failed to send · try again"],
+  chatLocked:["الدردشة للأعضاء فقط · سجّل دخولك لعرضها","The chat is members-only · sign in to view it"],
+  chatSignAgain:["سجّل الدخول مرة أخرى لتفعيل الدردشة الجديدة الآمنة","Sign in again to activate the new secure chat"],
+  chatOnline:["مباشر","Live"],
+  chatConnecting:["جارِ الاتصال…","Connecting…"],
+  chatOffline:["غير متصل · سنحاول مجددًا","Offline · retrying"],
+  chatUploading:["جارِ رفع الملف…","Uploading…"],
+  chatUploadFail:["تعذر رفع الملف · حاول مرة أخرى","Upload failed · try again"],
+  chatTooLarge:["الملف أكبر من الحد المسموح","File is larger than the allowed limit"],
+  chatBadMedia:["نوع الملف غير مدعوم","This file type is not supported"],
+  chatRecording:["جارِ التسجيل · اضغط للإرسال","Recording · tap to send"],
+  chatMicDenied:["تعذر تشغيل الميكروفون · راجع صلاحية الميكروفون","Could not use the microphone · check microphone permission"],
+  chatVoiceUnsupported:["متصفحك لا يدعم الرسائل الصوتية","Voice notes are not supported in this browser"],
+  chatPhoto:["صورة","Photo"],
+  chatVideo:["فيديو","Video"],
+  chatVoice:["رسالة صوتية","Voice note"],
+  predHeroTitle:["توقع مباريات الأبطال واكسب النقاط","Predict the Champions League & earn points"],
  predComp:["توقعات دوري أبطال أوروبا","Champions League Predictions"],
 };
 function t(k){ const e = STR[k]; return e ? e[LANG === "ar" ? 0 : 1] : k; }
@@ -868,7 +901,7 @@ function setLang(x){
  const bc = $("bnChatL");
  if(bc) bc.textContent = t("chatNav");
  const cn = $("chatNote");
- if(cn) cn.textContent = t("chatNote");
+ if(cn) refreshChatNote();
  if(typeof refreshChatBar === "function") refreshChatBar();
  if(typeof renderChat === "function" && mainView === "chat") renderChat();
  if(typeof updateAuthUI === "function" && !$("authModal").classList.contains("hide")) updateAuthUI();
@@ -1526,6 +1559,7 @@ const TDB_WRITE = "https://api.textdb.online/update/";
 /* Some ISP/router DNS setups cannot resolve textdb.online (found in QA). The push worker
    proxies the same store at /tdb, so storage works on those networks too. */
 const TDB_PROXY = "https://goalak-push.ahmed-ayoty.workers.dev/tdb";
+const CHAT_API = "https://goalak-push.ahmed-ayoty.workers.dev";
 const ACCT_KEY = "goalak_accounts";
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function tdbRead(key, fallback){
@@ -1558,8 +1592,37 @@ function predKeyFor(uid){ return "goalak_pred_" + uid; }
 
 let gkUser = null;
 try{ gkUser = JSON.parse(localStorage.getItem("gk_user") || "null"); }catch(_){}
+let chatSession = null;
+try{ chatSession = JSON.parse(localStorage.getItem("gk_chat_session") || "null"); }catch(_){}
 let myPreds = {};
 try{ myPreds = JSON.parse(localStorage.getItem("gk_preds") || "{}"); }catch(_){}
+function validChatSession(){
+ return !!(gkUser && chatSession && chatSession.token && chatSession.uid === gkUser.uid && Number(chatSession.exp) > Date.now() + 60000);
+}
+function clearChatSession(){
+ chatSession = null;
+ try{ localStorage.removeItem("gk_chat_session"); }catch(_){}
+}
+async function createChatSession(username, password){
+ for(let attempt = 0; attempt < 3; attempt++){
+  try{
+   const r = await fetch(CHAT_API + "/api/session", {
+    method:"POST", headers:{"Content-Type":"application/json"}, cache:"no-store",
+    body:JSON.stringify({username:username, password:password})
+   });
+   const j = await r.json().catch(() => ({}));
+   if(r.ok && j.ok && j.token && j.user && gkUser && j.user.uid === gkUser.uid){
+    chatSession = {token:j.token, exp:Number(j.exp) || 0, uid:j.user.uid};
+    try{ localStorage.setItem("gk_chat_session", JSON.stringify(chatSession)); }catch(_){}
+    return true;
+   }
+   if(r.status === 401) break;
+  }catch(_){}
+  await sleep(350 + attempt * 250);
+ }
+ clearChatSession();
+ return false;
+}
 
 /* ---- auth (same scheme as the WC app: salt + sha256(salt+password), wipe guard, verify-after-write) ---- */
 let _am = "C";
@@ -1601,7 +1664,7 @@ async function doAuth(){
    const a = accts[k];
    if(!a) return auShowErr(t("authNoUser"));
    if(await sha256(a.salt + p) !== a.hash) return auShowErr(t("authWrongPass"));
-   finishAuth(a);
+    await finishAuth(a, p);
   } else {
    if(accts[k]) return auShowErr(t("authTaken"));
    const a = {uid:"g" + Math.random().toString(36).slice(2, 10), username:u, salt:Math.random().toString(36).slice(2, 10), hash:"", ts:Date.now()};
@@ -1629,13 +1692,14 @@ async function doAuth(){
     }catch(_){ await sleep(350); }
    }
    if(!saved) return auShowErr(t("authSaveFail"));
-   finishAuth(a);
+    await finishAuth(a, p);
   }
  } finally { go.disabled = false; }
 }
-function finishAuth(a){
+async function finishAuth(a, password){
  gkUser = {uid:a.uid, username:a.username};
  try{ localStorage.setItem("gk_user", JSON.stringify(gkUser)); }catch(_){}
+ const chatReady = await createChatSession(a.username, password);
  myPreds = {};
  try{ localStorage.removeItem("gk_preds"); }catch(_){}
  if(a.club && a.club.id){
@@ -1649,11 +1713,14 @@ function finishAuth(a){
  refreshHdrAuth();
  renderClubHero(true);
  refreshChatBar();
- loadChat(); /* the room unlocks on sign-in */
+ if(chatReady){ connectChat(); loadChat(); }
+ else toastMsg(t("chatSignAgain"));
  renderPred();
 }
 function signOut(){
  gkUser = null; myPreds = {};
+ clearChatSession();
+ closeChatSocket();
  try{ localStorage.removeItem("gk_user"); localStorage.removeItem("gk_preds"); }catch(_){}
  refreshHdrAuth();
  refreshChatBar();
@@ -2042,52 +2109,114 @@ function refreshHdrAuth(){
  if(ab) ab.textContent = gkUser ? gkUser.username : t("login");
 }
 
-/* ============ chat (WC room rules: cap 80, dedupe by id, wipe guard, verify-after-write) ============ */
-const CHAT_KEY = "goalak_room";
+/* ============ real-time chat: Durable Object + protected R2 media ============ */
 let chatMsgs = [];
-try{ chatMsgs = JSON.parse(localStorage.getItem("gk_chat_cache") || "[]"); }catch(_){}
 let chatTimer = null;
+let chatSocket = null;
+let chatReconnectTimer = null;
+let chatReconnectAttempt = 0;
+let chatManualClose = false;
+let chatConnState = "offline";
 let chatSeenTs = 0;
+let voiceRecorder = null;
+let voiceStream = null;
+let voiceChunks = [];
+let voiceStarted = 0;
+let voiceStopTimer = null;
 try{ chatSeenTs = +localStorage.getItem("gk_chat_seents") || 0; }catch(_){}
-function chatCntSeen(){ try{ return +localStorage.getItem("gk_chat_seen") || 0; }catch(_){ return 0; } }
-function chatCntSeenUpd(n){ try{ if(n > chatCntSeen()) localStorage.setItem("gk_chat_seen", String(n)); }catch(_){} }
 function normChat(list){
  const seen = {};
  return (Array.isArray(list) ? list : [])
-  .filter(m => m && m.id && m.txt && !seen[m.id] && (seen[m.id] = 1))
+  .map(m => m && ({...m, kind:m.kind || "text", text:m.text != null ? String(m.text) : String(m.txt || ""), txt:m.text != null ? String(m.text) : String(m.txt || "")}))
+  .filter(m => m && m.id && m.uid && (m.text || m.mediaKey) && !seen[m.id] && (seen[m.id] = 1))
   .sort((a, b) => (a.ts || 0) - (b.ts || 0))
-  .slice(-80);
+  .slice(-200);
 }
-async function loadChat(){
- if(!gkUser){ if(mainView === "chat") renderChat(); updateChatBadge(); return; } /* members-only: no reads while signed out */
- try{
-  const fresh = await tdbRead(CHAT_KEY, null);
-  const list = normChat(fresh);
-  /* empty-read refusal: a suddenly-empty room after seeing messages is treated as a bad read */
-  if(!list.length && chatCntSeen() > 0) return;
-  chatCntSeenUpd(list.length);
-  chatMsgs = list;
-  try{ localStorage.setItem("gk_chat_cache", JSON.stringify(chatMsgs.slice(-60))); }catch(_){}
- }catch(_){ /* keep last-good */ }
+try{ chatMsgs = normChat(JSON.parse(localStorage.getItem("gk_chat_cache") || "[]")); }catch(_){}
+function cacheChat(){ try{ localStorage.setItem("gk_chat_cache", JSON.stringify(chatMsgs.slice(-100))); }catch(_){} }
+function chatAuthHeaders(extra){ return Object.assign({Authorization:"Bearer " + chatSession.token}, extra || {}); }
+function chatReauth(){ signOut(); openAuth("L"); }
+function refreshChatNote(){
+ const note = $("chatNote");
+ if(!note) return;
+ const stateKey = chatConnState === "online" ? "chatOnline" : chatConnState === "connecting" ? "chatConnecting" : "chatOffline";
+ note.innerHTML = esc(t("chatNote")) + '<span class="chatstate ' + esc(chatConnState) + '">' + esc(t(stateKey)) + "</span>";
+}
+function setChatConnection(state){ chatConnState = state; refreshChatNote(); }
+function setChatStatus(message){
+ const el = $("chatStatus");
+ if(!el) return;
+ el.textContent = message || "";
+ el.classList.toggle("hide", !message);
+}
+function addChatMessage(message, notify){
+ if(!message || !message.id) return;
+ const normalized = normChat([message])[0];
+ if(!normalized) return;
+ const old = chatMsgs.findIndex(item => item.id === normalized.id);
+ if(old >= 0) chatMsgs[old] = Object.assign({}, chatMsgs[old], normalized);
+ else chatMsgs.push(normalized);
+ chatMsgs = normChat(chatMsgs);
+ cacheChat();
+ if(notify && gkUser && normalized.uid !== gkUser.uid) showLocalChatNotification(normalized);
  if(mainView === "chat") renderChat();
  updateChatBadge();
+}
+async function loadChat(){
+ if(!gkUser){ if(mainView === "chat") renderChat(); updateChatBadge(); return; }
+ if(!validChatSession()){ if(mainView === "chat") renderChat(); updateChatBadge(); return; }
+ connectChat();
+ try{
+  const r = await fetch(CHAT_API + "/api/chat/history", {headers:chatAuthHeaders(), cache:"no-store"});
+  if(r.status === 401){ clearChatSession(); closeChatSocket(); if(mainView === "chat") renderChat(); return; }
+  const j = await r.json().catch(() => ({}));
+  if(r.ok && j.ok && Array.isArray(j.messages)){
+   chatMsgs = normChat(j.messages);
+   cacheChat();
+  }
+ }catch(_){ /* retain last-good cache; WebSocket reconnect continues */ }
+ if(mainView === "chat") renderChat();
+ updateChatBadge();
+}
+function renderChatMedia(m){
+ if(!m.mediaUrl) return "";
+ const url = esc(m.mediaUrl), key = esc(m.mediaKey || "");
+ if(m.kind === "image") return '<div class="cmedia"><img loading="lazy" src="' + url + '" data-media-key="' + key + '" alt="' + esc(t("chatPhoto")) + '" onerror="refreshChatMedia(this)"></div>';
+ if(m.kind === "video") return '<div class="cmedia"><video controls playsinline preload="metadata" src="' + url + '" data-media-key="' + key + '" onerror="refreshChatMedia(this)"></video></div>';
+ if(m.kind === "audio") return '<div class="cmedia"><audio controls preload="metadata" src="' + url + '" data-media-key="' + key + '" onerror="refreshChatMedia(this)"></audio></div>';
+ return "";
+}
+async function refreshChatMedia(element){
+ if(!element || element.dataset.refreshed || !element.dataset.mediaKey || !validChatSession()) return;
+ element.dataset.refreshed = "1";
+ try{
+  const r = await fetch(CHAT_API + "/api/chat/media-url?key=" + encodeURIComponent(element.dataset.mediaKey), {headers:chatAuthHeaders(), cache:"no-store"});
+  const j = await r.json();
+  if(r.ok && j.url) element.src = j.url;
+ }catch(_){}
 }
 function renderChat(){
  const log = $("chatLog");
  if(!log) return;
+ refreshChatNote();
  if(!gkUser){
   log.innerHTML = '<div class="authcard"><div class="autxt">🔒 ' + esc(t("chatLocked")) + '</div><button type="button" class="retrybtn" onclick="openAuth(\'L\')">' + esc(t("login")) + "</button></div>";
+  return;
+ }
+ if(!validChatSession()){
+  log.innerHTML = '<div class="authcard"><div class="autxt">🔐 ' + esc(t("chatSignAgain")) + '</div><button type="button" class="retrybtn" onclick="chatReauth()">' + esc(t("login")) + "</button></div>";
   return;
  }
  if(!chatMsgs.length){
   log.innerHTML = '<div class="empty"><div class="big">💬</div>' + esc(t("chatEmpty")) + "</div>";
  } else {
-  const nearBottom = (window.innerHeight + window.scrollY) >= (document.body.scrollHeight - 220);
+  const nearBottom = (window.innerHeight + window.scrollY) >= (document.body.scrollHeight - 260);
   log.innerHTML = chatMsgs.map(m => {
    const own = gkUser && m.uid === gkUser.uid;
-   return '<div class="cmsg' + (own ? " own" : "") + '"><div class="cname">' + esc(m.name || "?") + '</div><div class="ctxt" dir="auto">' + esc(m.txt) + '</div><div class="ctime" dir="ltr">' + esc(fmtTime(new Date(m.ts || 0).toISOString())) + "</div></div>";
+   const text = m.text ? '<div class="ctxt" dir="auto">' + esc(m.text) + "</div>" : "";
+   return '<div class="cmsg' + (own ? " own" : "") + '"><div class="cname">' + esc(m.name || "?") + "</div>" + text + renderChatMedia(m) + '<div class="ctime" dir="ltr">' + esc(fmtTime(new Date(m.ts || 0).toISOString())) + "</div></div>";
   }).join("");
-  if(nearBottom) window.scrollTo(0, document.body.scrollHeight);
+  if(nearBottom) setTimeout(function(){ window.scrollTo(0, document.body.scrollHeight); }, 0);
  }
  if(mainView === "chat"){
   chatSeenTs = Date.now();
@@ -2106,43 +2235,149 @@ function updateChatBadge(){
 function refreshChatBar(){
  const bar = $("chatBar");
  if(!bar) return;
- const show = mainView === "chat" && !!gkUser;
+ const show = mainView === "chat" && !!gkUser && validChatSession();
  bar.classList.toggle("hide", !show);
  $("chatIn").placeholder = t("chatPlaceholder");
+ for(const pair of [["chatPhoto","chatPhoto"],["chatVideo","chatVideo"],["chatVoice","chatVoice"]]){
+  $(pair[0]).title = t(pair[1]); $(pair[0]).setAttribute("aria-label", t(pair[1]));
+ }
+}
+function connectChat(){
+ if(!gkUser || !validChatSession()) return;
+ if(chatSocket && (chatSocket.readyState === WebSocket.OPEN || chatSocket.readyState === WebSocket.CONNECTING)) return;
+ chatManualClose = false;
+ clearTimeout(chatReconnectTimer);
+ setChatConnection("connecting");
+ try{
+  chatSocket = new WebSocket(CHAT_API.replace(/^http/, "ws") + "/api/chat/ws", ["goallak-chat", chatSession.token]);
+  chatSocket.onopen = function(){ chatReconnectAttempt = 0; setChatConnection("online"); };
+  chatSocket.onmessage = function(event){
+   if(event.data === "pong") return;
+   try{ const value = JSON.parse(event.data); if(value.type === "message") addChatMessage(value.message, true); }catch(_){}
+  };
+  chatSocket.onerror = function(){ setChatConnection("offline"); };
+  chatSocket.onclose = function(event){
+   chatSocket = null;
+   setChatConnection("offline");
+   if(event.code === 4001) clearChatSession();
+   if(!chatManualClose && gkUser && validChatSession()){
+    const delay = Math.min(30000, 1000 * Math.pow(2, Math.min(5, chatReconnectAttempt++)));
+    chatReconnectTimer = setTimeout(connectChat, delay);
+   }
+  };
+ }catch(_){ setChatConnection("offline"); chatReconnectTimer = setTimeout(connectChat, 2500); }
+}
+function closeChatSocket(){
+ chatManualClose = true;
+ clearTimeout(chatReconnectTimer);
+ if(chatSocket){ try{ chatSocket.close(1000, "Signed out"); }catch(_){} }
+ chatSocket = null;
+ setChatConnection("offline");
 }
 async function sendChat(){
  if(!gkUser) return openAuth("L");
- const ta = $("chatIn");
- const txt = (ta.value || "").trim().slice(0, 500);
+ if(!validChatSession()) return chatReauth();
+ const ta = $("chatIn"), txt = (ta.value || "").trim().slice(0, 500);
  if(!txt) return;
  const btn = $("chatSend");
  btn.disabled = true;
- const msg = {id:"m" + Math.random().toString(36).slice(2, 10), uid:gkUser.uid, name:gkUser.username, txt:txt, ts:Date.now()};
- let ok = false;
- for(let i = 0; i < 3 && !ok; i++){
-  try{
-   const fresh = await tdbRead(CHAT_KEY, null);
-   const list = normChat(fresh);
-   if(!list.length && chatCntSeen() > 0){ await sleep(450); continue; } /* wipe guard */
-   chatCntSeenUpd(list.length);
-   list.push(msg);
-   const next = normChat(list);
-   await tdbWrite(CHAT_KEY, next);
-   await sleep(300);
-   const chk = normChat(await tdbRead(CHAT_KEY, null));
-   if(chk.some(m => m.id === msg.id)){ ok = true; chatMsgs = chk; }
-  }catch(_){ await sleep(350); }
+ try{
+  const r = await fetch(CHAT_API + "/api/chat/message", {
+   method:"POST", headers:chatAuthHeaders({"Content-Type":"application/json"}), body:JSON.stringify({text:txt})
+  });
+  const j = await r.json().catch(() => ({}));
+  if(!r.ok || !j.ok || !j.message) throw new Error("send");
+  ta.value = "";
+  addChatMessage(j.message, false);
+  window.scrollTo(0, document.body.scrollHeight);
+ }catch(_){ toastMsg(t("chatFail")); }
+ finally{ btn.disabled = false; }
+}
+function pickChatMedia(kind){
+ if(!validChatSession()) return chatReauth();
+ const input = $("chatFile");
+ input.dataset.kind = kind;
+ input.accept = kind === "image" ? "image/jpeg,image/png,image/webp,image/gif" : "video/mp4,video/webm,video/quicktime";
+ input.value = "";
+ input.click();
+}
+async function chatFilePicked(input){
+ const file = input.files && input.files[0], kind = input.dataset.kind;
+ input.value = "";
+ if(!file) return;
+ const max = kind === "image" ? 8 * 1024 * 1024 : 50 * 1024 * 1024;
+ if(file.size > max) return toastMsg(t("chatTooLarge"));
+ await uploadChatBlob(file, 0);
+}
+async function uploadChatBlob(blob, durationMs){
+ if(!validChatSession()) return chatReauth();
+ setChatStatus(t("chatUploading"));
+ ["chatPhoto","chatVideo","chatVoice","chatSend"].forEach(id => { $(id).disabled = true; });
+ try{
+  const r = await fetch(CHAT_API + "/api/chat/media", {
+   method:"POST", headers:chatAuthHeaders({"Content-Type":blob.type || "application/octet-stream", "X-Media-Duration":String(durationMs || 0)}), body:blob
+  });
+  const j = await r.json().catch(() => ({}));
+  if(r.status === 413) throw new Error("large");
+  if(r.status === 415) throw new Error("type");
+  if(!r.ok || !j.ok || !j.message) throw new Error("upload");
+  addChatMessage(j.message, false);
+  window.scrollTo(0, document.body.scrollHeight);
+ }catch(error){ toastMsg(error.message === "large" ? t("chatTooLarge") : error.message === "type" ? t("chatBadMedia") : t("chatUploadFail")); }
+ finally{
+  setChatStatus("");
+  ["chatPhoto","chatVideo","chatVoice","chatSend"].forEach(id => { $(id).disabled = false; });
  }
- btn.disabled = false;
- if(!ok) return toastMsg(t("chatFail"));
- ta.value = "";
- try{ localStorage.setItem("gk_chat_cache", JSON.stringify(chatMsgs.slice(-60))); }catch(_){}
- renderChat();
- window.scrollTo(0, document.body.scrollHeight);
+}
+function voiceMimeType(){
+ const choices = ["audio/webm;codecs=opus","audio/mp4","audio/ogg;codecs=opus","audio/webm"];
+ return choices.find(type => MediaRecorder.isTypeSupported(type)) || "";
+}
+async function toggleVoiceNote(){
+ if(voiceRecorder && voiceRecorder.state === "recording"){ voiceRecorder.stop(); return; }
+ if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !("MediaRecorder" in window)) return toastMsg(t("chatVoiceUnsupported"));
+ try{
+  voiceStream = await navigator.mediaDevices.getUserMedia({audio:true});
+  const mimeType = voiceMimeType();
+  voiceChunks = [];
+  voiceRecorder = mimeType ? new MediaRecorder(voiceStream, {mimeType}) : new MediaRecorder(voiceStream);
+  voiceRecorder.ondataavailable = function(event){ if(event.data && event.data.size) voiceChunks.push(event.data); };
+  voiceRecorder.onstop = function(){
+   clearTimeout(voiceStopTimer);
+   const duration = Math.max(250, Date.now() - voiceStarted);
+   const type = voiceRecorder.mimeType || mimeType || "audio/webm";
+   const blob = new Blob(voiceChunks, {type:type});
+   if(voiceStream) voiceStream.getTracks().forEach(track => track.stop());
+   voiceStream = null; voiceRecorder = null; voiceChunks = [];
+   $("chatVoice").classList.remove("recording");
+   setChatStatus("");
+   if(blob.size) uploadChatBlob(blob, duration);
+  };
+  voiceRecorder.start(500);
+  voiceStarted = Date.now();
+  $("chatVoice").classList.add("recording");
+  setChatStatus(t("chatRecording"));
+  voiceStopTimer = setTimeout(function(){ if(voiceRecorder && voiceRecorder.state === "recording") voiceRecorder.stop(); }, 90000);
+ }catch(_){
+  if(voiceStream) voiceStream.getTracks().forEach(track => track.stop());
+  voiceStream = null; voiceRecorder = null;
+  toastMsg(t("chatMicDenied"));
+ }
+}
+function showLocalChatNotification(message){
+ if(!document.hidden || !("Notification" in window) || Notification.permission !== "granted" || !("serviceWorker" in navigator)) return;
+ const body = message.kind === "image" ? "📷 " + t("chatPhoto") : message.kind === "video" ? "🎬 " + t("chatVideo") : message.kind === "audio" ? "🎤 " + t("chatVoice") : message.text;
+ navigator.serviceWorker.ready.then(reg => reg.showNotification("💬 " + message.name + " · Goallak", {
+  body:body || t("chatNav"), icon:"icon-192.png", badge:"badge.png", tag:"goallak-chat", data:{url:"./?go=chat"}
+ })).catch(() => {});
 }
 function chatPoll(start){
  if(chatTimer){ clearInterval(chatTimer); chatTimer = null; }
- if(start) chatTimer = setInterval(function(){ if(!document.hidden) loadChat(); }, 12000);
+ if(start) chatTimer = setInterval(function(){
+  if(document.hidden) return;
+  if(!chatSocket || chatSocket.readyState !== WebSocket.OPEN) loadChat();
+  else { try{ chatSocket.send("ping"); }catch(_){} }
+ }, 20000);
 }
 
 /* ============ push notifications (client) ============ */
@@ -2281,6 +2516,7 @@ setInterval(function(){
 document.addEventListener("visibilitychange", function(){
  if(document.hidden) return;
  buildStrip(false);
+ if(gkUser && validChatSession()){ connectChat(); loadChat(); }
  if(mainView === "pred"){ loadPredData(false); return; }
  if(view === "home") loadDay(false);
  else paintLeague();
@@ -2307,7 +2543,7 @@ document.addEventListener("visibilitychange", function(){
  $("bnFantL").textContent = t("fantasyNav");
  $("fantSoon").textContent = t("soon");
  $("bnChatL").textContent = t("chatNav");
- $("chatNote").textContent = t("chatNote");
+ refreshChatNote();
  loadDay(false);
  syncMyPreds();
  refreshPushUI();
@@ -2318,6 +2554,7 @@ document.addEventListener("visibilitychange", function(){
   const lgq = q.get("lg");
   if(q.get("go") === "pred") showMain("pred");
   else if(q.get("go") === "fant") showMain("fant");
+  else if(q.get("go") === "chat") showMain("chat");
   else if(lgq && LEAGUES.some(l => l.id === lgq)) gotoLeague(lgq);
  }catch(_){}
  if("serviceWorker" in navigator){ try{ navigator.serviceWorker.register("sw.js").catch(function(){}); }catch(_){} }
