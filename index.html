@@ -290,6 +290,29 @@ html[data-theme="light"] .motm .msb,html[data-theme="light"] .motm .mtag{color:#
 .lnname{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
 .lnpos{flex:0 0 auto;font-size:9.5px;color:var(--dim2);font-weight:800}
 .lnic{flex:0 0 auto;font-size:11px;letter-spacing:1px}
+/* ---- two-sided timeline (WC-app design) ---- */
+.tl{position:relative;margin:4px 0 2px;padding:2px 0}
+.tl::before{content:'';position:absolute;left:50%;top:0;bottom:0;width:2px;transform:translateX(-50%);background:linear-gradient(180deg,transparent,var(--line2) 10%,var(--line2) 90%,transparent);z-index:0}
+.tlrow{position:relative;z-index:1;display:flex;align-items:center;gap:8px;padding:5px 0}
+.tlrow.goal.l{background:linear-gradient(90deg,rgba(224,90,43,.18),transparent 62%);border-radius:8px}
+.tlrow.goal.r{background:linear-gradient(270deg,rgba(21,119,196,.18),transparent 62%);border-radius:8px}
+.tlside{flex:1;font-size:12.5px;color:var(--txt);min-width:0;line-height:1.35}
+.tlside.l{text-align:right}
+.tlside.r{text-align:left}
+.tlside b{font-weight:800}
+.tlside .tlas{display:block;font-size:10.5px;color:var(--dim2);font-weight:700}
+.tlside .si{color:var(--rz-g)}
+.tlside .subo{color:var(--dim2);font-size:11px}
+.tlrow .ev{display:inline-block;margin:0 5px;font-size:12px}
+.tlmin{flex:0 0 46px;text-align:center;font-size:11px;font-weight:800;color:var(--dim);font-variant-numeric:tabular-nums}
+.tlmin small{display:block;font-size:10px;color:var(--gold);font-weight:900}
+.tlmark{text-align:center;font-size:10.5px;font-weight:800;letter-spacing:.6px;color:var(--dim2);background:var(--card);position:relative;z-index:1;padding:3px 0}
+.tlmark.top{color:var(--gold)}
+/* RTL: the flex row mirrors, so mirror the goal highlight + text alignment with it */
+html[dir="rtl"] .tlrow.goal.l{background:linear-gradient(270deg,rgba(224,90,43,.18),transparent 62%)}
+html[dir="rtl"] .tlrow.goal.r{background:linear-gradient(90deg,rgba(21,119,196,.18),transparent 62%)}
+html[dir="rtl"] .tlside.l{text-align:left}
+html[dir="rtl"] .tlside.r{text-align:right}
 .sclist{display:block;margin-top:4px}
 .scln{display:block;font-size:10.5px;color:var(--dim);font-weight:700;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stwrap{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:4px 12px;margin-top:10px}
@@ -603,7 +626,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="appVer">v3.4</span></footer>
+ <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="appVer">v3.5</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -657,7 +680,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <script>
 "use strict";
 /* ============ GOALLAK · الجول جولك ============ */
-const APP_VERSION = "3.4";
+const APP_VERSION = "3.5";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
 const FORCE_RELOAD = "2026-08-15-v33";
@@ -960,6 +983,7 @@ const STR = {
  mdNoLineups:["لم تُعلن التشكيلة بعد","Line-ups not announced yet"],
  mdNoStats:["لا توجد إحصائيات متاحة لهذه المباراة","No stats available for this match"],
  mdAssist:["صناعة","assist"],
+ kickoffMark:["انطلاق المباراة","KICK-OFF"],
  mdLoadFail:["تعذر تحميل تفاصيل المباراة","Could not load match details"],
  stPossession:["الاستحواذ %","Possession %"],
  stShots:["التسديدات","Shots"],
@@ -1099,6 +1123,8 @@ function setLang(x){
  paintNavLabels();
  const fs = $("fantSoon");
  if(fs) fs.textContent = t("soon");
+ /* an open match sheet must follow the language too (it used to keep the old one) */
+ if(_mdEid && !$("modal").classList.contains("hide")) renderMatchModal(_mdEid);
  const cn = $("chatNote");
  if(cn) refreshChatNote();
  if(typeof refreshChatBar === "function") refreshChatBar();
@@ -1914,7 +1940,8 @@ function lineupCol(r, benchOnly){
    "</div>";
  };
  let h = benchOnly ? "" : '<div class="lnhead">' + esc(t("mdStarters")) + "</div>" + starters.map(row).join("");
- if(bench.length) h += '<div class="lnhead">' + esc(t("mdSubs")) + "</div>" + bench.map(row).join("");
+ /* label each list with its club so the stacked phone layout is never ambiguous */
+ if(bench.length) h += '<div class="lnhead">' + esc(t("mdSubs")) + (r && r.team ? " · " + esc(clubAr(r.team)) : "") + "</div>" + bench.map(row).join("");
  return h;
 }
 /* ---- real pitch view (ported from the WC app: formation string -> lines -> football-sensible lanes) ---- */
@@ -2069,23 +2096,54 @@ function scorerListHtml(e, side){
  const rows = Object.keys(by).map(n => '<span class="scln">⚽ ' + esc(n) + ' <span dir="ltr">' + esc(by[n].filter(Boolean).join(", ")) + "</span></span>");
  return rows.length ? '<span class="sclist">' + rows.join("") + "</span>" : "";
 }
-function mdEventsHtml(e, H, A){
+/* Two-sided timeline ported from the WC app: a centre spine, home events on one side and away on the
+   other, newest first, with the running score under each goal. Mirrors correctly in Arabic. */
+function mdEventsHtml(e, H, A, sum){
  const comp = e.competitions && e.competitions[0] || {};
- const dets = (comp.details || []).slice().sort((x, y) => ((x.clock && x.clock.value) || 0) - ((y.clock && y.clock.value) || 0));
- let evh = "";
- for(const d of dets){
-  const typeTxt = d.type && d.type.text || "";
-  const who = (d.athletesInvolved && d.athletesInvolved[0] && d.athletesInvolved[0].displayName) || "";
-  if(!typeTxt && !who) continue;
-  const assist = (d.scoringPlay && d.athletesInvolved && d.athletesInvolved[1] && d.athletesInvolved[1].displayName) || "";
-  const isH = d.team && H.team && String(d.team.id) === String(H.team.id);
-  const sideNm = d.team ? (isH ? teamName(H) : teamName(A)) : "";
-  evh += '<div class="evline"><span class="evmin" dir="ltr">' + esc((d.clock && d.clock.displayValue) || "") + "</span>" +
-   '<span class="evico">' + detIcon(typeTxt, d) + "</span>" +
-   '<span class="evtxt">' + esc(who || typeTxt) + (assist ? ' <span class="evside">(' + esc(t("mdAssist")) + ": " + esc(assist) + ")</span>" : "") + "</span>" +
-   '<span class="evside">' + esc(sideNm) + "</span></div>";
+ const minNum = s => { const m = String(s == null ? "" : s).match(/(\d+)(?:\+(\d+))?/); return m ? (+m[1]) * 100 + (+(m[2] || 0)) : 0; };
+ const isHomeId = id => H.team && String(id) === String(H.team.id);
+ const gc = (comp.details || []).filter(d => d && (d.scoringPlay || /card/i.test((d.type && d.type.text) || "")) && !d.shootout);
+ let hh = 0, aa = 0;
+ gc.slice().sort((a, b) => minNum((a.clock || {}).displayValue) - minNum((b.clock || {}).displayValue)).forEach(d => {
+  if(d.scoringPlay){ if(isHomeId((d.team || {}).id)) hh++; else aa++; d._rs = hh + "-" + aa; }
+ });
+ const items = [];
+ const row = (cls, home, txt, ic, mins, rs) => {
+  const ev_ = '<span class="ev">' + ic + "</span>";
+  items.push({m:minNum(mins), html:'<div class="tlrow' + cls + '"><div class="tlside l">' + (home ? (txt + ev_) : "") + '</div>' +
+   '<div class="tlmin" dir="ltr">' + esc(mins || "") + (rs ? '<small dir="ltr">' + esc(rs) + "</small>" : "") + "</div>" +
+   '<div class="tlside r">' + (home ? "" : (ev_ + txt)) + "</div></div>"});
+ };
+ for(const d of gc){
+  const who = (d.athletesInvolved && d.athletesInvolved[0] && (d.athletesInvolved[0].displayName || d.athletesInvolved[0].shortName)) || "";
+  const home = isHomeId((d.team || {}).id);
+  const mins = (d.clock && d.clock.displayValue) || "";
+  if(d.scoringPlay){
+   const assist = (d.athletesInvolved && d.athletesInvolved[1] && (d.athletesInvolved[1].shortName || d.athletesInvolved[1].displayName)) || "";
+   const txt = "<b>" + esc(who || t("goalWord")) + "</b>" + (d.penaltyKick ? " (P)" : "") + (d.ownGoal ? " (OG)" : "") +
+    (assist ? '<span class="tlas">' + esc(t("mdAssist")) + ": " + esc(assist) + "</span>" : "");
+   row(" goal " + (home ? "l" : "r"), home, txt, "⚽", mins, d._rs);
+  } else {
+   row("", home, esc(who || (d.type && d.type.text) || ""), d.redCard ? "🟥" : "🟨", mins, "");
+  }
  }
- return evh ? '<div class="dhead">' + esc(t("matchEvents")) + "</div>" + evh : '<div class="mnoev">' + esc(t("noEvents")) + "</div>";
+ ((sum && sum.keyEvents) || []).forEach(k => {
+  if((((k.type || {}).type) || "") !== "substitution") return;
+  const inN = (((k.participants || [])[0] || {}).athlete || {});
+  const outN = (((k.participants || [])[1] || {}).athlete || {});
+  const iN = inN.shortName || inN.displayName || "", oN = outN.shortName || outN.displayName || "";
+  if(!iN && !oN) return;
+  row(" sub", isHomeId((k.team || {}).id), '<b class="si">' + esc(iN) + '</b> <span class="subo">' + esc(oN) + "</span>", "⇄", (k.clock || {}).displayValue || "", "");
+ });
+ if(!items.length) return '<div class="mnoev">' + esc(t("noEvents")) + "</div>";
+ items.sort((a, b) => b.m - a.m);
+ const s = evState(e);
+ const fs = (H.score != null ? H.score : 0) + "-" + (A.score != null ? A.score : 0);
+ const top = s === "post" ? (t("ft") + " · " + fs) : s === "in" ? (((e.status && e.status.displayClock) || t("live")) + " · " + fs) : fs;
+ return '<div class="dhead">' + esc(t("matchEvents")) + "</div>" +
+  '<div class="tl"><div class="tlmark top" dir="ltr">' + esc(top) + "</div>" +
+  items.map(i => i.html).join("") +
+  '<div class="tlmark bot">' + esc(t("kickoffMark")) + "</div></div>";
 }
 /* ===== PLAYER RATINGS + MOTM · ported from the WC app (computed from the ESPN core stat feed,
    keyless + CORS-open). Validated there vs FotMob at ~70% exact MOTM / ~86% top-3. Always
@@ -2248,8 +2306,11 @@ async function renderMdBody(){
  const A = cs.find(c => c.homeAway === "away") || cs[1] || {};
  if(_mdTab === "E"){
   const finished = evState(e) === "post" && !voidedKey(e);
-  body.innerHTML = (finished ? motmCardHtml(eid) : "") + mdEventsHtml(e, H, A);
+  const sumNow = sumCache[eid] && sumCache[eid].json;
+  body.innerHTML = (finished ? motmCardHtml(eid) : "") + mdEventsHtml(e, H, A, sumNow);
   if(finished){ const rt = _ratings[eid]; if(!rt || (!rt.ready && !rt.loading && (rt.failed || 0) < 3)) loadRatings(eid); }
+  /* subs come from the summary feed: fetch once, then repaint the timeline with them */
+  if(!sumNow && (finished || evState(e) === "in")) ensureSummary(eid).then(function(s){ if(s && _mdEid === eid && _mdTab === "E") renderMdBody(); });
   return;
  }
  const cached = sumCache[eid] && sumCache[eid].json;
@@ -2260,8 +2321,15 @@ async function renderMdBody(){
  body.innerHTML = _mdTab === "L" ? mdLineupsHtml(sum, H, A) : mdStatsHtml(sum, H, A);
 }
 function openMatch(eid){
+ _mdTab = "E";
+ if(!renderMatchModal(eid)) return;
+ $("modal").classList.remove("hide");
+ try{ history.pushState({gkm:1}, ""); }catch(_){}
+}
+/* header + tabs render, WITHOUT touching history — so a language switch can repaint an open sheet */
+function renderMatchModal(eid){
  const e = EV_INDEX[eid];
- if(!e) return;
+ if(!e) return false;
  const comp = e.competitions && e.competitions[0] || {};
  const cs = comp.competitors || [];
  const H = cs.find(c => c.homeAway === "home") || cs[0] || {};
@@ -2291,7 +2359,7 @@ function openMatch(eid){
  }
  /* played or in-play matches get the full tabbed detail (summary / line-ups / stats) */
  const hasDetail = !vk && (s === "in" || s === "post");
- _mdEid = eid; _mdTab = "E";
+ _mdEid = eid;
  $("mbox").innerHTML =
   '<button type="button" class="mx" onclick="closeModal()">✕</button>' +
   '<div class="mvs">' +
@@ -2303,9 +2371,8 @@ function openMatch(eid){
   (hasDetail
    ? '<div class="mdtabs" id="mdTabs"></div><div id="mdBody"></div>'
    : (s === "pre" ? "" : '<div class="mnoev">' + esc(t("noEvents")) + "</div>"));
- $("modal").classList.remove("hide");
  if(hasDetail) renderMdBody();
- try{ history.pushState({gkm:1}, ""); }catch(_){}
+ return true;
 }
 function closeModal(){
  if($("modal").classList.contains("hide")) return; /* stray Escape must not pop unrelated history */
