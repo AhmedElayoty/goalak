@@ -13,16 +13,16 @@
 <meta property="og:type" content="website">
 <meta property="og:locale" content="ar_AE">
 <meta property="og:locale:alternate" content="en_US">
-<meta property="og:image" content="https://goallak.com/goallak-social-cover.png">
-<meta property="og:image:secure_url" content="https://goallak.com/goallak-social-cover.png">
-<meta property="og:image:type" content="image/png">
-<meta property="og:image:width" content="1731">
-<meta property="og:image:height" content="909">
+<meta property="og:image" content="https://goallak.com/goallak-social-cover-v22.jpg">
+<meta property="og:image:secure_url" content="https://goallak.com/goallak-social-cover-v22.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="GOALLAK · الجول جولك">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Goallak · الجول جولك">
 <meta name="twitter:description" content="Live scores and predictions for top leagues and the UEFA Champions League. Fantasy coming soon!">
-<meta name="twitter:image" content="https://goallak.com/goallak-social-cover.png">
+<meta name="twitter:image" content="https://goallak.com/goallak-social-cover-v22.jpg">
 <meta name="twitter:image:alt" content="GOALLAK · الجول جولك">
 <meta name="theme-color" content="#0a1230">
 <link rel="manifest" href="manifest.json">
@@ -64,8 +64,8 @@ img{max-width:100%}
 /* brand tile stays Midnight Aubergine in BOTH themes (it is the app icon) */
 .gklogo{width:44px;height:44px;flex:0 0 44px;border-radius:12px;background:linear-gradient(135deg,#2c1a40,#211235);display:flex;align-items:center;justify-content:center;border:1px solid var(--line2)}
 .gklogo img{width:34px;height:34px;display:block}
-.gktit{display:flex;flex-direction:column;min-width:0}
-.gkname{font-family:'Alexandria','Cairo',system-ui,sans-serif;font-weight:800;font-size:21px;letter-spacing:.5px;line-height:1.15;color:var(--txt)}
+.gktit{display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.gkname{font-family:'Alexandria','Cairo',system-ui,sans-serif;font-weight:800;font-size:21px;letter-spacing:.5px;line-height:1.15;color:var(--txt);white-space:nowrap}
 .gkname b{color:var(--acc)}
 .gkmotto{font-size:12.5px;color:var(--gold);font-weight:700;line-height:1.3}
 .gkspacer{flex:1}
@@ -153,7 +153,7 @@ html[data-theme="light"] .ico-sun{display:none}
 .fold{padding:10px 14px;color:var(--dim2);font-size:16px;font-weight:800;border-inline-start:1px solid var(--line)}
 
 /* ---------- match rows ---------- */
-.mrow{display:grid;grid-template-columns:1fr 92px 1fr;align-items:center;width:100%;padding:9px 10px;border-bottom:1px solid var(--line);gap:4px;text-align:center}
+.mrow{display:grid;grid-template-columns:1fr 112px 1fr;align-items:center;width:100%;padding:9px 10px;border-bottom:1px solid var(--line);gap:4px;text-align:center}
 .mrow:last-child{border-bottom:none}
 .mrow:active{background:var(--card2)}
 .tm{display:flex;align-items:center;gap:7px;min-width:0}
@@ -168,6 +168,7 @@ html[data-theme="light"] .ico-sun{display:none}
 .msc.live{color:var(--red)}
 .msub{font-size:9.5px;color:var(--dim2);font-weight:700;letter-spacing:.4px}
 .msub .lvm{color:var(--red)}
+.tvch{display:block;max-width:110px;margin:2px auto 0;color:var(--gold);font-size:9.5px;font-weight:800;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
 .lvdot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--red);animation:pulse 1.4s infinite;vertical-align:middle;margin-inline-end:3px}
 
@@ -244,6 +245,8 @@ html[data-theme="light"] .ico-sun{display:none}
 .mvsc{font-size:30px;font-weight:900;letter-spacing:2px}
 .mvsc.live{color:var(--red)}
 .mmeta{text-align:center;font-size:11.5px;color:var(--dim);padding:2px 0 12px;font-weight:600}
+.tvmeta{display:inline-block;margin-top:5px;color:var(--gold);font-weight:800}
+.tvsource{display:inline-block;margin-inline-start:5px;color:var(--acc);font-weight:800;text-decoration:none}
 .evline{display:flex;align-items:center;gap:8px;padding:5px 4px;font-size:12.5px;border-bottom:1px solid var(--line)}
 .evline:last-child{border-bottom:none}
 .evmin{width:44px;color:var(--dim);font-weight:800;font-size:11px;flex:0 0 auto;text-align:center}
@@ -275,7 +278,7 @@ body{font-size:16px}
 .chip{font-size:13px;padding:6px 14px}
 .lgnm{font-size:15px}
 .lgn{font-size:12px}
-.mrow{grid-template-columns:1fr 100px 1fr;padding:12px 10px}
+.mrow{grid-template-columns:1fr 122px 1fr;padding:12px 10px}
 .tm i{font-size:14px}
 .crest,.crestfb{width:26px;height:26px}
 .crestfb{font-size:9.5px}
@@ -385,7 +388,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 
 /* ---------- chat ---------- */
 .chatnote{text-align:center;font-size:12px;color:var(--dim2);font-weight:700;padding:2px 0 10px}
-#chatLog{padding-bottom:116px}
+#chatLog{padding-bottom:180px}
 .cmsg{background:var(--card);border:1px solid var(--line);border-radius:14px;border-start-start-radius:4px;padding:8px 12px 6px;margin:0 0 8px;max-width:86%;width:fit-content}
 .cmsg.own{margin-inline-start:auto;background:var(--accdark);border-color:var(--acc);border-start-start-radius:14px;border-start-end-radius:4px}
 .cmsg .cname{font-size:10.5px;font-weight:800;color:var(--gold);letter-spacing:.3px}
@@ -397,7 +400,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 .cmedia{display:block;max-width:min(74vw,300px);margin-top:4px;border-radius:10px;overflow:hidden;background:#090712}
 .cmedia img,.cmedia video{display:block;width:100%;max-height:360px;object-fit:contain;background:#090712}
 .cmedia audio{display:block;width:min(68vw,280px);height:42px}
-.chatbar{position:fixed;bottom:calc(64px + env(safe-area-inset-bottom));inset-inline:10px;max-width:660px;margin-inline:auto;z-index:58;display:flex;gap:7px;align-items:flex-end;flex-wrap:wrap;background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:8px 10px;box-shadow:0 8px 26px rgba(0,0,0,.35)}
+.chatbar{position:fixed;bottom:calc(92px + env(safe-area-inset-bottom));inset-inline:10px;max-width:660px;margin-inline:auto;z-index:58;display:flex;gap:7px;align-items:flex-end;flex-wrap:wrap;background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:8px 10px;box-shadow:0 8px 26px rgba(0,0,0,.35)}
 .chattools{display:flex;gap:4px;align-items:center;flex:0 0 auto}
 .chattool{width:34px;height:40px;border-radius:10px;background:var(--card2);border:1px solid var(--line);color:var(--txt);font-size:17px;line-height:1}
 .chattool.recording{background:#7d1823;border-color:#ff6b77;color:#fff;animation:recpulse 1.1s infinite}
@@ -425,6 +428,23 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 .fantsoon .fbig{font-size:54px;line-height:1}
 .fantsoon .fttl{font-family:'Alexandria','Cairo',system-ui,sans-serif;font-weight:800;font-size:22px;letter-spacing:1.5px;margin:14px 0 6px;color:var(--gold)}
 .fantsoon .fsoon{font-size:16px;color:var(--dim);font-weight:700}
+@media(max-width:520px){
+ .gkhead{gap:6px}
+ .gklogo{width:40px;height:40px;flex-basis:40px}
+ .gklogo img{width:31px;height:31px}
+ .gktit{flex:0 0 auto}
+ #setBtn{width:38px;height:38px;padding:7px;justify-content:center}
+ #setLbl{display:none}
+ #hdrAuth{max-width:78px;padding-inline:8px}
+ #hdrAuth .han{max-width:48px}
+ .themebtn{width:38px;height:38px;padding:7px;justify-content:center}
+}
+@media(max-width:370px){
+ .gkname{font-size:20px}
+ .gkmotto{font-size:12px}
+ #hdrAuth{width:38px;padding:7px;justify-content:center}
+ #hdrAuth .han{display:none}
+}
 </style>
 </head>
 <body>
@@ -452,7 +472,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <div class="shrow"><span class="shlab" id="shClock">نظام الوقت</span><div class="seg" role="radiogroup" aria-labelledby="shClock"><button type="button" id="h12b" class="on" onclick="setHour12(true)">AM·PM</button><button type="button" id="h24b" onclick="setHour12(false)">24H</button></div></div>
   <div class="shrow"><span class="shlab" id="shLang">اللغة</span><div class="seg" role="radiogroup" aria-labelledby="shLang"><button type="button" id="lgEn" onclick="setLang('en')">EN</button><button type="button" id="lgAr" class="on" onclick="setLang('ar')">عربي</button></div></div>
   <div class="shrow"><span class="shlab" id="shTheme">🌓 المظهر</span><div class="seg" role="radiogroup" aria-labelledby="shTheme"><button type="button" id="thD" class="on" onclick="setTheme('dark')">داكن</button><button type="button" id="thL" onclick="setTheme('light')">فاتح</button></div></div>
-  <div class="shver" id="shVer">جولك · v2.1 · الجول جولك</div>
+  <div class="shver" id="shVer">جولك · v2.2 · الجول جولك</div>
  </div>
 
  <nav class="rail" id="rail" aria-label="Leagues"></nav>
@@ -502,7 +522,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN</span> · <span id="appVer">v2.1</span></footer>
+ <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN وFilGoal</span> · <span id="appVer">v2.2</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -555,9 +575,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <script>
 "use strict";
 /* ============ GOALLAK · الجول جولك ============ */
-const APP_VERSION = "2.1";
+const APP_VERSION = "2.2";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
+const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
 
 /* League registry. zones = [from,to] ranks: g=green a=amber r=red. Counts are
    best-effort 2026-27 qualification spots; edit here if a league changes. */
@@ -646,13 +667,16 @@ const AR_TEAMS = {
  "s bratislava":"سلوفان براتيسلافا","slovan bratislava":"سلوفان براتيسلافا","nk celje":"تسيليه","celje":"تسيليه",
  "ki klaksvik":"كي كلاكسفيك","kí klaksvík":"كي كلاكسفيك","galway united":"غالواي يونايتد"
 };
-function clubAr(tm){
+function clubArabic(tm){
  if(!tm) return "?";
  const short = tm.shortDisplayName || tm.displayName || tm.name || "?";
- if(LANG !== "ar") return short;
  const k1 = String(short).toLowerCase();
  const k2 = String(tm.displayName || "").toLowerCase();
  return AR_TEAMS[k1] || AR_TEAMS[k2] || short;
+}
+function clubAr(tm){
+ if(!tm) return "?";
+ return LANG === "ar" ? clubArabic(tm) : (tm.shortDisplayName || tm.displayName || tm.name || "?");
 }
 
 /* time zones - same grouped list as the WC app (Host Nations group replaced by nothing;
@@ -675,7 +699,7 @@ const STR = {
  brand:["جولك","GOALLAK"],
  fantasyBrand:["فانتازي جولك","GOALLAK FANTASY"],
  motto:["الجول جولك","El Goal Goallak"],
- footNote:["تطبيق غير رسمي · البيانات من ESPN","Unofficial fan app · Data: ESPN"],
+ footNote:["تطبيق غير رسمي · البيانات من ESPN وFilGoal","Unofficial fan app · Data: ESPN & FilGoal"],
  loading:["جارٍ التحميل…","Loading…"],
  all:["الكل","All"],
  live:["مباشر","LIVE"],
@@ -806,6 +830,11 @@ const STR = {
   chatPhoto:["صورة","Photo"],
   chatVideo:["فيديو","Video"],
   chatVoice:["رسالة صوتية","Voice note"],
+  chatSessionExpired:["أنت مسجل الدخول · أدخل كلمة السر مرة واحدة لإعادة توصيل الدردشة الآمنة","You are signed in · enter your password once to reconnect secure chat"],
+  chatReconnectBtn:["توصيل الدردشة","Reconnect chat"],
+  tvChannel:["القناة","TV channel"],
+  tvBroadcaster:["الناقل","Broadcaster"],
+  tvSource:["المصدر","Source"],
   predHeroTitle:["توقع مباريات الأبطال واكسب النقاط","Predict the Champions League & earn points"],
  predComp:["توقعات دوري أبطال أوروبا","Champions League Predictions"],
 };
@@ -890,6 +919,7 @@ let statsSeason = 0;        // 0 = current, 2025 = last season
 let statsOpen = {g:false, a:false};
 let stripBuiltFor = 0;      // todayKey the strip was built around
 const dayCache = {};        // `${lgId}|${dayKey}` -> {at, events[]} raw 3-day-range events
+const broadcastCache = {};  // dayKey -> {at, matches[], rights{}, sourceUrl}
 const lgCache = {};         // lgId -> {up:{at,events}, res:{at,events}, table:{at,json}, stats:{'0':{at,json},'2025':{at,json}}}
 const EV_INDEX = {};        // event id -> event object (for the modal)
 let dayLoadSeq = 0;         // guards out-of-order day renders
@@ -1067,6 +1097,35 @@ function selectDay(k){
  loadDay(false);
 }
 
+function keyIso(k){
+ const s = String(k).padStart(8, "0");
+ return s.slice(0, 4) + "-" + s.slice(4, 6) + "-" + s.slice(6, 8);
+}
+function isMenaBroadcastRegion(){
+ for(const g of ZONES){
+  if(g[1].some(z => z[0] === TZ)) return g[0] === "Gulf" || g[0] === "North Africa" || g[0] === "Levant";
+ }
+ return false;
+}
+async function fetchBroadcastInto(day, force){
+ if(!isMenaBroadcastRegion()) return false;
+ const old = broadcastCache[day];
+ if(!force && old && Date.now() - old.at < 600000) return false;
+ try{
+  const j = await jget(BROADCAST_API + "?date=" + encodeURIComponent(keyIso(day)) + "&region=MENA");
+  if(!j || !j.ok) throw new Error("broadcast feed");
+  broadcastCache[day] = {
+   at:Date.now(),
+   matches:Array.isArray(j.matches) ? j.matches : [],
+   rights:j.rights && typeof j.rights === "object" ? j.rights : {},
+   source:j.source || "",
+   sourceUrl:j.sourceUrl || "",
+   degraded:!!j.degraded
+  };
+  return false;
+ }catch(_){ return true; /* keep the last good channel list; scores remain independent */ }
+}
+
 /* ============ home: data ============ */
 function eventsFor(lg, day){
  const c = dayCache[lg.id + "|" + day];
@@ -1106,7 +1165,8 @@ async function loadDay(force){
  if(_dayInflight && _dayInflightDay === day && !force) return _dayInflight;
  const seq = ++dayLoadSeq;
  const p = (async () => {
-  const anyFail = await fetchDayInto(day, force);
+   const loaded = await Promise.all([fetchDayInto(day, force), fetchBroadcastInto(day, force)]);
+   const anyFail = loaded[0];
   if(seq !== dayLoadSeq || view !== "home" || selDay !== day) return;
   dayFailed = anyFail;
   paintHome();
@@ -1124,12 +1184,71 @@ function crestHtml(team){
  return '<img class="crest" src="' + esc(url) + '" alt="" loading="lazy" onerror="this.style.display=\'none\';if(this.nextElementSibling)this.nextElementSibling.style.display=\'flex\'"><span class="crestfb" style="display:none">' + ini + "</span>";
 }
 function teamName(c){ return clubAr(c && c.team || {}); }
+function tvNorm(value){
+ return String(value || "").normalize("NFKD")
+  .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, "").replace(/[إأآٱ]/g, "ا")
+  .replace(/ى/g, "ي").replace(/ة/g, "ه").replace(/ؤ/g, "و").replace(/ئ/g, "ي").replace(/ـ/g, "")
+  .replace(/[^\u0621-\u064A0-9a-z]+/gi, " ").trim().toLowerCase();
+}
+function tvNameScore(one, two){
+ const a = tvNorm(one), b = tvNorm(two);
+ if(!a || !b) return 0;
+ if(a === b) return 10;
+ const ac = a.replace(/\s/g, ""), bc = b.replace(/\s/g, "");
+ if(Math.min(ac.length, bc.length) >= 4 && (ac.includes(bc) || bc.includes(ac))) return 8;
+ const grams = s => { const out = []; for(let i = 0; i < s.length - 1; i++) out.push(s.slice(i, i + 2)); return out; };
+ const ga = grams(ac), gb = grams(bc), used = {};
+ let hits = 0;
+ ga.forEach(g => { const i = gb.findIndex((x, n) => x === g && !used[n]); if(i >= 0){ used[i] = 1; hits++; } });
+ const dice = ga.length + gb.length ? (2 * hits) / (ga.length + gb.length) : 0;
+ const bt = new Set(b.split(" "));
+ const shared = a.split(" ").filter(x => x.length > 1 && bt.has(x)).length;
+ return dice * 6 + Math.min(2, shared * 1.5);
+}
+function cairoMinuteKey(iso){
+ try{
+  const p = new Intl.DateTimeFormat("en-GB", {timeZone:"Africa/Cairo", year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", hourCycle:"h23"}).formatToParts(new Date(iso));
+  const v = type => (p.find(x => x.type === type) || {}).value || "";
+  return v("year") + "-" + v("month") + "-" + v("day") + "T" + v("hour") + ":" + v("minute");
+ }catch(_){ return ""; }
+}
+function safeTvUrl(value){ return /^https:\/\//i.test(String(value || "")) ? String(value) : ""; }
+function broadcastFor(e, lg){
+ if(!e || !lg || !isMenaBroadcastRegion()) return null;
+ const pack = broadcastCache[dkey(new Date(e.date))];
+ if(!pack) return null;
+ const comp = e.competitions && e.competitions[0] || {}, cs = comp.competitors || [];
+ const H = cs.find(c => c.homeAway === "home") || cs[0] || {};
+ const A = cs.find(c => c.homeAway === "away") || cs[1] || {};
+ const home = clubArabic(H.team || {}), away = clubArabic(A.team || {}), cairo = cairoMinuteKey(e.date);
+ let best = null, bestScore = -1;
+ for(const m of pack.matches){
+  if(m.leagueId && m.leagueId !== lg.id) continue;
+  const nameScore = tvNameScore(home, m.home) + tvNameScore(away, m.away);
+  if(nameScore < 5) continue;
+  const sourceTime = String(m.kickoffLocal || "").slice(0, 16);
+  const timeScore = sourceTime && cairo === sourceTime ? 7 : (sourceTime.slice(0, 10) === cairo.slice(0, 10) ? 1 : 0);
+  const score = nameScore + timeScore;
+  if(score > bestScore){ bestScore = score; best = m; }
+ }
+ if(best && bestScore >= 9) return {
+  channel:String(best.channel || "").slice(0, 120), exact:true,
+  source:"FilGoal", sourceUrl:safeTvUrl(pack.sourceUrl), sourceMatchId:best.sourceMatchId
+ };
+ const right = pack.rights && pack.rights[lg.id];
+ if(right && right.broadcaster) return {
+  channel:String(right.broadcaster).slice(0, 120), exact:false,
+  source:String(right.source || ""), sourceUrl:safeTvUrl(right.sourceUrl)
+ };
+ return null;
+}
 function mrow(e, lg){
  const comp = e.competitions && e.competitions[0] || {};
  const cs = comp.competitors || [];
  const H = cs.find(c => c.homeAway === "home") || cs[0] || {};
  const A = cs.find(c => c.homeAway === "away") || cs[1] || {};
  const s = evState(e);
+ e._gkLeagueId = lg.id;
  EV_INDEX[e.id] = e;
  const vk = voidedKey(e);
  let mid, sub;
@@ -1151,6 +1270,8 @@ function mrow(e, lg){
  }
  if(e._gkQual) sub += " · " + esc(t("qualTag"));
  if(s === "in" || (s === "post" && !vk)) sub += ' · <span class="dhint">' + esc(t("details")) + "</span>"; /* goals/cards timeline lives in the tap-modal */
+ const tv = broadcastFor(e, lg);
+ if(tv && !vk) sub += '<span class="tvch" title="' + esc((tv.exact ? t("tvChannel") : t("tvBroadcaster")) + ": " + tv.channel) + '">📺 <span dir="ltr">' + esc(tv.channel) + "</span></span>";
  return '<button type="button" class="mrow" data-eid="' + esc(e.id) + '" onclick="openMatch(this.dataset.eid)">' +
   '<span class="tm tmh">' + '<i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + "</span>" +
   '<span class="mid">' + mid + '<span class="msub">' + sub + "</span></span>" +
@@ -1535,12 +1656,18 @@ function openMatch(eid){
  else if(s === "pre") scoreLine = '<span class="mvsc" dir="ltr">' + esc(fmtTime(e.date)) + "</span>";
  else scoreLine = '<span class="mvsc' + (live ? " live" : "") + '" dir="ltr">' + scoreTxt(H, A) + "</span>";
  const venue = comp.venue && comp.venue.fullName || "";
+ const eventLeague = LEAGUES.find(l => l.id === e._gkLeagueId);
+ const tv = eventLeague ? broadcastFor(e, eventLeague) : null;
  const clockLive = live && !isHT(e);
  const statusTxt = vk ? t(vk) : s === "pre" ? t("notStarted") : live ? (isHT(e) ? t("ht") : ((e.status && e.status.displayClock) || t("live"))) : t("ft");
  let meta = esc(fmtDayFull(dkey(new Date(e.date)))) + " · " + (clockLive ? "<span dir='ltr'>" + esc(statusTxt) + "</span>" : esc(statusTxt));
  if(!vk && s === "post"){ const sh = shootTxt(H, A); if(sh) meta += " · " + esc(t("pens")) + " <span dir='ltr'>" + sh + "</span>"; }
  if(e._gkQual) meta += " · " + esc(t("qualTag"));
  if(venue) meta += "<br>" + esc(t("venue")) + ": " + esc(venue);
+ if(tv){
+  meta += '<br><span class="tvmeta">📺 ' + esc(tv.exact ? t("tvChannel") : t("tvBroadcaster")) + ': <b dir="ltr">' + esc(tv.channel) + "</b></span>";
+  if(tv.sourceUrl) meta += '<a class="tvsource" href="' + esc(tv.sourceUrl) + '" target="_blank" rel="noopener noreferrer">' + esc(t("tvSource") + ": " + tv.source) + "</a>";
+ }
  const dets = (comp.details || []).slice().sort((x, y) => {
   const xv = x.clock && x.clock.value || 0, yv = y.clock && y.clock.value || 0;
   return xv - yv;
@@ -1629,6 +1756,10 @@ function clearChatSession(){
  chatSession = null;
  try{ localStorage.removeItem("gk_chat_session"); }catch(_){}
 }
+function storeChatSession(value){
+ chatSession = value;
+ try{ localStorage.setItem("gk_chat_session", JSON.stringify(chatSession)); }catch(_){}
+}
 async function createChatSession(username, password){
  for(let attempt = 0; attempt < 3; attempt++){
   try{
@@ -1638,8 +1769,7 @@ async function createChatSession(username, password){
    });
    const j = await r.json().catch(() => ({}));
    if(r.ok && j.ok && j.token && j.user && gkUser && j.user.uid === gkUser.uid){
-    chatSession = {token:j.token, exp:Number(j.exp) || 0, uid:j.user.uid};
-    try{ localStorage.setItem("gk_chat_session", JSON.stringify(chatSession)); }catch(_){}
+    storeChatSession({token:j.token, exp:Number(j.exp) || 0, uid:j.user.uid});
     return true;
    }
    if(r.status === 401) break;
@@ -1648,6 +1778,18 @@ async function createChatSession(username, password){
  }
  clearChatSession();
  return false;
+}
+async function renewStoredChatSession(){
+ if(!validChatSession()) return false;
+ if(Number(chatSession.exp) - Date.now() > 7 * 86400000) return true;
+ try{
+  const r = await fetch(CHAT_API + "/api/session/refresh", {method:"POST", headers:chatAuthHeaders(), cache:"no-store"});
+  const j = await r.json().catch(() => ({}));
+  if(r.ok && j.ok && j.token && j.user && gkUser && j.user.uid === gkUser.uid){
+   storeChatSession({token:j.token, exp:Number(j.exp) || 0, uid:j.user.uid});
+  }
+ }catch(_){ /* the current signed token remains usable until its real expiry */ }
+ return validChatSession();
 }
 
 /* ---- auth (same scheme as the WC app: salt + sha256(salt+password), wipe guard, verify-after-write) ---- */
@@ -2161,7 +2303,14 @@ function normChat(list){
 try{ chatMsgs = normChat(JSON.parse(localStorage.getItem("gk_chat_cache") || "[]")); }catch(_){}
 function cacheChat(){ try{ localStorage.setItem("gk_chat_cache", JSON.stringify(chatMsgs.slice(-100))); }catch(_){} }
 function chatAuthHeaders(extra){ return Object.assign({Authorization:"Bearer " + chatSession.token}, extra || {}); }
-function chatReauth(){ signOut(); openAuth("L"); }
+function chatReauth(){
+ closeChatSocket();
+ clearChatSession();
+ openAuth("L");
+ if(gkUser) $("auUser").value = gkUser.username;
+ $("auPass").value = "";
+ setTimeout(function(){ try{ $("auPass").focus(); }catch(_){} }, 30);
+}
 function refreshChatNote(){
  const note = $("chatNote");
  if(!note) return;
@@ -2190,11 +2339,12 @@ function addChatMessage(message, notify){
 }
 async function loadChat(){
  if(!gkUser){ if(mainView === "chat") renderChat(); updateChatBadge(); return; }
- if(!validChatSession()){ if(mainView === "chat") renderChat(); updateChatBadge(); return; }
+ await renewStoredChatSession();
+ if(!validChatSession()){ refreshChatBar(); if(mainView === "chat") renderChat(); updateChatBadge(); return; }
  connectChat();
  try{
   const r = await fetch(CHAT_API + "/api/chat/history", {headers:chatAuthHeaders(), cache:"no-store"});
-  if(r.status === 401){ clearChatSession(); closeChatSocket(); if(mainView === "chat") renderChat(); return; }
+  if(r.status === 401){ clearChatSession(); closeChatSocket(); refreshChatBar(); if(mainView === "chat") renderChat(); return; }
   const j = await r.json().catch(() => ({}));
   if(r.ok && j.ok && Array.isArray(j.messages)){
    chatMsgs = normChat(j.messages);
@@ -2230,7 +2380,7 @@ function renderChat(){
   return;
  }
  if(!validChatSession()){
-  log.innerHTML = '<div class="authcard"><div class="autxt">🔐 ' + esc(t("chatSignAgain")) + '</div><button type="button" class="retrybtn" onclick="chatReauth()">' + esc(t("login")) + "</button></div>";
+  log.innerHTML = '<div class="authcard"><div class="autxt">🔐 ' + esc(t("chatSessionExpired")) + '</div><button type="button" class="retrybtn" onclick="chatReauth()">' + esc(t("chatReconnectBtn")) + "</button></div>";
   return;
  }
  if(!chatMsgs.length){
@@ -2285,7 +2435,7 @@ function connectChat(){
   chatSocket.onclose = function(event){
    chatSocket = null;
    setChatConnection("offline");
-   if(event.code === 4001) clearChatSession();
+  if(event.code === 4001){ clearChatSession(); refreshChatBar(); if(mainView === "chat") renderChat(); }
    if(!chatManualClose && gkUser && validChatSession()){
     const delay = Math.min(30000, 1000 * Math.pow(2, Math.min(5, chatReconnectAttempt++)));
     chatReconnectTimer = setTimeout(connectChat, delay);
