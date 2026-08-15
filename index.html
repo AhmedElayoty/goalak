@@ -79,7 +79,8 @@ html[data-theme="light"] .ico-sun{display:none}
 .setchip{display:flex;align-items:center;gap:6px;padding:7px 11px;border-radius:10px;background:var(--card);border:1px solid var(--line);color:var(--dim);font-size:11.5px;font-weight:700}
 
 /* ---------- settings sheet (WC-app style dropdown dialog) ---------- */
-.sheet{position:absolute;top:60px;inset-inline-end:10px;z-index:70;width:min(340px,calc(100% - 20px));background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:0 14px 6px;box-shadow:0 14px 40px rgba(0,0,0,.45)}
+/* settings is a full PAGE in the bottom nav now (not a dropdown) */
+.sheet{background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:0 14px 6px;margin-bottom:10px}
 .shtop{display:flex;align-items:center;justify-content:space-between;padding:10px 0 8px;border-bottom:1px solid var(--line)}
 .shttl{font-size:13px;font-weight:900;letter-spacing:.4px}
 .shx{width:26px;height:26px;border-radius:50%;background:var(--card2);color:var(--dim);font-size:14px;line-height:1}
@@ -259,6 +260,19 @@ html[data-theme="light"] .ico-sun{display:none}
 html[data-theme="light"] .motm{background:linear-gradient(150deg,#fff3d6,#ffe9b8);border-color:#c79a1e}
 html[data-theme="light"] .motm .mnm b{color:#4a3708}
 html[data-theme="light"] .motm .msb,html[data-theme="light"] .motm .mtag{color:#7a5d00}
+/* ---- pitch / formation ---- */
+.flabel{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;font-weight:800;color:var(--dim);margin:10px 2px 6px}
+.flabel span{display:flex;align-items:center;gap:6px;min-width:0}
+.flabel b{color:var(--txt);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.flabel .crest,.flabel .crestfb{width:18px;height:18px}
+.pitch{position:relative;width:100%;padding-bottom:150%;border-radius:14px;overflow:hidden;background:repeating-linear-gradient(0deg,#137a3f 0,#137a3f 10%,#12723b 10%,#12723b 20%)}
+.pitch svg{position:absolute;inset:0;width:100%;height:100%}
+.pchip{position:absolute;transform:translate(-50%,-50%);width:19%;text-align:center;z-index:2}
+.pnum{width:26px;height:26px;margin:0 auto;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;color:#fff;border:1.5px solid rgba(255,255,255,.75);box-shadow:0 1px 3px rgba(0,0,0,.5)}
+.pname{display:block;font-size:8.5px;color:#fff;margin-top:2px;line-height:1.1;text-shadow:0 1px 2px rgba(0,0,0,.95);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pname .pic{font-size:7.5px;letter-spacing:-1px}
+.prate{position:absolute;top:-7px;inset-inline-start:58%;min-width:19px;height:15px;border-radius:4px;font-weight:900;font-size:9.5px;color:#0d1533;display:flex;align-items:center;justify-content:center;padding:0 2px;z-index:4;box-shadow:0 1px 2px rgba(0,0,0,.6)}
+.prate.rhi{background:#37d27f}.prate.rmd{background:#9fd957}.prate.rok{background:#e8c552}.prate.rlo{background:#dd8a55}
 .lnform{display:flex;justify-content:space-between;gap:8px;padding:10px 2px 8px;font-size:12px;font-weight:800;color:var(--gold)}
 .lnform span{max-width:48%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lncols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -269,10 +283,16 @@ html[data-theme="light"] .motm .msb,html[data-theme="light"] .motm .mtag{color:#
 .lnname{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
 .lnpos{flex:0 0 auto;font-size:9.5px;color:var(--dim2);font-weight:800}
 .lnic{flex:0 0 auto;font-size:11px;letter-spacing:1px}
-.stline{padding:9px 2px;border-bottom:1px solid var(--line)}
+.sclist{display:block;margin-top:4px}
+.scln{display:block;font-size:10.5px;color:var(--dim);font-weight:700;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stwrap{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:4px 12px;margin-top:10px}
+.stline{padding:10px 2px;border-bottom:1px solid var(--line)}
 .stline:last-child{border-bottom:none}
-.sttop{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;font-weight:800;padding-bottom:5px}
-.sttop .stlab{color:var(--dim);font-size:11.5px;font-weight:700}
+/* fixed side columns so every number lines up down the page */
+.sttop{display:grid;grid-template-columns:46px 1fr 46px;align-items:center;font-size:14px;font-weight:900;padding-bottom:6px}
+.sttop b:first-child{text-align:start}
+.sttop b:last-child{text-align:end}
+.sttop .stlab{color:var(--dim);font-size:11.5px;font-weight:700;text-align:center}
 .stbar{display:flex;height:7px;border-radius:4px;overflow:hidden;background:var(--card2)}
 .stbar i{display:block;height:100%}
 .stbar .sh{background:var(--acc)}
@@ -366,11 +386,20 @@ html[data-theme="light"]{--dim:#44536f;--dim2:#5a6a8e}
 #app{padding-bottom:104px}
 .bnav{position:fixed;bottom:0;inset-inline:0;max-width:680px;margin-inline:auto;z-index:60;display:flex;background:linear-gradient(180deg,#182553 0%,#141f4a 8%,#0c1434 100%);background-color:#0e1736;border-top:1px solid var(--line2);padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -10px 28px rgba(0,0,0,.5)}
 .bnav::before{content:"";position:absolute;top:-1px;inset-inline:0;height:2px;background:linear-gradient(90deg,transparent 8%,var(--gold) 50%,transparent 92%);opacity:.55;pointer-events:none}
-.bnav button{flex:1;padding:10px 0 6px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11.5px;font-weight:800;color:var(--dim2);transition:color .22s}
+.bnav button{flex:1;padding:10px 0 6px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:800;color:var(--dim2);transition:color .22s;min-width:0}
 .bnav button.on{color:var(--gold)}
-.bnic{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:transform .22s,box-shadow .22s,background .22s;color:inherit}
-.bnic svg{width:21px;height:21px}
-.bnav button.on .bnic{background:radial-gradient(circle at 32% 26%,#ff9a6b,#e05a2b 58%,#7e2f12);box-shadow:0 8px 20px rgba(224,90,43,.55),inset 0 1px 3px rgba(255,255,255,.4);transform:translateY(-9px);color:#fff}
+.bnic{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:transform .22s,box-shadow .22s,background .22s;color:inherit}
+.bnic svg{width:20px;height:20px}
+.bnav button.on .bnic{background:radial-gradient(circle at 32% 26%,#ff9a6b,#e05a2b 58%,#7e2f12);box-shadow:0 6px 16px rgba(224,90,43,.5),inset 0 1px 3px rgba(255,255,255,.4);transform:translateY(-6px);color:#fff}
+/* centre MATCHES tab: a big raised orb, the way the reference app does it */
+.bnav button.ctr{flex:0 0 84px}
+.bnorb{width:62px;height:62px;margin-top:-24px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;
+ background:radial-gradient(circle at 34% 26%,#ff9a6b,#e05a2b 55%,#7e2f12);
+ border:3px solid var(--card);box-shadow:0 10px 26px rgba(224,90,43,.55),0 0 0 2px rgba(255,192,46,.55),inset 0 2px 5px rgba(255,255,255,.45);transition:transform .2s,box-shadow .2s}
+.bnorb svg{width:31px;height:31px}
+.bnav button.ctr.on .bnorb{transform:translateY(-3px);box-shadow:0 14px 30px rgba(224,90,43,.7),0 0 0 3px var(--gold),inset 0 2px 6px rgba(255,255,255,.5)}
+.bnav button.ctr:not(.on) .bnorb{filter:saturate(.55) brightness(.8)}
+html[data-theme="light"] .bnorb{border-color:#fff}
 html[data-theme="light"] .bnav{background:linear-gradient(180deg,#ffffff,#e8edf8);border-top-color:#c3cde2;box-shadow:0 -8px 22px rgba(20,30,70,.14)}
 
 /* ---------- predictions ---------- */
@@ -503,13 +532,13 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <span class="gkspacer"></span>
   <button class="setchip" id="hdrAuth" type="button" onclick="hdrAuthTap()" aria-label="Account">👤</button>
   <button class="themebtn" type="button" onclick="toggleTheme()" aria-label="Light / dark theme" title="Light / dark"><svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
-  <button class="setchip" id="setBtn" type="button" aria-haspopup="true" aria-controls="setSheet" onclick="toggleSettings()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg><span id="setLbl">الإعدادات</span></button>
+  <button class="setchip" id="setBtn" type="button" onclick="showMain('set')"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg><span id="setLbl">الإعدادات</span></button>
  </header>
 
- <div class="sheet hide" id="setSheet" role="dialog" aria-label="Settings">
-  <div class="shtop"><span class="shttl" id="shTtl">الإعدادات</span><button type="button" class="shx" onclick="closeSettings()" aria-label="Close">&#215;</button></div>
+ <section class="sheet hide" id="setSheet" aria-label="Settings">
+  <div class="shtop"><span class="shttl" id="shTtl">الإعدادات</span></div>
   <button type="button" class="shinstall hide" id="installRow" onclick="installApp()">⬇️ <span id="instTxt">ثبّت التطبيق على جهازك</span></button>
-  <div class="shrow"><span class="shlab" id="shAcct">الحساب</span><button type="button" class="lsegb" id="shAcctBtn" onclick="hdrAuthTap();closeSettings()">دخول</button></div>
+  <div class="shrow"><span class="shlab" id="shAcct">الحساب</span><button type="button" class="lsegb" id="shAcctBtn" onclick="hdrAuthTap()">دخول</button></div>
   <div class="shrow"><label class="shlab" for="clubSel" id="shClub">⭐ فريقك المفضل</label><select id="clubSel" onchange="setClubFromSel(this)"></select></div>
   <div class="shrow"><span class="shlab" id="shAlerts">🔔 التنبيهات</span><div class="seg" role="radiogroup" aria-labelledby="shAlerts"><button type="button" id="pushOffB" class="on" onclick="setPush(false)">OFF</button><button type="button" id="pushOnB" onclick="setPush(true)">ON</button></div></div>
   <div class="shrow pushlgs hide" id="pushLgRow"></div>
@@ -517,12 +546,12 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <div class="shrow"><span class="shlab" id="shClock">نظام الوقت</span><div class="seg" role="radiogroup" aria-labelledby="shClock"><button type="button" id="h12b" class="on" onclick="setHour12(true)">AM·PM</button><button type="button" id="h24b" onclick="setHour12(false)">24H</button></div></div>
   <div class="shrow"><span class="shlab" id="shLang">اللغة</span><div class="seg" role="radiogroup" aria-labelledby="shLang"><button type="button" id="lgEn" onclick="setLang('en')">EN</button><button type="button" id="lgAr" class="on" onclick="setLang('ar')">عربي</button></div></div>
   <div class="shrow"><span class="shlab" id="shTheme">🌓 المظهر</span><div class="seg" role="radiogroup" aria-labelledby="shTheme"><button type="button" id="thD" class="on" onclick="setTheme('dark')">داكن</button><button type="button" id="thL" onclick="setTheme('light')">فاتح</button></div></div>
- <div class="shver" id="shVer">جولك · v2.8 · الجول جولك</div>
- </div>
+ <div class="shver" id="shVer">جولك · v3.2 · الجول جولك</div>
+ </section>
 
  <nav class="rail" id="rail" aria-label="Leagues"></nav>
 
- <div class="infobar"><span class="condot" id="conDot"></span><span id="conTxt">بيانات مباشرة من ESPN</span><span class="ibr"><span class="cz" id="tzCode">الإمارات</span><span class="cz cz--off" id="tzOff">UTC+4</span><time class="clock" id="clock" dir="ltr">--:--</time></span></div>
+ <div class="infobar" id="infobar"><span class="condot" id="conDot"></span><span id="conTxt">بيانات مباشرة من ESPN</span><span class="ibr"><span class="cz" id="tzCode">الإمارات</span><span class="cz cz--off" id="tzOff">UTC+4</span><time class="clock" id="clock" dir="ltr">--:--</time></span></div>
 
  <main>
   <section id="home">
@@ -567,7 +596,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي</span> · <span id="appVer">v3.1</span></footer>
+ <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي</span> · <span id="appVer">v3.2</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -611,16 +640,17 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 </div>
 
 <nav class="bnav" id="bnav">
- <button type="button" id="bnScores" class="on" onclick="showMain('scores')"><span class="bnic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.2l4.1 3-1.6 4.8H9.5L7.9 10.2z" fill="currentColor" stroke="none"/><path d="M12 3v4.2M5.3 8.6l2.6 1.6M18.7 8.6l-2.6 1.6M7.2 20l2.3-5M16.8 20l-2.3-5"/></svg></span><span id="bnScoresL">المباريات</span></button>
  <button type="button" id="bnPred" onclick="showMain('pred')"><span class="bnic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.6"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg></span><span id="bnPredL">التوقعات</span></button>
  <button type="button" id="bnFant" onclick="showMain('fant')"><span class="bnic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M8.6 3.4L3.6 6.3l1.9 3.8 1.9-1v10.5h9.2V9.1l1.9 1 1.9-3.8-5-2.9a3.1 3.1 0 01-6.2 0z"/></svg></span><span id="bnFantL">فانتازي</span></button>
+ <button type="button" id="bnScores" class="on ctr" onclick="showMain('scores')"><span class="bnorb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.2l4.1 3-1.6 4.8H9.5L7.9 10.2z" fill="currentColor" stroke="none"/><path d="M12 3v4.2M5.3 8.6l2.6 1.6M18.7 8.6l-2.6 1.6M7.2 20l2.3-5M16.8 20l-2.3-5"/></svg></span><span id="bnScoresL">المباريات</span></button>
  <button type="button" id="bnChat" onclick="showMain('chat')"><span class="bnic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.6a8.4 8.4 0 01-8.4 8.4H4.2l2.1-3.2A8.4 8.4 0 1121 11.6z"/></svg></span><span id="bnChatL">دردشة</span><span class="navbadge hide" id="chatBadge"></span></button>
+ <button type="button" id="bnSet" onclick="showMain('set')"><span class="bnic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.14.31.4.55.71.66H21a2 2 0 110 4h-.09c-.34.02-.65.2-.51.34z"/></svg></span><span id="bnSetL">الإعدادات</span></button>
 </nav>
 
 <script>
 "use strict";
 /* ============ GOALLAK · الجول جولك ============ */
-const APP_VERSION = "3.1";
+const APP_VERSION = "3.2";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1066,6 +1096,8 @@ function setLang(x){
  if(fs) fs.textContent = t("soon");
  const bc = $("bnChatL");
  if(bc) bc.textContent = t("chatNav");
+ const bs2 = $("bnSetL");
+ if(bs2) bs2.textContent = t("settings");
  const cn = $("chatNote");
  if(cn) refreshChatNote();
  if(typeof refreshChatBar === "function") refreshChatBar();
@@ -1076,16 +1108,10 @@ function setLang(x){
 }
 
 /* ============ settings (ported from the WC app: sheet + grouped zones + theme + clock) ============ */
-function toggleSettings(){ $("setSheet").classList.toggle("hide"); }
-function closeSettings(){ $("setSheet").classList.add("hide"); }
-document.addEventListener("click", function(ev){
- const sh = $("setSheet");
- if(sh.classList.contains("hide")) return;
- /* A control can re-render itself before this delegated click reaches document.
-    Keep the original event path so league-alert selections stay inside Settings. */
- const path = typeof ev.composedPath === "function" ? ev.composedPath() : [];
- if(!sh.contains(ev.target) && !path.includes(sh) && !ev.target.closest("#setBtn")) closeSettings();
-});
+function toggleSettings(){ showMain(mainView === "set" ? "scores" : "set"); }
+function closeSettings(){ if(mainView === "set") showMain("scores"); }
+/* (settings used to be a dropdown that closed on an outside tap — it is a full nav page now,
+   so no outside-click handler: tapping anything inside it must never dismiss it) */
 function toggleTheme(){ setTheme(THEME === "dark" ? "light" : "dark"); }
 function setTheme(x){
  THEME = x === "light" ? "light" : "dark";
@@ -1314,13 +1340,19 @@ async function fetchExtrasInto(day, force){
  return anyFail;
 }
 let _dayInflight = null, _dayInflightDay = 0;
+const _dayLoading = {};   /* dayKey -> true while a fetch for that day is in flight */
 async function loadDay(force){
  const day = selDay;
  if(_dayInflight && _dayInflightDay === day && !force) return _dayInflight;
  const seq = ++dayLoadSeq;
+ _dayLoading[day] = true;
+ if(view === "home" && selDay === day && mainView === "scores") paintHome();   /* show the spinner the moment a date is tapped */
  const p = (async () => {
-    const loaded = await Promise.all([fetchDayInto(day, force), fetchBroadcastInto(day, force), fetchExtrasInto(day, force)]);
-    const anyFail = loaded[0] || loaded[2];
+  let anyFail = true;
+  try{
+   const loaded = await Promise.all([fetchDayInto(day, force), fetchBroadcastInto(day, force), fetchExtrasInto(day, force)]);
+   anyFail = loaded[0] || loaded[2];
+  } finally { delete _dayLoading[day]; }
   if(seq !== dayLoadSeq || view !== "home" || selDay !== day) return;
   dayFailed = anyFail;
   paintHome();
@@ -1490,7 +1522,10 @@ function paintHome(){
    '</div><div class="lgbody' + (folded ? " hide" : "") + '" id="fold_' + p.lg.id + '">' + list.map(e => mrow(e, p.lg)).join("") + "</div></section>";
  }
  if(!h){
-  if(totalM === 0 && (anyUnknown || dayFailed)){
+  if(_dayLoading[day]){
+   /* still fetching: never flash "no matches" or a retry button at a user who just tapped a date */
+   h = '<div class="skel"><span class="spinner"></span>' + esc(t("loading")) + "</div>";
+  } else if(totalM === 0 && (anyUnknown || dayFailed)){
    /* "failed" is never presented as "genuinely empty" */
    h = '<div class="errbox"><div class="big">📡</div>' + esc(t("loadFail")) + '<br><button type="button" class="retrybtn" onclick="loadDay(true)">' + esc(t("retry")) + "</button></div>";
   } else {
@@ -1559,7 +1594,7 @@ window.addEventListener("popstate", function(){
  if(!modal.classList.contains("hide")){ modal.classList.add("hide"); return; }
  const am = $("authModal");
  if(am && !am.classList.contains("hide")){ am.classList.add("hide"); return; }
- if(!$("setSheet").classList.contains("hide")){ closeSettings(); return; }
+ if(mainView === "set"){ closeSettings(); return; }
  if(view === "lg") gotoHome();
 });
 /* install prompt: native prompt when the browser offers one, clear instructions otherwise.
@@ -1851,7 +1886,7 @@ function playerIcons(p){
  if(p && p.subbedIn) ic += "🔺";
  return ic;
 }
-function lineupCol(r){
+function lineupCol(r, benchOnly){
  const list = (r && r.roster) || [];
  /* bench players carry formationPlace "0", so only a positive place (or an explicit starter flag) counts */
  const isStart = p => p && (p.starter === true || Number(p.formationPlace) > 0);
@@ -1870,9 +1905,74 @@ function lineupCol(r){
    (rr ? '<span class="rchip ' + rateCls(rr.rating) + '" dir="ltr">' + esc(rr.rating.toFixed(1)) + "</span>" : "") +
    "</div>";
  };
- let h = '<div class="lnhead">' + esc(t("mdStarters")) + "</div>" + starters.map(row).join("");
+ let h = benchOnly ? "" : '<div class="lnhead">' + esc(t("mdStarters")) + "</div>" + starters.map(row).join("");
  if(bench.length) h += '<div class="lnhead">' + esc(t("mdSubs")) + "</div>" + bench.map(row).join("");
  return h;
+}
+/* ---- real pitch view (ported from the WC app: formation string -> lines -> football-sensible lanes) ---- */
+function posGroup(ab){
+ ab = (ab || "").toUpperCase();
+ if(!ab) return "MID";
+ if(ab[0] === "G") return "GK";
+ if(ab.indexOf("DM") >= 0) return "DM";
+ if(ab.indexOf("AM") >= 0) return "AM";
+ if(ab.slice(-1) === "B" || ab.indexOf("CD") === 0 || ab.indexOf("CB") === 0 || ab === "D" || ab === "SW") return "DEF";
+ if(ab.indexOf("M") >= 0) return "MID";
+ return "FWD";
+}
+function laneKey(ab){
+ ab = (ab || "").toUpperCase();
+ const side = ab.indexOf("L") >= 0 ? -1 : ab.indexOf("R") >= 0 ? 1 : 0;
+ if(!side) return 0;
+ const wide = ab.slice(-1) === "B" || ab.indexOf("W") >= 0 || ab.indexOf("-") < 0;
+ return side * (wide ? 2 : 1);
+}
+function spreadX(n){
+ const T = {1:[50], 2:[33, 67], 3:[22, 50, 78], 4:[11, 37.5, 62.5, 89], 5:[8, 29.5, 50, 70.5, 92]};
+ if(T[n]) return T[n];
+ return Array.from({length:n}, (_, i) => n === 1 ? 50 : 9 + i * (82 / (n - 1)));
+}
+function depthRank(ab){
+ ab = (ab || "").toUpperCase();
+ if(ab[0] === "G") return 0;
+ if(ab.indexOf("CD") === 0 || ab.indexOf("CB") === 0 || ab === "D" || ab === "SW") return 1;
+ if(ab.slice(-1) === "B") return 1.6;
+ if(ab.indexOf("DM") >= 0) return 2;
+ if(ab.indexOf("AM") >= 0) return 4;
+ if(ab.indexOf("M") >= 0) return 3;
+ return 5;
+}
+function placeTeam(starters, isHome, formation){
+ const byPlace = starters.slice().sort((a, b) => parseInt(a.formationPlace || 99) - parseInt(b.formationPlace || 99));
+ const gk = starters.find(p => (((p.position || {}).abbreviation) || "")[0] === "G") || byPlace[0];
+ const outs = starters.filter(p => p !== gk);
+ let sizes = String(formation || "").split(/[^0-9]+/).filter(Boolean).map(Number).filter(n => n > 0);
+ if(sizes.reduce((a, b) => a + b, 0) !== outs.length) sizes = null;
+ const lines = [];
+ if(sizes){
+  outs.sort((a, b) => (depthRank((a.position || {}).abbreviation) - depthRank((b.position || {}).abbreviation)) || (parseInt(a.formationPlace || 0) - parseInt(b.formationPlace || 0)));
+  let idx = 0;
+  sizes.forEach(sz => { lines.push(outs.slice(idx, idx + sz)); idx += sz; });
+ } else {
+  const g = {};
+  outs.forEach(p => { const k = posGroup((p.position || {}).abbreviation); (g[k] = g[k] || []).push(p); });
+  ["DEF", "DM", "MID", "AM", "FWD"].forEach(k => { if(g[k]) lines.push(g[k]); });
+ }
+ const L = lines.length, out = [];
+ const place = (p, frac, x) => {
+  if(!isHome) x = 100 - x;
+  const y = isHome ? 97 - frac * 46 : 3 + frac * 46;
+  const a = p.athlete || {};
+  out.push({x:x, y:y, num:p.jersey || a.jersey || "", name:a.shortName || a.displayName || "", pid:String(a.id || ""), p:p});
+ };
+ if(gk) place(gk, 0.05, 50);
+ lines.forEach((line, li) => {
+  const frac = L <= 1 ? 0.6 : 0.26 + li * ((0.92 - 0.26) / (L - 1));
+  const arr = line.slice().sort((a, b) => (laneKey((a.position || {}).abbreviation) - laneKey((b.position || {}).abbreviation)) || (parseInt(a.formationPlace || 0) - parseInt(b.formationPlace || 0)));
+  const xs = spreadX(arr.length);
+  arr.forEach((p, i) => place(p, frac, xs[i]));
+ });
+ return out;
 }
 function mdLineupsHtml(sum, H, A){
  const ros = (sum && sum.rosters) || [];
@@ -1880,9 +1980,33 @@ function mdLineupsHtml(sum, H, A){
  const find = tm => ros.find(r => r.team && tm && tm.team && String(r.team.id) === String(tm.team.id)) || null;
  const rh = find(H) || ros[0], ra = find(A) || ros[1];
  const form = r => (r && (r.formation || r.displayFormation)) || "";
- return '<div class="lnform"><span dir="ltr">' + esc(teamName(H)) + (form(rh) ? " · " + esc(form(rh)) : "") + "</span>" +
-  '<span dir="ltr">' + esc(teamName(A)) + (form(ra) ? " · " + esc(form(ra)) : "") + "</span></div>" +
-  '<div class="lncols"><div>' + lineupCol(rh) + "</div><div>" + lineupCol(ra) + "</div></div>";
+ const isStart = p => p && (p.starter === true || Number(p.formationPlace) > 0);
+ const hs = ((rh && rh.roster) || []).filter(isStart), as = ((ra && ra.roster) || []).filter(isStart);
+ const okPos = arr => arr.length >= 11 && arr.every(p => (p.position || {}).abbreviation);
+ const lbl = (tm, f) => '<div class="flabel"><span>' + crestHtml(tm.team) + "<b>" + esc(teamName(tm)) + "</b></span><span dir=\"ltr\">" + esc(f || "") + "</span></div>";
+ if(!okPos(hs) || !okPos(as)){   /* no positions published -> keep the readable column list */
+  return '<div class="lnform"><span dir="ltr">' + esc(teamName(H)) + (form(rh) ? " · " + esc(form(rh)) : "") + "</span>" +
+   '<span dir="ltr">' + esc(teamName(A)) + (form(ra) ? " · " + esc(form(ra)) : "") + "</span></div>" +
+   '<div class="lncols"><div>' + lineupCol(rh) + "</div><div>" + lineupCol(ra) + "</div></div>";
+ }
+ const RB = (_mdEid && _ratings[_mdEid] && _ratings[_mdEid].ready) ? _ratings[_mdEid].byId : null;
+ const chips = (starters, isHome, colour, formation) => placeTeam(starters, isHome, formation).map(pl => {
+  const rt = RB && pl.pid && RB[pl.pid];
+  const badge = rt ? '<span class="prate ' + rateCls(rt.rating) + '" dir="ltr">' + rt.rating.toFixed(1) + "</span>" : "";
+  const ic = playerIcons(pl.p);
+  return '<span class="pchip" style="left:' + pl.x.toFixed(1) + "%;top:" + pl.y.toFixed(1) + '%">' + badge +
+   '<span class="pnum" style="background:' + colour + '" dir="ltr">' + esc(String(pl.num)) + "</span>" +
+   '<span class="pname">' + esc(pl.name) + (ic ? ' <span class="pic">' + ic + "</span>" : "") + "</span></span>";
+ }).join("");
+ const svg = '<svg viewBox="0 0 100 150" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="0.6">' +
+  '<rect x="3" y="3" width="94" height="144"/><line x1="3" y1="75" x2="97" y2="75"/>' +
+  '<circle cx="50" cy="75" r="11"/><circle cx="50" cy="75" r="1" fill="#fff" stroke="none"/>' +
+  '<rect x="28" y="3" width="44" height="20"/><rect x="40" y="3" width="20" height="8"/>' +
+  '<rect x="28" y="127" width="44" height="20"/><rect x="40" y="139" width="20" height="8"/></g></svg>';
+ return lbl(ra || {}, form(ra)) +
+  '<div class="pitch">' + svg + chips(hs, true, "var(--acc)", form(rh)) + chips(as, false, "#1577c4", form(ra)) + "</div>" +
+  lbl(rh || {}, form(rh)) +
+  '<div class="lncols"><div>' + lineupCol(rh, true) + "</div><div>" + lineupCol(ra, true) + "</div></div>";
 }
 const MD_STAT_ROWS = [
  {n:"possessionPct", k:"stPossession", pct:true},
@@ -1916,7 +2040,26 @@ function mdStatsHtml(sum, H, A){
   h += '<div class="stline"><div class="sttop"><b dir="ltr">' + esc(a + (row.pct ? "%" : "")) + '</b><span class="stlab">' + esc(t(row.k)) + '</span><b dir="ltr">' + esc(b + (row.pct ? "%" : "")) + "</b></div>" +
    '<div class="stbar"><i class="sh" style="width:' + pa + '%"></i><i class="sa" style="width:' + (100 - pa) + '%"></i></div></div>';
  }
- return h || '<div class="mnoev">' + esc(t("mdNoStats")) + "</div>";
+ if(!h) return '<div class="mnoev">' + esc(t("mdNoStats")) + "</div>";
+ return '<div class="flabel"><span>' + crestHtml(H.team) + "<b>" + esc(teamName(H)) + "</b></span>" +
+  "<span><b>" + esc(teamName(A)) + "</b>" + crestHtml(A.team) + "</span></div>" +
+  '<div class="stwrap">' + h + "</div>";
+}
+/* goal scorers listed under each club in the match header (WC-app behaviour) */
+function scorerListHtml(e, side){
+ const comp = e.competitions && e.competitions[0] || {};
+ const dets = (comp.details || []).filter(d => d && d.scoringPlay && d.team && side.team && String(d.team.id) === String(side.team.id));
+ if(!dets.length) return "";
+ const by = {};
+ for(const d of dets){
+  const who = (d.athletesInvolved && d.athletesInvolved[0] && (d.athletesInvolved[0].shortName || d.athletesInvolved[0].displayName)) || "";
+  if(!who) continue;
+  const min = (d.clock && d.clock.displayValue) || "";
+  const og = d.ownGoal ? " (OG)" : "";
+  (by[who + og] = by[who + og] || []).push(min);
+ }
+ const rows = Object.keys(by).map(n => '<span class="scln">⚽ ' + esc(n) + ' <span dir="ltr">' + esc(by[n].filter(Boolean).join(", ")) + "</span></span>");
+ return rows.length ? '<span class="sclist">' + rows.join("") + "</span>" : "";
 }
 function mdEventsHtml(e, H, A){
  const comp = e.competitions && e.competitions[0] || {};
@@ -2144,9 +2287,9 @@ function openMatch(eid){
  $("mbox").innerHTML =
   '<button type="button" class="mx" onclick="closeModal()">✕</button>' +
   '<div class="mvs">' +
-   '<span class="mvt">' + crestHtml(H.team) + "<i>" + esc(teamName(H)) + "</i></span>" +
+   '<span class="mvt">' + crestHtml(H.team) + "<i>" + esc(teamName(H)) + "</i>" + scorerListHtml(e, H) + "</span>" +
    scoreLine +
-   '<span class="mvt">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span>" +
+   '<span class="mvt">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i>" + scorerListHtml(e, A) + "</span>" +
   "</div>" +
   '<div class="mmeta">' + meta + "</div>" +
   (hasDetail
@@ -2163,7 +2306,7 @@ function closeModal(){
  $("modal").classList.add("hide");
 }
 $("modal").addEventListener("click", function(ev){ if(ev.target === this) closeModal(); });
-document.addEventListener("keydown", function(ev){ if(ev.key === "Escape"){ closeModal(); closeSettings(); } });
+document.addEventListener("keydown", function(ev){ if(ev.key === "Escape"){ closeModal(); } });
 
 /* ============ predictions: textdb storage (namespaced goalak_*, per-user pred keys) ============ */
 const TDB_READ = "https://textdb.online/";
@@ -2382,10 +2525,14 @@ function showMain(v){
  $("bnPred").classList.toggle("on", v === "pred");
  $("bnFant").classList.toggle("on", v === "fant");
  $("bnChat").classList.toggle("on", v === "chat");
+ $("bnSet").classList.toggle("on", v === "set");
  $("rail").classList.toggle("hide", v !== "scores");
  $("predPane").classList.toggle("hide", v !== "pred");
  $("fantPane").classList.toggle("hide", v !== "fant");
  $("chatPane").classList.toggle("hide", v !== "chat");
+ $("setSheet").classList.toggle("hide", v !== "set");
+ $("infobar") && $("infobar").classList.toggle("hide", v !== "scores");
+ if(v === "set") refreshSettingsUI();
  if(v === "scores"){
   if(view === "lg") $("lg").classList.remove("hide"); else $("home").classList.remove("hide");
  } else {

@@ -1,5 +1,6 @@
 /* Goallak service worker
    CACHE changelog (bump on EVERY deploy, newest first):
+   goalak-v26  2026-08-15  v3.2 owner pass: (1) bottom nav rebuilt around a big raised centre orb for MATCHES - Predictions + Fantasy on one side, Chat + Settings on the other, and Settings is now a full page instead of a dropdown; (2) tapping a date shows a spinner while that day is still fetching (it used to flash "no matches / retry" before the data landed); (3) Line-ups now render the REAL pitch from the WC app (formation string -> depth lines -> football-sensible lanes, per-player rating badges and goal/card icons on the shirt, subs listed underneath), goal scorers are listed under each club in the match header, and the stats tab is a proper aligned card with fixed side columns.
    goalak-v25  2026-08-15  v3.1: owner call - drop all data-source name-dropping from the UI. Footer is just "تطبيق غير رسمي", and the TV row shows the channel alone with no "Source: FilGoal/Yallakora" link. Sourcing still happens exactly as before behind the scenes.
    goalak-v24  2026-08-15  v3.0: STAR OF THE MATCH + player ratings, ported from the WC app's engine and re-tuned for club data (club feeds have no xG/xA/duels and sparse tackles, so weight moved to goals, assists, key passes, defensiveInterventions, save% and clean sheets; keeper save-volume now has diminishing returns and keepers take a share of a defeat - a keeper with 11 saves in a 4-1 loss no longer outranks a brace). Ratings show per player in Line-ups; runners-up listed, and a near-tie is labelled instead of faking certainty. Cached per match in localStorage. Verified: GAL 4-1 COR -> Osimhen 9.7; DUN 2-0 ABE -> Bevan 8.6 (goal + assist).
    goalak-v23  2026-08-15  v2.9: tapping a played or in-play match now opens a tabbed detail sheet - Summary (goal/card timeline with assists), Line-ups (both formations, starting XI + used subs with jersey, position, goals/assists/cards/sub minute) and Stats (possession, shots, on target, corners, saves, fouls, offsides, passes, cards as comparison bars). Data from the ESPN match summary feed, cached per match, graceful when line-ups are not published yet.
@@ -26,7 +27,7 @@
    goalak-v2   2026-08-14  QA pass: WCup navy palette; precise shell matching vs SW scope; non-ok responses fall back to cached shell; redirected responses re-wrapped before use/caching; cache writes tied to event lifetime.
    goalak-v1   2026-08-14  v1.0 initial build: 7 leagues, all-leagues day view, league pages (matches / table / stats), AR/EN RTL.
 */
-const CACHE = "goalak-v25";
+const CACHE = "goalak-v26";
 const SHELL = ["./", "index.html", "manifest.json", "icon-192.png", "icon-512.png", "icon-180.png", "favicon.svg", "logo-head.svg", "logo-mark-pos.svg", "logo-mark-rev.svg", "badge.png"];
 /* Third-party hosts are never intercepted (live data + shared state must ride the network). */
 const BYPASS = /espn\.com|espncdn\.com|googleapis\.com|gstatic\.com|flagcdn\.com|textdb\.online|workers\.dev/;
