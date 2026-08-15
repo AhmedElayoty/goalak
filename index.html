@@ -477,7 +477,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <div class="shrow"><span class="shlab" id="shClock">نظام الوقت</span><div class="seg" role="radiogroup" aria-labelledby="shClock"><button type="button" id="h12b" class="on" onclick="setHour12(true)">AM·PM</button><button type="button" id="h24b" onclick="setHour12(false)">24H</button></div></div>
   <div class="shrow"><span class="shlab" id="shLang">اللغة</span><div class="seg" role="radiogroup" aria-labelledby="shLang"><button type="button" id="lgEn" onclick="setLang('en')">EN</button><button type="button" id="lgAr" class="on" onclick="setLang('ar')">عربي</button></div></div>
   <div class="shrow"><span class="shlab" id="shTheme">🌓 المظهر</span><div class="seg" role="radiogroup" aria-labelledby="shTheme"><button type="button" id="thD" class="on" onclick="setTheme('dark')">داكن</button><button type="button" id="thL" onclick="setTheme('light')">فاتح</button></div></div>
- <div class="shver" id="shVer">جولك · v2.7 · الجول جولك</div>
+ <div class="shver" id="shVer">جولك · v2.8 · الجول جولك</div>
  </div>
 
  <nav class="rail" id="rail" aria-label="Leagues"></nav>
@@ -527,7 +527,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN وFilGoal</span> · <span id="appVer">v2.7</span></footer>
+ <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN وFilGoal وYallakora</span> · <span id="appVer">v2.8</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -580,7 +580,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <script>
 "use strict";
 /* ============ GOALLAK · الجول جولك ============ */
-const APP_VERSION = "2.7";
+const APP_VERSION = "2.8";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -734,7 +734,7 @@ const STR = {
  brand:["جولك","GOALLAK"],
  fantasyBrand:["فانتازي جولك","GOALLAK FANTASY"],
  motto:["الجول جولك","El Goal Goallak"],
- footNote:["تطبيق غير رسمي · البيانات من ESPN وFilGoal","Unofficial fan app · Data: ESPN & FilGoal"],
+ footNote:["تطبيق غير رسمي · البيانات من ESPN وFilGoal وYallakora","Unofficial fan app · Data: ESPN, FilGoal & Yallakora"],
  loading:["جارٍ التحميل…","Loading…"],
  all:["الكل","All"],
  live:["مباشر","LIVE"],
@@ -824,7 +824,7 @@ const STR = {
  lbEmpty:["لا يوجد لاعبون بعد · كن أول من يسجل!","No players yet · be the first!"],
  exactLabel:["نتائج مضبوطة:","Exact:"],
  scoringRule:["النتيجة المضبوطة 3 نقاط · الاتجاه الصحيح نقطة واحدة · توقع واحد لكل مباراة · القفل قبل البداية بنصف ساعة","Exact score 3 pts · correct outcome 1 pt · one prediction per match · locks 30 min before kickoff"],
- noUpcoming:["لا توجد مباريات متاحة للتوقع حاليًا","No matches open for predictions right now"],
+ noUpcoming:["تبدأ توقعات دوري أبطال أوروبا بعد انتهاء التصفيات وظهور مباريات مرحلة الدوري","Champions League predictions will begin after the UCL qualifiers finish and the league-phase fixtures appear"],
  alertsLab:["🔔 التنبيهات","🔔 Match alerts"],
  pushLeagues:["بطولات التنبيهات:","Alert leagues:"],
  pushDenied:["التنبيهات محظورة من إعدادات المتصفح","Notifications are blocked in the browser settings"],
@@ -1318,7 +1318,8 @@ function broadcastFor(e, lg){
  }
  if(best && bestScore >= 9) return {
   channel:String(best.channel || "").slice(0, 120), exact:true,
-  source:"FilGoal", sourceUrl:safeTvUrl(pack.sourceUrl), sourceMatchId:best.sourceMatchId
+  source:String(best.source || pack.source || "Broadcast schedule").slice(0, 60),
+  sourceUrl:safeTvUrl(best.sourceUrl || pack.sourceUrl), sourceMatchId:best.sourceMatchId
  };
  const right = pack.rights && pack.rights[lg.id];
  if(right && right.broadcaster) return {
