@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Goalak">
-  <title>Goalak</title>
-  <!-- Goalak header mark : official brand-package micro geometry, transparent bg,
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Goallak">
+  <title>Goallak</title>
+  <!-- Goallak header mark : official brand-package micro geometry, transparent bg,
        reversed (warm-white) colorway for dark navy header, legible at 40px -->
   <defs>
     <clipPath id="ghnet"><path d="M106 76C74 76 56 96 56 128C56 160 75 180 108 180H181V76ZM122 113H198V143H122Z" fill-rule="evenodd" clip-rule="evenodd"/></clipPath>

@@ -3,8 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Goalak · الجول جولك</title>
-<meta name="description" content="Goalak · الجول جولك · live scores, fixtures, tables and stats for the top football leagues">
+<title>Goallak · الجول جولك</title>
+<meta name="description" content="Goallak · الجول جولك · live scores, fixtures, tables and stats for the top football leagues">
+<link rel="canonical" href="https://goallak.com/">
+<meta property="og:title" content="Goallak · الجول جولك">
+<meta property="og:description" content="Live scores, fixtures, tables and stats for the top football leagues">
+<meta property="og:url" content="https://goallak.com/">
+<meta property="og:type" content="website">
 <meta name="theme-color" content="#0a1230">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -12,7 +17,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Goalak">
+<meta name="apple-mobile-web-app-title" content="Goallak">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Alexandria:wght@600;800&display=swap" rel="stylesheet">
@@ -399,9 +404,9 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <body>
 <div id="app">
  <header class="gkhead">
-  <div class="gklogo"><img id="logoImg" src="logo-head.svg" alt="Goalak"></div>
+  <div class="gklogo"><img id="logoImg" src="logo-head.svg" alt="Goallak"></div>
   <div class="gktit">
-   <span class="gkname">GOAL<b>AK</b></span>
+   <span class="gkname">GOAL<b>LAK</b></span>
    <span class="gkmotto" id="motto">الجول جولك</span>
   </div>
   <span class="gkspacer"></span>
@@ -421,7 +426,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <div class="shrow"><span class="shlab" id="shClock">نظام الوقت</span><div class="seg" role="radiogroup" aria-labelledby="shClock"><button type="button" id="h12b" class="on" onclick="setHour12(true)">AM·PM</button><button type="button" id="h24b" onclick="setHour12(false)">24H</button></div></div>
   <div class="shrow"><span class="shlab" id="shLang">اللغة</span><div class="seg" role="radiogroup" aria-labelledby="shLang"><button type="button" id="lgEn" onclick="setLang('en')">EN</button><button type="button" id="lgAr" class="on" onclick="setLang('ar')">عربي</button></div></div>
   <div class="shrow"><span class="shlab" id="shTheme">🌓 المظهر</span><div class="seg" role="radiogroup" aria-labelledby="shTheme"><button type="button" id="thD" class="on" onclick="setTheme('dark')">داكن</button><button type="button" id="thL" onclick="setTheme('light')">فاتح</button></div></div>
-  <div class="shver">GOALAK · v1.8 · الجول جولك</div>
+  <div class="shver">GOALLAK · v1.9 · الجول جولك</div>
  </div>
 
  <nav class="rail" id="rail" aria-label="Leagues"></nav>
@@ -454,7 +459,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <section id="fantPane" class="hide">
    <div class="fantsoon">
     <div class="fbig">⭐</div>
-    <div class="fttl">GOALAK FANTASY</div>
+    <div class="fttl">GOALLAK FANTASY</div>
     <div class="fsoon" id="fantSoon">قريبًا…</div>
    </div>
   </section>
@@ -471,7 +476,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b>GOALAK</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN</span> · <span id="appVer">v1.8</span></footer>
+ <footer><b>GOALLAK</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN</span> · <span id="appVer">v1.9</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -516,7 +521,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 
 <script>
 "use strict";
-/* ============ GOALAK v1.0 · الجول جولك ============ */
+/* ============ GOALLAK · الجول جولك ============ */
 const APP_VERSION = "1.8";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
@@ -634,7 +639,7 @@ let TZ = (function(){ try{ const v = localStorage.getItem("gk_tz"); return (v &&
 let H12 = (function(){ try{ return localStorage.getItem("gk_h12") !== "0"; }catch(_){ return true; } })();
 let THEME = (function(){ try{ return localStorage.getItem("gk_theme") || "dark"; }catch(_){ return "dark"; } })();
 const STR = {
- motto:["الجول جولك","El Goal Goalak"],
+ motto:["الجول جولك","El Goal Goallak"],
  footNote:["تطبيق غير رسمي · البيانات من ESPN","Unofficial fan app · Data: ESPN"],
  loading:["جارٍ التحميل…","Loading…"],
  all:["الكل","All"],
@@ -700,7 +705,7 @@ const STR = {
  joinBtn:["سجّل الآن","Join now"],
  joinShort:["سجّل","Join"],
  signOut:["خروج","Sign out"],
- authTitle:["حسابك في جولك","Your Goalak account"],
+ authTitle:["حسابك في جولك","Your Goallak account"],
  createAcc:["إنشاء حساب","Create account"],
  login:["تسجيل الدخول","Log in"],
  username:["اسم المستخدم","Username"],
@@ -742,7 +747,7 @@ const STR = {
  noClub:["بدون فريق مفضل","No favourite club"],
  clubNext:["مباراة فريقك القادمة","Your club's next match"],
  clubSaved:["تم حفظ فريقك المفضل ⭐","Favourite club saved ⭐"],
- installBarTxt:["ثبّت جولك على جهازك — يعمل كتطبيق كامل","Install Goalak on your device — works as a full app"],
+ installBarTxt:["ثبّت جولك على جهازك — يعمل كتطبيق كامل","Install Goallak on your device — works as a full app"],
  installBtn:["تثبيت","Install"],
  installHow:["للتثبيت: افتح قائمة المتصفح (⋮ أو زر المشاركة) ثم اختر \"تثبيت التطبيق\" أو \"إضافة إلى الشاشة الرئيسية\"","To install: open the browser menu (⋮ or Share) and choose 'Install app' or 'Add to Home Screen'"],
  chatNav:["دردشة","Chat"],

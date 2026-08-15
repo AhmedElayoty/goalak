@@ -1,5 +1,6 @@
-/* Goalak service worker
+/* Goallak service worker
    CACHE changelog (bump on EVERY deploy, newest first):
+   goalak-v13  2026-08-15  v1.9: public rebrand from Goalak to Goallak and custom-domain cutover to goallak.com; technical goalak_* namespaces retained for continuity.
    goalak-v12  2026-08-15  v1.8: chat is members-only (signed-out users see a sign-in wall, no room reads, badge hidden); stats hero tiles overlap fix (owner screenshot: big number over the team name - text now reserves the number's corner and ellipses).
    goalak-v11  2026-08-15  v1.7: permanent "🏆 توقعات دوري أبطال أوروبا" banner at the top of the predictions tab (owner: the tab must say it is UCL).
    goalak-v10  2026-08-15  v1.6 owner design pass: 3D bottom nav (gradient bar, gold hairline, raised glowing orb on the active tab, custom SVG icons - fantasy star replaced with an FPL-style jersey); leaderboard podium (top-3 with crown + gold/silver/bronze avatar rings); "Predict now" hero card with the live count of open UCL matches.
@@ -13,7 +14,7 @@
    goalak-v2   2026-08-14  QA pass: WCup navy palette; precise shell matching vs SW scope; non-ok responses fall back to cached shell; redirected responses re-wrapped before use/caching; cache writes tied to event lifetime.
    goalak-v1   2026-08-14  v1.0 initial build: 7 leagues, all-leagues day view, league pages (matches / table / stats), AR/EN RTL.
 */
-const CACHE = "goalak-v12";
+const CACHE = "goalak-v13";
 const SHELL = ["./", "index.html", "manifest.json", "icon-192.png", "icon-512.png", "icon-180.png", "favicon.svg", "logo-head.svg", "logo-mark-pos.svg", "logo-mark-rev.svg", "badge.png"];
 /* Third-party hosts are never intercepted (live data + shared state must ride the network). */
 const BYPASS = /espn\.com|espncdn\.com|googleapis\.com|gstatic\.com|flagcdn\.com|textdb\.online/;
@@ -50,7 +51,7 @@ async function unredirect(r) {
 self.addEventListener("push", e => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; }
-  catch (_) { try { d = { title: "Goalak", body: e.data.text() }; } catch (__) { d = {}; } }
+  catch (_) { try { d = { title: "Goallak", body: e.data.text() }; } catch (__) { d = {}; } }
   const opts = {
     body: d.body || "",
     icon: d.icon || "./icon-192.png",
@@ -61,7 +62,7 @@ self.addEventListener("push", e => {
     data: { url: d.url || "./" },
     vibrate: d.silent ? undefined : [80, 40, 80]
   };
-  e.waitUntil(self.registration.showNotification(d.title || "Goalak", opts));
+  e.waitUntil(self.registration.showNotification(d.title || "Goallak", opts));
 });
 self.addEventListener("notificationclick", e => {
   e.notification.close();

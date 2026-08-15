@@ -1,7 +1,7 @@
 {
- "name": "Goalak · الجول جولك",
- "short_name": "Goalak",
- "description": "Goalak: live scores, fixtures, tables and stats for the top football leagues. الجول جولك",
+ "name": "Goallak · الجول جولك",
+ "short_name": "Goallak",
+ "description": "Goallak: live scores, fixtures, tables and stats for the top football leagues. الجول جولك",
  "start_url": ".",
  "scope": ".",
  "display": "standalone",
