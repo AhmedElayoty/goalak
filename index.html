@@ -242,6 +242,23 @@ html[data-theme="light"] .ico-sun{display:none}
 .mdtab{flex:1;padding:8px 0;border-radius:10px;background:var(--card2);border:1px solid var(--line);font-size:12.5px;font-weight:800;color:var(--dim)}
 .mdtab.on{background:var(--accdark);border-color:var(--acc);color:#fff}
 .mdload{text-align:center;padding:26px 0;color:var(--dim2);font-size:13px}
+.motm{display:flex;align-items:center;gap:10px;width:100%;background:linear-gradient(150deg,#3a2a07,#241a06);border:1px solid var(--gold);border-radius:12px;padding:9px 13px;margin:10px 0 4px;text-align:start}
+.motm.loading{opacity:.85}
+.motm .mic{font-size:20px;flex:0 0 auto}
+.motm .mnm{flex:1;min-width:0}
+.motm .mnm b{display:block;font-size:14.5px;font-weight:900;color:#ffe9b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.motm .msb{display:block;font-size:11px;color:#c9a44a;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.motm .mrt{flex:0 0 auto;font-size:15px;font-weight:900;color:#241a06;background:linear-gradient(160deg,#ffd86b,#e6b03a);padding:1px 8px;border-radius:7px}
+.motm .mtag{flex:0 0 auto;font-size:8.5px;letter-spacing:1px;color:#c9a44a;line-height:1.2;font-weight:800;text-align:end}
+.motmtop{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:2px 2px 8px;font-size:11px;color:var(--dim2);font-weight:700}
+.motmtop .mtclose{color:var(--gold)}
+.motmtop .mtchip{background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:2px 8px;color:var(--dim)}
+.motmtop .mtchip b{color:var(--gold)}
+.rchip{flex:0 0 auto;font-size:10.5px;font-weight:900;border-radius:6px;padding:1px 5px;color:#0d1533}
+.rchip.rhi{background:#43d18a}.rchip.rmd{background:#9ad06a}.rchip.rok{background:#e0c05a}.rchip.rlo{background:#d98a7a}
+html[data-theme="light"] .motm{background:linear-gradient(150deg,#fff3d6,#ffe9b8);border-color:#c79a1e}
+html[data-theme="light"] .motm .mnm b{color:#4a3708}
+html[data-theme="light"] .motm .msb,html[data-theme="light"] .motm .mtag{color:#7a5d00}
 .lnform{display:flex;justify-content:space-between;gap:8px;padding:10px 2px 8px;font-size:12px;font-weight:800;color:var(--gold)}
 .lnform span{max-width:48%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lncols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -550,7 +567,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN وFilGoal وYallakora</span> · <span id="appVer">v2.9</span></footer>
+ <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN وFilGoal وYallakora</span> · <span id="appVer">v3.0</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -603,7 +620,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <script>
 "use strict";
 /* ============ GOALLAK · الجول جولك ============ */
-const APP_VERSION = "2.9";
+const APP_VERSION = "3.0";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -916,6 +933,19 @@ const STR = {
  stPassAcc:["دقة التمرير %","Pass accuracy %"],
  stYellow:["البطاقات الصفراء","Yellow cards"],
  stRed:["البطاقات الحمراء","Red cards"],
+ motmTag:["نجم المباراة · اختيار جولك","STAR OF THE MATCH"],
+ motmAnalyzing:["جارٍ تحليل أداء اللاعبين…","Analysing player performances…"],
+ motmRetry:["تعذر التحليل · اضغط للمحاولة مرة أخرى","Analysis failed · tap to retry"],
+ motmTop:["الأقرب:","Runners-up:"],
+ motmClose:["منافسة قريبة جدًا:","Very close call:"],
+ motmGoal:["هدف","goal"],
+ motmGoals:["أهداف","goals"],
+ motmAssist:["صناعة","assist"],
+ motmAssists:["صناعات","assists"],
+ motmSaves:["تصديات","saves"],
+ motmOnTarget:["على المرمى","on target"],
+ motmCleanSheet:["شباك نظيفة","clean sheet"],
+ motmTackles:["تدخلات","tackles"],
 };
 function t(k){ const e = STR[k]; return e ? e[LANG === "ar" ? 0 : 1] : k; }
 function lgName(lg){ return LANG === "ar" ? lg.ar : lg.en; }
@@ -1827,14 +1857,18 @@ function lineupCol(r){
  const isStart = p => p && (p.starter === true || Number(p.formationPlace) > 0);
  const starters = list.filter(isStart).slice().sort((x, y) => (Number(x.formationPlace) || 99) - (Number(y.formationPlace) || 99));
  const bench = list.filter(p => !isStart(p) && (p.subbedIn || pstat(p, "appearances") > 0 || pstat(p, "subIns") > 0));
+ const rt = (_mdEid && _ratings[_mdEid] && _ratings[_mdEid].ready) ? _ratings[_mdEid].byId : null;
  const row = p => {
   const a = p.athlete || {};
   const min = (p.subbedIn || p.subbedOut) ? subMinute(p) : "";
+  const rr = rt && a.id ? rt[String(a.id)] : null;
   return '<div class="lnrow"><span class="lnnum" dir="ltr">' + esc(p.jersey || a.jersey || "") + "</span>" +
    '<span class="lnname">' + esc(a.displayName || "?") + "</span>" +
    (min ? '<span class="lnpos" dir="ltr">' + esc(min) + "</span>" : "") +
    '<span class="lnpos">' + esc((p.position && (p.position.abbreviation || p.position.name)) || "") + "</span>" +
-   '<span class="lnic">' + playerIcons(p) + "</span></div>";
+   '<span class="lnic">' + playerIcons(p) + "</span>" +
+   (rr ? '<span class="rchip ' + rateCls(rr.rating) + '" dir="ltr">' + esc(rr.rating.toFixed(1)) + "</span>" : "") +
+   "</div>";
  };
  let h = '<div class="lnhead">' + esc(t("mdStarters")) + "</div>" + starters.map(row).join("");
  if(bench.length) h += '<div class="lnhead">' + esc(t("mdSubs")) + "</div>" + bench.map(row).join("");
@@ -1902,6 +1936,152 @@ function mdEventsHtml(e, H, A){
  }
  return evh ? '<div class="dhead">' + esc(t("matchEvents")) + "</div>" + evh : '<div class="mnoev">' + esc(t("noEvents")) + "</div>";
 }
+/* ===== PLAYER RATINGS + MOTM · ported from the WC app (computed from the ESPN core stat feed,
+   keyless + CORS-open). Validated there vs FotMob at ~70% exact MOTM / ~86% top-3. Always
+   labelled "اختيار جولك / by rating" — it is our model, never presented as an official award. ===== */
+const RATE_CORE = "https://sports.core.api.espn.com/v2/sports/soccer/leagues/";
+let _ratings = {};   // eventId -> {ready|loading|failed, byId:{pid:{rating,c,m,name,pos,team,mins}}, motm}
+function rateCls(r){ return r >= 8 ? "rhi" : r >= 7 ? "rmd" : r >= 6 ? "rok" : "rlo"; }
+function motmCls(pos, gk){
+ if(gk) return "GK";
+ const x = (pos || "").toUpperCase();
+ if(/ST|CF|LW|RW|^W|FW|SS|^F/.test(x)) return "FWD";
+ if(/DM|CM|AM|RM|LM|MF|^M/.test(x)) return "MID";
+ if(/CD|CB|LB|RB|WB|^D/.test(x)) return "DEF";
+ return "MID";
+}
+/* Club-league tuned: verified against the real ESPN club vocabulary. xG/xA/duels/touches-in-box are
+   NOT published for club matches (they were for the World Cup), and tackles are sparsely recorded,
+   so the weight moves to what IS reliably present: goals, assists, key passes (shotAssists),
+   defensiveInterventions, saves, clean sheets, passing volume/accuracy. Absent fields fall back to 0. */
+function motmRate(m, c){
+ const min = m.minutes || 0; if(min <= 0) return null;
+ const g = m.totalGoals || 0, a = m.goalAssists || 0, gd = m.goalDifference || 0;
+ const di = m.defensiveInterventions || 0, tk = m.effectiveTackles || 0, itc = m.interceptions || 0;
+ let r = 6.0;
+ r += g * 1.75 + a * 0.9 + (m.secondAssists || 0) * 0.3 + (m.shotAssists || 0) * 0.12 + (m.gameWinningGoals || 0) * 0.35
+    + (m.bigChanceCreated || 0) * 0.25 + (m.expectedGoals || 0) * 0.3 + (m.expectedAssists || 0) * 0.4
+    - (m.bigChanceMissed || 0) * 0.2 - (m.penaltyKicksMissed || 0) * 0.6;
+ r -= (m.yellowCards || 0) * 0.25 + (m.redCards || 0) * 1.5 + (m.ownGoals || 0) * 1.3 + (m.foulsCommitted || 0) * 0.03;
+ r += Math.min(0.15, (m.foulsSuffered || 0) * 0.03);
+ /* GK: save VOLUME has diminishing returns (a keeper busy in a heavy defeat is not the star) —
+    save % and clean sheets carry the weight, and conceding costs more than in the WC build. */
+ if(c === "GK"){ const conc = m.goalsConceded || 0, sv = m.saves || 0, svp = sv / Math.max(1, sv + conc); r += Math.min(2.0, sv * 0.4) + Math.max(0, m.goalsPrevented || 0) * 1.3 + (m.penaltyKicksSaved || 0) * 1.3 + (m.cleanSheet ? 1.2 : 0) + (svp - 0.65) * 1.8 + (m.crossesCaught || 0) * 0.08 + (m.punches || 0) * 0.05 + (m.smothers || 0) * 0.1 - conc * 0.35; }
+ else if(c === "DEF"){ r += (m.cleanSheet ? 0.9 : 0) + di * 0.10 + tk * 0.10 + itc * 0.10 + (m.effectiveClearance || 0) * 0.06 + (m.blockedShots || 0) * 0.2 + (m.duelsWon || 0) * 0.07 + Math.min(0.4, (m.accuratePasses || 0) * 0.003); if((m.totalPasses || 0) >= 25) r += ((m.passPct || 0) - 0.82) * 0.8; r -= (m.goalsConceded || 0) * 0.10; }
+ else if(c === "MID"){ r += Math.min(0.5, (m.accuratePasses || 0) * 0.004) + (m.accurateThroughBalls || 0) * 0.12 + (m.accurateCrosses || 0) * 0.05 + (m.successfulFinalThirdPasses || 0) * 0.02 + (m.progressiveCarries || 0) * 0.03 + (m.duelsWon || 0) * 0.05 + di * 0.06 + tk * 0.06 + itc * 0.05 + (m.touchesInOppBox || 0) * 0.04 + (m.shotsOnTarget || 0) * 0.1; if((m.totalPasses || 0) >= 30) r += ((m.passPct || 0) - 0.80) * 0.8; }
+ else { r += (m.shotsOnTarget || 0) * 0.16 + (m.totalShots || 0) * 0.03 + (m.touchesInOppBox || 0) * 0.05 + (m.duelsWon || 0) * 0.04 + (m.accurateCrosses || 0) * 0.05 + (m.progressiveCarries || 0) * 0.025 + Math.min(0.2, (m.accuratePasses || 0) * 0.003); }
+ if(gd > 0) r += 0.4;
+ else if(gd < 0){ const f = c === "GK" ? 0.25 : c === "DEF" ? 0.5 : 1; if(f){ r += (-0.8 + Math.max(-0.8, gd * 0.2)) * f; r = Math.min(r, 7.7); } }   /* keepers now take a mild share of a defeat too */
+ if(min < 30 && g === 0 && a === 0) r = 6.0 + (r - 6.0) * 0.5;
+ r = 5.9 + (r - 6.0) * 0.8;
+ return Math.round(Math.min(9.7, Math.max(4.5, r)) * 10) / 10;
+}
+const RT_KEEP = ["minutes","totalGoals","goalAssists","totalShots","shotsOnTarget","expectedGoals","expectedAssists","bigChanceCreated","touches","totalPasses","passPct","successfulFinalThirdPasses","duelsWon","effectiveTackles","interceptions","effectiveClearance","saves","goalsPrevented","goalsConceded","cleanSheet","penaltyKicksSaved","foulsCommitted","yellowCards","redCards"];
+function rtTrimM(m){ const o = {}; for(const k of RT_KEEP) if(m && m[k] != null) o[k] = m[k]; return o; }
+function rtSave(id, byId, motm){
+ const b = {};
+ for(const pid in byId){ const p = byId[pid]; b[pid] = {rating:p.rating, c:p.c, name:p.name, pos:p.pos, team:p.team, m:rtTrimM(p.m)}; }
+ const payload = {byId:b, motm: motm ? {pid:motm.pid, name:motm.name, team:motm.team, rating:motm.rating, c:motm.c, m:rtTrimM(motm.m)} : null};
+ try{ localStorage.setItem("gk_rt1_" + id, JSON.stringify(payload)); }
+ catch(_){ try{ Object.keys(localStorage).filter(k => k.indexOf("gk_rt1_") === 0).forEach(k => localStorage.removeItem(k)); localStorage.setItem("gk_rt1_" + id, JSON.stringify(payload)); }catch(__){} }
+}
+async function loadRatings(eid){
+ const prev = _ratings[eid];
+ if(prev && (prev.ready || prev.loading)) return prev;
+ try{
+  const c = localStorage.getItem("gk_rt1_" + eid);
+  if(c){ const d = JSON.parse(c); if(d && d.byId && Object.keys(d.byId).length){
+   let m = (d.motm && d.motm.pid) ? d.motm : null;
+   if(!m) Object.keys(d.byId).forEach(pid => { const x = d.byId[pid]; if(x.name && (!m || x.rating > m.rating)) m = {pid:pid, name:x.name, team:x.team, rating:x.rating, m:x.m, c:x.c}; });
+   return (_ratings[eid] = {ready:true, byId:d.byId, motm:m});
+  } }
+ }catch(_){}
+ const e = EV_INDEX[eid];
+ if(!e || evState(e) !== "post") return null;          /* full-time only */
+ const slug = slugForEvent(e);
+ if(!slug) return null;
+ _ratings[eid] = {loading:true, byId:{}, failed:(prev && prev.failed) || 0};
+ const withTO = (p, ms) => { let _t; const to = new Promise((_, rej) => { _t = setTimeout(() => rej(new Error("timeout")), ms); }); return Promise.race([p, to]).finally(() => clearTimeout(_t)); };
+ const gj = u => { const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 7000); return fetch(String(u).replace(/^http:/, "https:"), {signal:ctl.signal}).then(r => r.json()).finally(() => clearTimeout(to)); };
+ let byId = {}, motm = null, completed = false;
+ const run = async () => {
+  /* names + positions come from the summary feed: the core roster's position is a bare $ref,
+     so without this defenders get mis-classified as midfielders and rated on the wrong things */
+  const sm = {};
+  const sum = (sumCache[eid] && sumCache[eid].json) || await ensureSummary(eid);
+  if(sum) (sum.rosters || []).forEach(r => {
+   const tn = (r.team && (r.team.displayName || r.team.shortDisplayName)) || "";
+   (r.roster || []).forEach(p => { const a = p.athlete || {}; sm[String(a.id)] = {name:a.displayName || a.shortName || "", pos:(p.position && (p.position.abbreviation || p.position.name)) || "", team:tn}; });
+  });
+  const cev = await gj(RATE_CORE + slug + "/events/" + eid);
+  const comp = await gj(cev.competitions[0].$ref);
+  const refs = [];
+  for(const c of (comp.competitors || [])){
+   try{ const ros = await gj(c.roster.$ref);
+    (ros.entries || []).forEach(en => { if(en.statistics && en.statistics.$ref) refs.push({pid:String(en.playerId), ref:en.statistics.$ref}); });
+   }catch(_){}
+  }
+  await Promise.all(refs.map(async rf => {
+   try{
+    const st = await gj(rf.ref);
+    const cats = (st.splits && st.splits.categories) || [];
+    const m = {};
+    cats.forEach(c => (c.stats || []).forEach(s => m[s.name] = s.value));
+    if((m.minutes || 0) <= 0) return;
+    const meta = sm[rf.pid] || {}, pos = meta.pos || "";
+    const gk = /^g|keeper/i.test(pos) || (m.saves > 0 || m.punches > 0 || m.crossesCaught > 0);
+    const cl = motmCls(pos, gk), rt = motmRate(m, cl);
+    if(rt == null) return;
+    byId[rf.pid] = {rating:rt, c:cl, m:m, team:meta.team || "", pos:pos, name:meta.name || "", mins:m.minutes || 0};
+   }catch(_){}
+  }));
+  Object.keys(byId).forEach(pid => { const x = byId[pid]; if(x.name && (!motm || x.rating > motm.rating)) motm = {pid:pid, name:x.name, team:x.team, rating:x.rating, m:x.m, c:x.c}; });
+ };
+ try{ await withTO(run(), 15000); completed = true; }catch(_){}
+ if(completed && Object.keys(byId).length){
+  _ratings[eid] = {ready:true, byId:byId, motm:motm};
+  rtSave(eid, byId, motm);
+ } else _ratings[eid] = {failed:((prev && prev.failed) || 0) + 1};
+ if(_mdEid === eid) renderMdBody();   /* repaint the open sheet in place */
+ return _ratings[eid];
+}
+function motmStatLine(m, c){
+ const bits = [];
+ const g = m.totalGoals || 0, a = m.goalAssists || 0;
+ if(g) bits.push(g + " " + t(g === 1 ? "motmGoal" : "motmGoals"));
+ if(a) bits.push(a + " " + t(a === 1 ? "motmAssist" : "motmAssists"));
+ if(c === "GK" && (m.saves || 0)) bits.push((m.saves || 0) + " " + t("motmSaves"));
+ if(c !== "GK" && (m.shotsOnTarget || 0)) bits.push((m.shotsOnTarget || 0) + " " + t("motmOnTarget"));
+ if(m.cleanSheet && (c === "GK" || c === "DEF")) bits.push(t("motmCleanSheet"));
+ if((m.effectiveTackles || 0) >= 3) bits.push((m.effectiveTackles || 0) + " " + t("motmTackles"));
+ return bits.slice(0, 3).join(" · ");
+}
+function topRated(eid, n){
+ const r = _ratings[eid];
+ if(!r || !r.ready || !r.byId) return [];
+ return Object.keys(r.byId).map(pid => Object.assign({pid:pid}, r.byId[pid]))
+  .filter(p => p.name).sort((a, b) => b.rating - a.rating).slice(0, n);
+}
+function motmCardHtml(eid){
+ const r = _ratings[eid];
+ if(r && r.ready && r.motm){
+  const m = r.motm;
+  const top = topRated(eid, 3);
+  const tight = top.length > 1 && (top[0].rating - top[1].rating) < 0.2;   /* honest: flag a near-tie instead of pretending certainty */
+  let h = '<div class="motm"><span class="mic">⭐</span><span class="mnm"><b>' + esc(m.name) + '</b><span class="msb">' +
+   esc(m.team ? clubAr({displayName:m.team, shortDisplayName:m.team}) : "") +
+   (motmStatLine(m.m || {}, m.c) ? " · " + esc(motmStatLine(m.m || {}, m.c)) : "") +
+   '</span></span><span class="mrt ' + rateCls(m.rating) + '" dir="ltr">' + esc(m.rating.toFixed(1)) + '</span><span class="mtag">' + esc(t("motmTag")) + "</span></div>";
+  if(top.length > 1){
+   h += '<div class="motmtop">' + (tight ? '<span class="mtclose">' + esc(t("motmClose")) + "</span>" : '<span class="mtlab">' + esc(t("motmTop")) + "</span>") +
+    top.slice(1).map(p => '<span class="mtchip">' + esc(p.name) + ' <b dir="ltr">' + esc(p.rating.toFixed(1)) + "</b></span>").join("") + "</div>";
+  }
+  return h;
+ }
+ if(r && r.failed >= 3) return '<button type="button" class="motm" onclick="retryRatings(\'' + esc(eid) + '\')"><span class="mic">⭐</span><span class="mnm"><b>' + esc(t("motmRetry")) + "</b></span></button>";
+ return '<div class="motm loading"><span class="mic">⭐</span><span class="mnm"><b>' + esc(t("motmAnalyzing")) + "</b></span></div>";
+}
+function retryRatings(eid){ delete _ratings[eid]; loadRatings(eid); renderMdBody(); }
 function setMdTab(x){ _mdTab = x; renderMdBody(); }
 async function renderMdBody(){
  const eid = _mdEid;
@@ -1915,7 +2095,12 @@ async function renderMdBody(){
  const cs = comp.competitors || [];
  const H = cs.find(c => c.homeAway === "home") || cs[0] || {};
  const A = cs.find(c => c.homeAway === "away") || cs[1] || {};
- if(_mdTab === "E"){ body.innerHTML = mdEventsHtml(e, H, A); return; }
+ if(_mdTab === "E"){
+  const finished = evState(e) === "post" && !voidedKey(e);
+  body.innerHTML = (finished ? motmCardHtml(eid) : "") + mdEventsHtml(e, H, A);
+  if(finished){ const rt = _ratings[eid]; if(!rt || (!rt.ready && !rt.loading && (rt.failed || 0) < 3)) loadRatings(eid); }
+  return;
+ }
  const cached = sumCache[eid] && sumCache[eid].json;
  if(!cached) body.innerHTML = '<div class="mdload"><span class="spinner"></span>' + esc(t("loading")) + "</div>";
  const sum = cached || await ensureSummary(eid);
