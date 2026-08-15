@@ -248,6 +248,25 @@ html[data-theme="light"] .ico-sun{display:none}
 .motm{display:flex;align-items:center;gap:10px;width:100%;background:linear-gradient(150deg,#3a2a07,#241a06);border:1px solid var(--gold);border-radius:12px;padding:9px 13px;margin:10px 0 4px;text-align:start}
 .motm.loading{opacity:.85}
 .motm .mic{font-size:20px;flex:0 0 auto}
+.motm .mjer{width:42px;height:42px;object-fit:contain;flex:0 0 auto;filter:drop-shadow(0 2px 4px rgba(0,0,0,.45))}
+/* player card */
+#playerCard{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:110;display:flex;align-items:flex-end;justify-content:center}
+@media(min-width:520px){#playerCard{align-items:center}}
+.pcbox{max-height:70vh}
+.pchead{display:flex;align-items:center;gap:12px;padding:6px 0 12px}
+.pcjer{width:64px;height:64px;object-fit:contain;flex:0 0 auto;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5))}
+.pcid{flex:1;min-width:0}
+.pcid b{display:block;font-size:16px;font-weight:900}
+.pcid span{display:block;font-size:12px;color:var(--dim)}
+.pcrate{flex:0 0 auto;font-size:17px;font-weight:900;color:#0d1533;border-radius:8px;padding:3px 10px}
+.pcrate.rhi{background:#37d27f}.pcrate.rmd{background:#9fd957}.pcrate.rok{background:#e8c552}.pcrate.rlo{background:#dd8a55}
+.pcstats{border-top:1px solid var(--line)}
+.pcrow{display:flex;justify-content:space-between;align-items:center;padding:8px 2px;border-bottom:1px solid var(--line);font-size:13.5px}
+.pcrow:last-child{border-bottom:none}
+.pcrow span{color:var(--dim);font-weight:700}
+.pcrow b{font-weight:900}
+/* these two classes are declared in the pitch/line-up section above; extend them there, not here,
+   so we never repeat the .msg collision that bit the WC app twice */
 .motm .mnm{flex:1;min-width:0}
 .motm .mnm b{display:block;font-size:14.5px;font-weight:900;color:#ffe9b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .motm .msb{display:block;font-size:11px;color:#c9a44a;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -270,7 +289,7 @@ html[data-theme="light"] .motm .msb,html[data-theme="light"] .motm .mtag{color:#
 /* isolate: keeps every chip/badge z-index INSIDE the pitch so nothing can climb over the tab bar */
 .pitch{position:relative;z-index:0;isolation:isolate;width:100%;padding-bottom:150%;border-radius:14px;overflow:hidden;background:repeating-linear-gradient(0deg,#137a3f 0,#137a3f 10%,#12723b 10%,#12723b 20%)}
 .pitch svg{position:absolute;inset:0;width:100%;height:100%}
-.pchip{position:absolute;transform:translate(-50%,-50%);width:19%;text-align:center;z-index:2}
+.pchip{position:absolute;transform:translate(-50%,-50%);width:19%;text-align:center;z-index:2;background:none;border:none;padding:0;cursor:pointer}
 .pnum{width:26px;height:26px;margin:0 auto;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;color:#fff;border:1.5px solid rgba(255,255,255,.75);box-shadow:0 1px 3px rgba(0,0,0,.5)}
 .pname{display:block;font-size:8.5px;color:#fff;margin-top:2px;line-height:1.1;text-shadow:0 1px 2px rgba(0,0,0,.95);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pname .pic{font-size:7.5px;letter-spacing:-1px}
@@ -284,7 +303,7 @@ html[data-theme="light"] .motm .msb,html[data-theme="light"] .motm .mtag{color:#
 .lncols>div{min-width:0;overflow:hidden}
 @media(max-width:430px){.lncols{grid-template-columns:1fr;gap:2px}}
 .lnhead{font-size:11px;font-weight:800;color:var(--dim2);padding:8px 2px 4px;letter-spacing:.3px}
-.lnrow{display:flex;align-items:center;gap:6px;padding:4px 2px;font-size:12.5px;border-bottom:1px solid var(--line);min-width:0;overflow:hidden}
+.lnrow{display:flex;align-items:center;gap:6px;padding:4px 2px;font-size:12.5px;border-bottom:1px solid var(--line);min-width:0;overflow:hidden;cursor:pointer}
 .lnrow:last-child{border-bottom:none}
 .lnnum{flex:0 0 20px;text-align:center;font-size:10.5px;font-weight:900;color:var(--dim2)}
 .lnname{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
@@ -587,7 +606,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <div class="shrow"><span class="shlab" id="shClock">نظام الوقت</span><div class="seg" role="radiogroup" aria-labelledby="shClock"><button type="button" id="h12b" class="on" onclick="setHour12(true)">AM·PM</button><button type="button" id="h24b" onclick="setHour12(false)">24H</button></div></div>
   <div class="shrow"><span class="shlab" id="shLang">اللغة</span><div class="seg" role="radiogroup" aria-labelledby="shLang"><button type="button" id="lgEn" onclick="setLang('en')">EN</button><button type="button" id="lgAr" class="on" onclick="setLang('ar')">عربي</button></div></div>
   <div class="shrow"><span class="shlab" id="shTheme">🌓 المظهر</span><div class="seg" role="radiogroup" aria-labelledby="shTheme"><button type="button" id="thD" class="on" onclick="setTheme('dark')">داكن</button><button type="button" id="thL" onclick="setTheme('light')">فاتح</button></div></div>
- <div class="shver" id="shVer">جولك · v3.2 · الجول جولك</div>
+ <div class="shver" id="shVer">جولك · v3.9 · الجول جولك</div>
  </section>
 
  <nav class="rail" id="rail" aria-label="Leagues"></nav>
@@ -637,11 +656,15 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="appVer">v3.8</span></footer>
+ <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="appVer">v3.9</span></footer>
 </div>
 
 <div id="modal" class="hide">
  <div class="mbox" id="mbox"></div>
+</div>
+
+<div id="playerCard" class="hide">
+ <div class="mbox pcbox" id="pcBox"></div>
 </div>
 
 <div id="authModal" class="hide">
@@ -692,7 +715,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <script>
 "use strict";
 /* ============ GOALLAK · الجول جولك ============ */
-const APP_VERSION = "3.8";
+const APP_VERSION = "3.9";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
 const FORCE_RELOAD = "2026-08-15-v33";
@@ -1018,6 +1041,13 @@ const STR = {
  stSaves:["التصديات","Saves"],
  stPasses:["التمريرات","Passes"],
  stPassAcc:["دقة التمرير %","Pass accuracy %"],
+ psMin:["الدقائق","Minutes"],
+ psGoals:["الأهداف","Goals"],
+ psAssists:["صناعة الأهداف","Assists"],
+ psShots:["التسديدات","Shots"],
+ psPassOk:["تمريرات ناجحة","Accurate passes"],
+ psInt:["الاعتراضات","Interceptions"],
+ psConceded:["أهداف استقبلها","Goals conceded"],
  stYellow:["البطاقات الصفراء","Yellow cards"],
  stRed:["البطاقات الحمراء","Red cards"],
  motmTag:["نجم المباراة · اختيار جولك","STAR OF THE MATCH"],
@@ -1700,6 +1730,8 @@ function gotoLeague(id){
 }
 /* Android/installed-PWA back button: close overlays first, then leave the league page, never exit-with-overlay */
 window.addEventListener("popstate", function(){
+ const pc = $("playerCard");
+ if(pc && !pc.classList.contains("hide")){ pc.classList.add("hide"); return; }
  const modal = $("modal");
  if(!modal.classList.contains("hide")){ modal.classList.add("hide"); return; }
  const am = $("authModal");
@@ -2014,7 +2046,7 @@ function lineupCol(r, benchOnly){
   const a = p.athlete || {};
   const min = (p.subbedIn || p.subbedOut) ? subMinute(p) : "";
   const rr = rt && a.id ? rt[String(a.id)] : null;
-  return '<div class="lnrow"><span class="lnnum" dir="ltr">' + esc(p.jersey || a.jersey || "") + "</span>" +
+  return '<div class="lnrow" data-pid="' + esc(a.id || "") + '" onclick="openPlayerCard(this.dataset.pid)"><span class="lnnum" dir="ltr">' + esc(p.jersey || a.jersey || "") + "</span>" +
    '<span class="lnname">' + esc(a.displayName || "?") + "</span>" +
    (min ? '<span class="lnpos" dir="ltr">' + esc(min) + "</span>" : "") +
    '<span class="lnpos">' + esc((p.position && (p.position.abbreviation || p.position.name)) || "") + "</span>" +
@@ -2112,9 +2144,9 @@ function mdLineupsHtml(sum, H, A){
   const rt = RB && pl.pid && RB[pl.pid];
   const badge = rt ? '<span class="prate ' + rateCls(rt.rating) + '" dir="ltr">' + rt.rating.toFixed(1) + "</span>" : "";
   const ic = playerIcons(pl.p);
-  return '<span class="pchip" style="left:' + pl.x.toFixed(1) + "%;top:" + pl.y.toFixed(1) + '%">' + badge +
+  return '<button type="button" class="pchip" style="left:' + pl.x.toFixed(1) + "%;top:" + pl.y.toFixed(1) + '%" data-pid="' + esc(pl.pid) + '" onclick="openPlayerCard(this.dataset.pid)">' + badge +
    '<span class="pnum" style="background:' + colour + '" dir="ltr">' + esc(String(pl.num)) + "</span>" +
-   '<span class="pname">' + esc(pl.name) + (ic ? ' <span class="pic">' + ic + "</span>" : "") + "</span></span>";
+   '<span class="pname">' + esc(pl.name) + (ic ? ' <span class="pic">' + ic + "</span>" : "") + "</span></button>";
  }).join("");
  const svg = '<svg viewBox="0 0 100 150" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="0.6">' +
   '<rect x="3" y="3" width="94" height="144"/><line x1="3" y1="75" x2="97" y2="75"/>' +
@@ -2349,6 +2381,33 @@ async function loadRatings(eid){
  if(_mdEid === eid) renderMdBody();   /* repaint the open sheet in place */
  return _ratings[eid];
 }
+/* ESPN ships a rendered kit PNG per player per match, light + dark (verified 42/42 coverage).
+   They are 1440px / ~218KB each and CANNOT be resized server-side, so we never put 22 of them on the
+   pitch (that would be ~4.8MB per match on mobile data) — only where one image carries real weight:
+   the Star of the Match card and the on-demand player card. */
+function jerseyUrlFor(eid, pid){
+ const sum = sumCache[eid] && sumCache[eid].json;
+ if(!sum || !pid) return "";
+ for(const r of (sum.rosters || [])){
+  for(const p of (r.roster || [])){
+   const a = p.athlete || {};
+   if(String(a.id) !== String(pid)) continue;
+   const imgs = a.jerseyImages || [];
+   const want = THEME === "light" ? "default" : "dark";
+   const hit = imgs.find(x => (x.rel || []).includes(want)) || imgs[0];
+   return (hit && hit.href) || "";
+  }
+ }
+ return "";
+}
+function rosterEntryFor(eid, pid){
+ const sum = sumCache[eid] && sumCache[eid].json;
+ if(!sum) return null;
+ for(const r of (sum.rosters || [])){
+  for(const p of (r.roster || [])) if(String((p.athlete || {}).id) === String(pid)) return {p:p, team:r.team};
+ }
+ return null;
+}
 function motmStatLine(m, c){
  const bits = [];
  const g = m.totalGoals || 0, a = m.goalAssists || 0;
@@ -2372,7 +2431,11 @@ function motmCardHtml(eid){
   const m = r.motm;
   const top = topRated(eid, 3);
   const tight = top.length > 1 && (top[0].rating - top[1].rating) < 0.2;   /* honest: flag a near-tie instead of pretending certainty */
-  let h = '<div class="motm"><span class="mic">⭐</span><span class="mnm"><b>' + esc(m.name) + '</b><span class="msb">' +
+  const jer = jerseyUrlFor(eid, m.pid);
+  const lead = jer
+   ? '<img class="mjer" src="' + esc(jer) + '" alt="" decoding="async" onerror="this.replaceWith(Object.assign(document.createElement(\'span\'),{className:\'mic\',textContent:\'⭐\'}))">'
+   : '<span class="mic">⭐</span>';
+  let h = '<div class="motm">' + lead + '<span class="mnm"><b>' + esc(m.name) + '</b><span class="msb">' +
    esc(m.team ? clubAr({displayName:m.team, shortDisplayName:m.team}) : "") +
    (motmStatLine(m.m || {}, m.c) ? " · " + esc(motmStatLine(m.m || {}, m.c)) : "") +
    '</span></span><span class="mrt ' + rateCls(m.rating) + '" dir="ltr">' + esc(m.rating.toFixed(1)) + '</span><span class="mtag">' + esc(t("motmTag")) + "</span></div>";
@@ -2386,6 +2449,43 @@ function motmCardHtml(eid){
  return '<div class="motm loading"><span class="mic">⭐</span><span class="mnm"><b>' + esc(t("motmAnalyzing")) + "</b></span></div>";
 }
 function retryRatings(eid){ delete _ratings[eid]; loadRatings(eid); renderMdBody(); }
+
+/* ---- tap a player -> card with his kit, rating and match stats (FotMob/Sofascore pattern) ---- */
+const PSTAT_ROWS = [
+ {n:"minutes", k:"psMin"}, {n:"totalGoals", k:"psGoals"}, {n:"goalAssists", k:"psAssists"},
+ {n:"totalShots", k:"psShots"}, {n:"shotsOnTarget", k:"stOnTarget"}, {n:"accuratePasses", k:"psPassOk"},
+ {n:"totalPasses", k:"stPasses"}, {n:"effectiveTackles", k:"motmTackles"}, {n:"interceptions", k:"psInt"},
+ {n:"saves", k:"stSaves"}, {n:"goalsConceded", k:"psConceded"}, {n:"foulsCommitted", k:"stFouls"},
+ {n:"yellowCards", k:"stYellow"}, {n:"redCards", k:"stRed"}
+];
+function openPlayerCard(pid){
+ const eid = _mdEid;
+ if(!eid || !pid) return;
+ const rt = (_ratings[eid] && _ratings[eid].ready && _ratings[eid].byId[String(pid)]) || null;
+ const ent = rosterEntryFor(eid, pid);
+ if(!rt && !ent) return;
+ const a = (ent && ent.p && ent.p.athlete) || {};
+ const name = (rt && rt.name) || a.displayName || a.shortName || "?";
+ const team = (rt && rt.team) || (ent && ent.team && (ent.team.displayName || ent.team.shortDisplayName)) || "";
+ const pos = (rt && rt.pos) || ((ent && ent.p && ent.p.position) ? (ent.p.position.abbreviation || ent.p.position.name) : "");
+ const jer = jerseyUrlFor(eid, pid);
+ const m = (rt && rt.m) || {};
+ let rows = "";
+ for(const r of PSTAT_ROWS){
+  const v = m[r.n];
+  if(v == null || v === 0 && !/minutes|totalGoals|goalAssists/.test(r.n)) continue;
+  rows += '<div class="pcrow"><span>' + esc(t(r.k)) + '</span><b dir="ltr">' + esc(Math.round(Number(v) * 100) / 100) + "</b></div>";
+ }
+ if(m.passPct != null && (m.totalPasses || 0) > 0) rows += '<div class="pcrow"><span>' + esc(t("stPassAcc")) + '</span><b dir="ltr">' + Math.round((m.passPct || 0) * 100) + "%</b></div>";
+ $("pcBox").innerHTML =
+  '<button type="button" class="mx" onclick="closePlayerCard()">✕</button>' +
+  '<div class="pchead">' + (jer ? '<img class="pcjer" src="' + esc(jer) + '" alt="" decoding="async" onerror="this.style.display=\'none\'">' : "") +
+  '<div class="pcid"><b>' + esc(name) + "</b><span>" + esc(clubAr({displayName:team, shortDisplayName:team})) + (pos ? " · " + esc(pos) : "") + "</span></div>" +
+  (rt ? '<span class="pcrate ' + rateCls(rt.rating) + '" dir="ltr">' + rt.rating.toFixed(1) + "</span>" : "") + "</div>" +
+  (rows ? '<div class="pcstats">' + rows + "</div>" : '<div class="mnoev">' + esc(t("mdNoStats")) + "</div>");
+ $("playerCard").classList.remove("hide");
+}
+function closePlayerCard(){ $("playerCard").classList.add("hide"); }
 function setMdTab(x){ _mdTab = x; renderMdBody(); }
 async function renderMdBody(){
  const eid = _mdEid;
@@ -2481,7 +2581,8 @@ function closeModal(){
  $("modal").classList.add("hide");
 }
 $("modal").addEventListener("click", function(ev){ if(ev.target === this) closeModal(); });
-document.addEventListener("keydown", function(ev){ if(ev.key === "Escape"){ closeModal(); } });
+document.addEventListener("keydown", function(ev){ if(ev.key === "Escape"){ closePlayerCard(); closeModal(); } });
+$("playerCard").addEventListener("click", function(ev){ if(ev.target === this) closePlayerCard(); });
 
 /* ============ predictions: textdb storage (namespaced goalak_*, per-user pred keys) ============ */
 const TDB_READ = "https://textdb.online/";
