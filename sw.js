@@ -1,5 +1,6 @@
 /* Goallak service worker
    CACHE changelog (bump on EVERY deploy, newest first):
+   goalak-v18  2026-08-15  v2.4: selecting match-alert leagues no longer closes Settings after the league buttons re-render.
    goalak-v17  2026-08-15  v2.3: active live-match score refresh reduced from about 45 seconds to about 25 seconds; non-live schedules remain throttled.
    goalak-v16  2026-08-15  v2.2: MENA TV channels with verified rights fallback; mobile chat/header overlap fixes; renewable secure chat session; 1200x630 WhatsApp cover cache-bust.
    goalak-v15  2026-08-15  v2.1: Arabic UI wordmark is جولك; explicit wrong-username/wrong-password login feedback; WhatsApp/Open Graph social cover and feature description.
@@ -18,7 +19,7 @@
    goalak-v2   2026-08-14  QA pass: WCup navy palette; precise shell matching vs SW scope; non-ok responses fall back to cached shell; redirected responses re-wrapped before use/caching; cache writes tied to event lifetime.
    goalak-v1   2026-08-14  v1.0 initial build: 7 leagues, all-leagues day view, league pages (matches / table / stats), AR/EN RTL.
 */
-const CACHE = "goalak-v17";
+const CACHE = "goalak-v18";
 const SHELL = ["./", "index.html", "manifest.json", "icon-192.png", "icon-512.png", "icon-180.png", "favicon.svg", "logo-head.svg", "logo-mark-pos.svg", "logo-mark-rev.svg", "badge.png"];
 /* Third-party hosts are never intercepted (live data + shared state must ride the network). */
 const BYPASS = /espn\.com|espncdn\.com|googleapis\.com|gstatic\.com|flagcdn\.com|textdb\.online|workers\.dev/;

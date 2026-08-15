@@ -472,7 +472,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <div class="shrow"><span class="shlab" id="shClock">نظام الوقت</span><div class="seg" role="radiogroup" aria-labelledby="shClock"><button type="button" id="h12b" class="on" onclick="setHour12(true)">AM·PM</button><button type="button" id="h24b" onclick="setHour12(false)">24H</button></div></div>
   <div class="shrow"><span class="shlab" id="shLang">اللغة</span><div class="seg" role="radiogroup" aria-labelledby="shLang"><button type="button" id="lgEn" onclick="setLang('en')">EN</button><button type="button" id="lgAr" class="on" onclick="setLang('ar')">عربي</button></div></div>
   <div class="shrow"><span class="shlab" id="shTheme">🌓 المظهر</span><div class="seg" role="radiogroup" aria-labelledby="shTheme"><button type="button" id="thD" class="on" onclick="setTheme('dark')">داكن</button><button type="button" id="thL" onclick="setTheme('light')">فاتح</button></div></div>
-  <div class="shver" id="shVer">جولك · v2.3 · الجول جولك</div>
+  <div class="shver" id="shVer">جولك · v2.4 · الجول جولك</div>
  </div>
 
  <nav class="rail" id="rail" aria-label="Leagues"></nav>
@@ -522,7 +522,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN وFilGoal</span> · <span id="appVer">v2.3</span></footer>
+ <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN وFilGoal</span> · <span id="appVer">v2.4</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -575,7 +575,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <script>
 "use strict";
 /* ============ GOALLAK · الجول جولك ============ */
-const APP_VERSION = "2.3";
+const APP_VERSION = "2.4";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -971,7 +971,10 @@ function closeSettings(){ $("setSheet").classList.add("hide"); }
 document.addEventListener("click", function(ev){
  const sh = $("setSheet");
  if(sh.classList.contains("hide")) return;
- if(!sh.contains(ev.target) && !ev.target.closest("#setBtn")) closeSettings();
+ /* A control can re-render itself before this delegated click reaches document.
+    Keep the original event path so league-alert selections stay inside Settings. */
+ const path = typeof ev.composedPath === "function" ? ev.composedPath() : [];
+ if(!sh.contains(ev.target) && !path.includes(sh) && !ev.target.closest("#setBtn")) closeSettings();
 });
 function toggleTheme(){ setTheme(THEME === "dark" ? "light" : "dark"); }
 function setTheme(x){
