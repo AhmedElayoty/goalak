@@ -567,7 +567,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN وFilGoal وYallakora</span> · <span id="appVer">v3.0</span></footer>
+ <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي</span> · <span id="appVer">v3.1</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -620,7 +620,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <script>
 "use strict";
 /* ============ GOALLAK · الجول جولك ============ */
-const APP_VERSION = "3.0";
+const APP_VERSION = "3.1";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -774,7 +774,7 @@ const STR = {
  brand:["جولك","GOALLAK"],
  fantasyBrand:["فانتازي جولك","GOALLAK FANTASY"],
  motto:["الجول جولك","El Goal Goallak"],
- footNote:["تطبيق غير رسمي · البيانات من ESPN وFilGoal وYallakora","Unofficial fan app · Data: ESPN, FilGoal & Yallakora"],
+ footNote:["تطبيق غير رسمي","Unofficial fan app"],
  loading:["جارٍ التحميل…","Loading…"],
  all:["الكل","All"],
  live:["مباشر","LIVE"],
@@ -2136,7 +2136,6 @@ function openMatch(eid){
  if(tv){
   if(tv.exact){
    meta += '<br><span class="tvmeta">📺 ' + esc(t("tvChannel")) + ': <b dir="ltr">' + esc(tv.channel) + "</b></span>";
-   if(tv.sourceUrl) meta += '<a class="tvsource" href="' + esc(tv.sourceUrl) + '" target="_blank" rel="noopener noreferrer">' + esc(t("tvSource") + ": " + tv.source) + "</a>";
   } else meta += '<br><span class="tvmeta">📺 ' + esc(t("tvUnconfirmed")) + "</span>";
  }
  /* played or in-play matches get the full tabbed detail (summary / line-ups / stats) */
