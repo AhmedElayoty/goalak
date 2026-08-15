@@ -239,7 +239,9 @@ html[data-theme="light"] .ico-sun{display:none}
 #modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;display:flex;align-items:flex-end;justify-content:center}
 @media(min-width:520px){#modal{align-items:center}}
 /* ---------- match detail tabs (summary / line-ups / stats) ---------- */
-.mdtabs{display:flex;gap:6px;padding:10px 0 4px;position:sticky;top:0;background:var(--card);z-index:2}
+/* z-index 30 + opaque background: the pitch chips (z2) and rating badges (z4) used to paint
+   straight over this bar while scrolling the sheet (owner screenshot) */
+.mdtabs{display:flex;gap:6px;padding:10px 0 6px;position:sticky;top:-1px;background:var(--card);z-index:30;box-shadow:0 6px 10px -6px rgba(0,0,0,.55)}
 .mdtab{flex:1;padding:8px 0;border-radius:10px;background:var(--card2);border:1px solid var(--line);font-size:12.5px;font-weight:800;color:var(--dim)}
 .mdtab.on{background:var(--accdark);border-color:var(--acc);color:#fff}
 .mdload{text-align:center;padding:26px 0;color:var(--dim2);font-size:13px}
@@ -265,7 +267,8 @@ html[data-theme="light"] .motm .msb,html[data-theme="light"] .motm .mtag{color:#
 .flabel span{display:flex;align-items:center;gap:6px;min-width:0}
 .flabel b{color:var(--txt);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .flabel .crest,.flabel .crestfb{width:18px;height:18px}
-.pitch{position:relative;width:100%;padding-bottom:150%;border-radius:14px;overflow:hidden;background:repeating-linear-gradient(0deg,#137a3f 0,#137a3f 10%,#12723b 10%,#12723b 20%)}
+/* isolate: keeps every chip/badge z-index INSIDE the pitch so nothing can climb over the tab bar */
+.pitch{position:relative;z-index:0;isolation:isolate;width:100%;padding-bottom:150%;border-radius:14px;overflow:hidden;background:repeating-linear-gradient(0deg,#137a3f 0,#137a3f 10%,#12723b 10%,#12723b 20%)}
 .pitch svg{position:absolute;inset:0;width:100%;height:100%}
 .pchip{position:absolute;transform:translate(-50%,-50%);width:19%;text-align:center;z-index:2}
 .pnum{width:26px;height:26px;margin:0 auto;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;color:#fff;border:1.5px solid rgba(255,255,255,.75);box-shadow:0 1px 3px rgba(0,0,0,.5)}
@@ -275,9 +278,13 @@ html[data-theme="light"] .motm .msb,html[data-theme="light"] .motm .mtag{color:#
 .prate.rhi{background:#37d27f}.prate.rmd{background:#9fd957}.prate.rok{background:#e8c552}.prate.rlo{background:#dd8a55}
 .lnform{display:flex;justify-content:space-between;gap:8px;padding:10px 2px 8px;font-size:12px;font-weight:800;color:var(--gold)}
 .lnform span{max-width:48%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* min-width:0 lets grid children actually shrink; on phones the two subs lists stack instead of
+   spilling past the sheet edge (owner screenshot showed "SUB" clipped off-screen) */
 .lncols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.lncols>div{min-width:0;overflow:hidden}
+@media(max-width:430px){.lncols{grid-template-columns:1fr;gap:2px}}
 .lnhead{font-size:11px;font-weight:800;color:var(--dim2);padding:8px 2px 4px;letter-spacing:.3px}
-.lnrow{display:flex;align-items:center;gap:6px;padding:4px 2px;font-size:12.5px;border-bottom:1px solid var(--line)}
+.lnrow{display:flex;align-items:center;gap:6px;padding:4px 2px;font-size:12.5px;border-bottom:1px solid var(--line);min-width:0;overflow:hidden}
 .lnrow:last-child{border-bottom:none}
 .lnnum{flex:0 0 20px;text-align:center;font-size:10.5px;font-weight:900;color:var(--dim2)}
 .lnname{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
@@ -596,7 +603,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي</span> · <span id="appVer">v3.2</span></footer>
+ <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="appVer">v3.4</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -650,7 +657,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <script>
 "use strict";
 /* ============ GOALLAK · الجول جولك ============ */
-const APP_VERSION = "3.2";
+const APP_VERSION = "3.4";
+/* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
+   must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
+const FORCE_RELOAD = "2026-08-15-v33";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -804,7 +814,6 @@ const STR = {
  brand:["جولك","GOALLAK"],
  fantasyBrand:["فانتازي جولك","GOALLAK FANTASY"],
  motto:["الجول جولك","El Goal Goallak"],
- footNote:["تطبيق غير رسمي","Unofficial fan app"],
  loading:["جارٍ التحميل…","Loading…"],
  all:["الكل","All"],
  live:["مباشر","LIVE"],
@@ -1086,18 +1095,10 @@ function setLang(x){
  refreshBrandUI();
  $("motto").textContent = t("motto");
  $("footMotto").textContent = t("motto");
- $("footNote").textContent = t("footNote");
  buildRail(); buildStrip(true); refreshSettingsUI(); tickClock();
- const bs = $("bnScoresL"), bp = $("bnPredL"), bf = $("bnFantL");
- if(bs) bs.textContent = t("matchesNav");
- if(bp) bp.textContent = t("predictions");
- if(bf) bf.textContent = t("fantasyNav");
+ paintNavLabels();
  const fs = $("fantSoon");
  if(fs) fs.textContent = t("soon");
- const bc = $("bnChatL");
- if(bc) bc.textContent = t("chatNav");
- const bs2 = $("bnSetL");
- if(bs2) bs2.textContent = t("settings");
  const cn = $("chatNote");
  if(cn) refreshChatNote();
  if(typeof refreshChatBar === "function") refreshChatBar();
@@ -1105,6 +1106,13 @@ function setLang(x){
  if(typeof updateAuthUI === "function" && !$("authModal").classList.contains("hide")) updateAuthUI();
  if(typeof mainView !== "undefined" && mainView === "pred"){ renderPred(); }
  else if(view === "home"){ paintHome(); } else { paintLeague(); }
+}
+
+/* every bottom-nav label in ONE place, called from boot AND from setLang, so a fresh load
+   in English can never keep an Arabic label (owner caught "الإعدادات" showing in EN) */
+function paintNavLabels(){
+ const map = [["bnScoresL", "matchesNav"], ["bnPredL", "predictions"], ["bnFantL", "fantasyNav"], ["bnChatL", "chatNav"], ["bnSetL", "settings"]];
+ for(const [id, key] of map){ const el = $(id); if(el) el.textContent = t(key); }
 }
 
 /* ============ settings (ported from the WC app: sheet + grouped zones + theme + clock) ============ */
@@ -3365,7 +3373,6 @@ document.addEventListener("visibilitychange", function(){
  refreshBrandUI();
  $("motto").textContent = t("motto");
  $("footMotto").textContent = t("motto");
- $("footNote").textContent = t("footNote");
  $("loadTxt").textContent = t("loading");
  setTheme(THEME);
  refreshSettingsUI();
@@ -3373,11 +3380,8 @@ document.addEventListener("visibilitychange", function(){
  setInterval(tickClock, 1000);
  buildRail();
  buildStrip(true);
- $("bnScoresL").textContent = t("matchesNav");
- $("bnPredL").textContent = t("predictions");
- $("bnFantL").textContent = t("fantasyNav");
+ paintNavLabels();
  $("fantSoon").textContent = t("soon");
- $("bnChatL").textContent = t("chatNav");
  refreshChatNote();
  loadDay(false);
  syncMyPreds();
@@ -3392,7 +3396,21 @@ document.addEventListener("visibilitychange", function(){
   else if(q.get("go") === "chat") showMain("chat");
   else if(lgq && LEAGUES.some(l => l.id === lgq)) gotoLeague(lgq);
  }catch(_){}
- if("serviceWorker" in navigator){ try{ navigator.serviceWorker.register("sw.js").catch(function(){}); }catch(_){} }
+ if("serviceWorker" in navigator){
+  /* One-time hard refresh gated by FORCE_RELOAD: a new SW (skipWaiting + claim) fires controllerchange
+     on already-open clients; reload ONCE per token, then remember it. Normal deploys never reload an
+     open session, and a first-ever visit never reloads. */
+  let _swReloaded = false;
+  const _hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener("controllerchange", function(){
+   if(_swReloaded || !_hadController) return;
+   try{ if(localStorage.getItem("gk_reload_token") === FORCE_RELOAD) return; }catch(_){}
+   try{ localStorage.setItem("gk_reload_token", FORCE_RELOAD); }catch(_){}
+   _swReloaded = true;
+   location.reload();
+  });
+  try{ navigator.serviceWorker.register("sw.js").catch(function(){}); }catch(_){}
+ }
 })();
 </script>
 </body>
