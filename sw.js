@@ -1,5 +1,6 @@
 /* Goallak service worker
    CACHE changelog (bump on EVERY deploy, newest first):
+   goalak-v38  2026-08-16  v4.4 STALE-APP FIX (root cause of "my app still shows the old version"): GitHub Pages serves sw.js with Cache-Control max-age=600, so update checks were being answered from the HTTP cache - the browser never saw a new worker, so controllerchange never fired and FORCE_RELOAD never ran. Now registered with updateViaCache:"none" so the worker script is always revalidated. A home-screen app that is only resumed never navigates either, so it now calls registration.update() on resume/focus and every 5 minutes. Plus an independent last-resort guard: fetch index.html no-store, compare APP_VERSION, and reload ONCE (guarded per version in sessionStorage) if this client is behind - so a stuck client recovers even if the service worker misbehaves.
    goalak-v37  2026-08-16  v4.3: FORCE_RELOAD token bumped to 2026-08-16-v43 - it had been stuck on the v3.3 token, so nobody with the app already open (or installed to the home screen) had been forced to refresh through nine releases. Every existing client now hard-reloads exactly ONCE on this update and lands on v4.3.
    goalak-v36  2026-08-16  v4.2: (1) REPEAT OF WC LESSON v2.66 - a match that kicked off before midnight vanished from LIVE at 00:00 because the live set was filtered by calendar day. The live set is now gated on STATE ONLY and spans today + yesterday, for the strip, the LIVE chip, the count and the filtered list; both days are also kept warm by the refresh tick whatever day is on screen. (2) Scroll no longer chains from an open sheet into the page behind it: overscroll-behavior:contain plus a real body scroll lock that restores the exact scroll position on close. (3) Serie A added (ita.1) with Arabic names for all 20 clubs.
    goalak-v35  2026-08-16  v4.1: 3D icon set. All five bottom-nav icons become layered-gradient SVG with a separate active state (white + gold on the rust pill), and the emoji that varied by platform (⚽ 🟨 🟥 in the timeline, scorer lines and match events) become inline 3D symbols. One sprite of gradients + symbols, all gk3d- prefixed, ~2.7KB gzipped, no SVG filters so Android WebView stays fast. The chat bubble was redrawn with a centred tail so it is identical when mirrored for Arabic.
@@ -38,7 +39,7 @@
    goalak-v2   2026-08-14  QA pass: WCup navy palette; precise shell matching vs SW scope; non-ok responses fall back to cached shell; redirected responses re-wrapped before use/caching; cache writes tied to event lifetime.
    goalak-v1   2026-08-14  v1.0 initial build: 7 leagues, all-leagues day view, league pages (matches / table / stats), AR/EN RTL.
 */
-const CACHE = "goalak-v37";
+const CACHE = "goalak-v38";
 const SHELL = ["./", "index.html", "manifest.json", "icon-192.png", "icon-512.png", "icon-180.png", "favicon.svg", "logo-head.svg", "logo-mark-pos.svg", "logo-mark-rev.svg", "badge.png"];
 /* Third-party hosts are never intercepted (live data + shared state must ride the network). */
 const BYPASS = /espn\.com|espncdn\.com|googleapis\.com|gstatic\.com|flagcdn\.com|textdb\.online|workers\.dev/;

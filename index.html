@@ -673,7 +673,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <div class="shrow"><span class="shlab" id="shClock">نظام الوقت</span><div class="seg" role="radiogroup" aria-labelledby="shClock"><button type="button" id="h12b" class="on" onclick="setHour12(true)">AM·PM</button><button type="button" id="h24b" onclick="setHour12(false)">24H</button></div></div>
   <div class="shrow"><span class="shlab" id="shLang">اللغة</span><div class="seg" role="radiogroup" aria-labelledby="shLang"><button type="button" id="lgEn" onclick="setLang('en')">EN</button><button type="button" id="lgAr" class="on" onclick="setLang('ar')">عربي</button></div></div>
   <div class="shrow"><span class="shlab" id="shTheme">🌓 المظهر</span><div class="seg" role="radiogroup" aria-labelledby="shTheme"><button type="button" id="thD" class="on" onclick="setTheme('dark')">داكن</button><button type="button" id="thL" onclick="setTheme('light')">فاتح</button></div></div>
- <div class="shver" id="shVer">جولك · v4.3 · الجول جولك</div>
+ <div class="shver" id="shVer">جولك · v4.4 · الجول جولك</div>
  </section>
 
  <nav class="rail" id="rail" aria-label="Leagues"></nav>
@@ -723,7 +723,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="appVer">v4.3</span></footer>
+ <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="appVer">v4.4</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -782,10 +782,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <script>
 "use strict";
 /* ============ GOALLAK · الجول جولك ============ */
-const APP_VERSION = "4.3";
+const APP_VERSION = "4.4";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-16-v43";
+const FORCE_RELOAD = "2026-08-16-v44";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -3869,6 +3869,28 @@ document.addEventListener("visibilitychange", function(){
  else paintLeague();
 });
 
+/* Last-resort anti-stale guard: ask the network what the current build is and reload once if this
+   client is running an older one. Independent of the service worker, so it still rescues an app
+   that got stuck for any reason. Guarded per version so it can never loop. */
+let _vCheckBusy = false;
+async function gkVersionCheck(){
+ if(_vCheckBusy || document.hidden) return;
+ _vCheckBusy = true;
+ try{
+  const r = await fetch("index.html?v=" + Date.now(), {cache:"no-store"});
+  if(!r.ok) return;
+  const txt = await r.text();
+  const m = txt.match(/const APP_VERSION = "([\d.]+)"/);
+  if(!m || m[1] === APP_VERSION) return;
+  let done = "";
+  try{ done = sessionStorage.getItem("gk_vreload") || ""; }catch(_){}
+  if(done === m[1]) return;                       /* already reloaded for this build this session */
+  try{ sessionStorage.setItem("gk_vreload", m[1]); }catch(_){}
+  location.reload();
+ }catch(_){ /* offline: keep running the cached build */ }
+ finally{ _vCheckBusy = false; }
+}
+
 /* ============ boot ============ */
 (function(){
  document.documentElement.lang = LANG;
@@ -3908,6 +3930,16 @@ document.addEventListener("visibilitychange", function(){
      open session, and a first-ever visit never reloads. */
   let _swReloaded = false;
   const _hadController = !!navigator.serviceWorker.controller;
+  /* a home-screen app that is only resumed never navigates, so nothing would ever check for a new
+     build. Ask for an update on every resume (and periodically while open). */
+  window.gkSWReg = null;
+  const gkCheckUpdate = function(){
+   try{ if(window.gkSWReg) window.gkSWReg.update().catch(function(){}); }catch(_){}
+   gkVersionCheck();
+  };
+  document.addEventListener("visibilitychange", function(){ if(!document.hidden) gkCheckUpdate(); });
+  window.addEventListener("focus", gkCheckUpdate);
+  setInterval(gkCheckUpdate, 300000);
   navigator.serviceWorker.addEventListener("controllerchange", function(){
    if(_swReloaded || !_hadController) return;
    try{ if(localStorage.getItem("gk_reload_token") === FORCE_RELOAD) return; }catch(_){}
@@ -3915,7 +3947,15 @@ document.addEventListener("visibilitychange", function(){
    _swReloaded = true;
    location.reload();
   });
-  try{ navigator.serviceWorker.register("sw.js").catch(function(){}); }catch(_){}
+  /* updateViaCache:"none" — GitHub Pages serves sw.js with max-age=600, so without this the browser
+     hands back a CACHED worker on update checks and a stale app never learns a new build exists. */
+  try{
+   navigator.serviceWorker.register("sw.js", {updateViaCache:"none"}).then(function(reg){
+    if(!reg) return;
+    window.gkSWReg = reg;
+    reg.update().catch(function(){});
+   }).catch(function(){ try{ navigator.serviceWorker.register("sw.js"); }catch(__){} });
+  }catch(_){}
  }
 })();
 </script>
