@@ -606,7 +606,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <div class="shrow"><span class="shlab" id="shClock">نظام الوقت</span><div class="seg" role="radiogroup" aria-labelledby="shClock"><button type="button" id="h12b" class="on" onclick="setHour12(true)">AM·PM</button><button type="button" id="h24b" onclick="setHour12(false)">24H</button></div></div>
   <div class="shrow"><span class="shlab" id="shLang">اللغة</span><div class="seg" role="radiogroup" aria-labelledby="shLang"><button type="button" id="lgEn" onclick="setLang('en')">EN</button><button type="button" id="lgAr" class="on" onclick="setLang('ar')">عربي</button></div></div>
   <div class="shrow"><span class="shlab" id="shTheme">🌓 المظهر</span><div class="seg" role="radiogroup" aria-labelledby="shTheme"><button type="button" id="thD" class="on" onclick="setTheme('dark')">داكن</button><button type="button" id="thL" onclick="setTheme('light')">فاتح</button></div></div>
- <div class="shver" id="shVer">جولك · v3.9 · الجول جولك</div>
+ <div class="shver" id="shVer">جولك · v4.0 · الجول جولك</div>
  </section>
 
  <nav class="rail" id="rail" aria-label="Leagues"></nav>
@@ -656,7 +656,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="appVer">v3.9</span></footer>
+ <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="appVer">v4.0</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -715,7 +715,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <script>
 "use strict";
 /* ============ GOALLAK · الجول جولك ============ */
-const APP_VERSION = "3.9";
+const APP_VERSION = "4.0";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
 const FORCE_RELOAD = "2026-08-15-v33";
@@ -1389,16 +1389,26 @@ function fixtureScore(e){
  if((c.details || []).length) s += 1;
  return s;
 }
+function venueOf(e){ const c = (e.competitions && e.competitions[0]) || {}; return (c.venue && c.venue.fullName) || ""; }
+/* Two entries for the same pair on the same day are the SAME fixture published twice unless both
+   name a venue AND the venues differ AND they are hours apart — that pattern is a real double-header
+   (e.g. a pre-season mini-tournament) and must not be collapsed. */
+function sameFixture(a, b){
+ const va = venueOf(a), vb = venueOf(b);
+ if(va && vb && va !== vb && Math.abs(new Date(a.date) - new Date(b.date)) > 3 * 3600000) return false;
+ return true;
+}
 function dedupeFixtures(list){
- const best = {}, order = [];
+ const groups = {}, order = [];
  for(const e of list){
   const k = fixtureKey(e);
   if(!k){ order.push(e); continue; }
-  const prev = best[k];
-  if(!prev){ best[k] = e; order.push(e); continue; }
-  if(fixtureScore(e) > fixtureScore(prev)){
-   best[k] = e;
-   order[order.indexOf(prev)] = e;   /* swap in place: keeps ordering stable */
+  const bucket = groups[k] || (groups[k] = []);
+  const twin = bucket.find(x => sameFixture(x, e));
+  if(!twin){ bucket.push(e); order.push(e); continue; }
+  if(fixtureScore(e) > fixtureScore(twin)){
+   bucket[bucket.indexOf(twin)] = e;
+   order[order.indexOf(twin)] = e;   /* replace the weaker record in place; eventsFor re-sorts by date after */
   }
  }
  return order;
@@ -1622,7 +1632,7 @@ function paintHome(){
   if(evs === null){ anyUnknown = true; continue; }
   if(!evs.length) continue;
   comps++; totalM += evs.length;
-   if(!lg.allOnly) liveN += evs.filter(e => evState(e) === "in").length;
+   liveN += evs.filter(e => evState(e) === "in").length;   /* count friendlies/internationals too */
   perLg.push({lg, evs});
  }
  /* never leave a chip selected that can no longer render anything */
@@ -1646,7 +1656,7 @@ function paintHome(){
  /* list */
  let h = "";
  for(const p of perLg){
-   if(p.lg.allOnly && chip !== "all") continue;
+   if(p.lg.allOnly && chip !== "all" && chip !== "live") continue;   /* LIVE must reach them as well */
    let list = p.evs;
   if(chip === "live"){ list = list.filter(e => evState(e) === "in"); if(!list.length) continue; }
   else if(chip !== "all" && chip !== p.lg.id) continue;
@@ -1681,7 +1691,7 @@ function renderLiveStrip(){
  if(!el) return;
  const tk = todayKey();
  const chips = [];
- for(const lg of LEAGUES){
+ for(const lg of SCORE_GROUPS){   /* friendlies/internationals are live football too - they were invisible here */
   const evs = eventsFor(lg, tk) || [];
   for(const e of evs){
    if(evState(e) !== "in" || voidedKey(e)) continue;
@@ -1795,7 +1805,10 @@ async function renderLgMatches(){
  if(cached && cached.events){
   if(body.dataset.sig !== sig){ body.innerHTML = segHtml() + lgMatchesHtml(cached.events, seg); body.dataset.sig = sig; }
  } else { body.innerHTML = segHtml() + '<div class="skel"><span class="spinner"></span>' + esc(t("loading")) + "</div>"; body.dataset.sig = ""; }
- if(cached && Date.now() - cached.at < 90000) return;
+ /* a league list holding a match that has already kicked off must refresh fast: ESPN's range
+    endpoint intermittently serves an hours-old snapshot and it used to sit for 90s (QA finding) */
+ const hasStarted = cached && cached.events && cached.events.some(e => evState(e) === "in" || (evState(e) === "pre" && new Date(e.date) < Date.now()));
+ if(cached && Date.now() - cached.at < (hasStarted ? 20000 : 90000)) return;
  const tk = todayKey();
  const range = seg === "up" ? rangeParam(tk, 0, 45) : rangeParam(tk, 45, 0);
  const slugs = [lg.slug].concat(lg.qual ? [lg.qual] : []);
@@ -2022,6 +2035,9 @@ function subMinute(p){
  const play = (p && p.plays || []).find(x => x && x.clock && x.clock.displayValue);
  return play ? play.clock.displayValue : "";
 }
+/* ESPN returns subbedIn/subbedOut as OBJECTS ({didSub:false}) — truthy even when the player never
+   moved, which marked an entire pre-match XI as substituted on AND off. Read the flag, not the object. */
+function didSub(v){ return !!(v && (v === true || v.didSub === true)); }
 function playerIcons(p){
  let ic = "";
  const g = pstat(p, "totalGoals"), og = pstat(p, "ownGoals"), a = pstat(p, "goalAssists");
@@ -2031,8 +2047,8 @@ function playerIcons(p){
  for(let i = 0; i < a; i++) ic += "🅰️";
  if(y) ic += "🟨";
  if(r) ic += "🟥";
- if(p && p.subbedOut) ic += "🔻";
- if(p && p.subbedIn) ic += "🔺";
+ if(didSub(p && p.subbedOut)) ic += "🔻";
+ if(didSub(p && p.subbedIn)) ic += "🔺";
  return ic;
 }
 function lineupCol(r, benchOnly){
@@ -2040,11 +2056,11 @@ function lineupCol(r, benchOnly){
  /* bench players carry formationPlace "0", so only a positive place (or an explicit starter flag) counts */
  const isStart = p => p && (p.starter === true || Number(p.formationPlace) > 0);
  const starters = list.filter(isStart).slice().sort((x, y) => (Number(x.formationPlace) || 99) - (Number(y.formationPlace) || 99));
- const bench = list.filter(p => !isStart(p) && (p.subbedIn || pstat(p, "appearances") > 0 || pstat(p, "subIns") > 0));
+ const bench = list.filter(p => !isStart(p) && (didSub(p.subbedIn) || pstat(p, "appearances") > 0 || pstat(p, "subIns") > 0));
  const rt = (_mdEid && _ratings[_mdEid] && _ratings[_mdEid].ready) ? _ratings[_mdEid].byId : null;
  const row = p => {
   const a = p.athlete || {};
-  const min = (p.subbedIn || p.subbedOut) ? subMinute(p) : "";
+  const min = (didSub(p.subbedIn) || didSub(p.subbedOut)) ? subMinute(p) : "";
   const rr = rt && a.id ? rt[String(a.id)] : null;
   return '<div class="lnrow" data-pid="' + esc(a.id || "") + '" onclick="openPlayerCard(this.dataset.pid)"><span class="lnnum" dir="ltr">' + esc(p.jersey || a.jersey || "") + "</span>" +
    '<span class="lnname">' + esc(a.displayName || "?") + "</span>" +
@@ -2222,7 +2238,8 @@ function mdEventsHtml(e, H, A, sum){
  const gc = (comp.details || []).filter(d => d && (d.scoringPlay || /card/i.test((d.type && d.type.text) || "")) && !d.shootout);
  let hh = 0, aa = 0;
  gc.slice().sort((a, b) => minNum((a.clock || {}).displayValue) - minNum((b.clock || {}).displayValue)).forEach(d => {
-  if(d.scoringPlay){ if(isHomeId((d.team || {}).id)) hh++; else aa++; d._rs = hh + "-" + aa; }
+  /* running score must follow the same order as the header (away-home in Arabic) */
+  if(d.scoringPlay){ if(isHomeId((d.team || {}).id)) hh++; else aa++; d._rs = LANG === "ar" ? (aa + "-" + hh) : (hh + "-" + aa); }
  });
  const items = [];
  const row = (cls, home, txt, ic, mins, rs) => {
@@ -2255,7 +2272,7 @@ function mdEventsHtml(e, H, A, sum){
  if(!items.length) return '<div class="mnoev">' + esc(t("noEvents")) + "</div>";
  items.sort((a, b) => b.m - a.m);
  const s = evState(e);
- const fs = (H.score != null ? H.score : 0) + "-" + (A.score != null ? A.score : 0);
+ const fs = scoreTxt(H, A).replace(/\s/g, "");   /* same orientation as the header score */
  const top = s === "post" ? (t("ft") + " · " + fs) : s === "in" ? (((e.status && e.status.displayClock) || t("live")) + " · " + fs) : fs;
  return '<div class="dhead">' + esc(t("matchEvents")) + "</div>" +
   '<div class="tl"><div class="tlmark top" dir="ltr">' + esc(top) + "</div>" +
@@ -2268,9 +2285,20 @@ function mdEventsHtml(e, H, A, sum){
 const RATE_CORE = "https://sports.core.api.espn.com/v2/sports/soccer/leagues/";
 let _ratings = {};   // eventId -> {ready|loading|failed, byId:{pid:{rating,c,m,name,pos,team,mins}}, motm}
 function rateCls(r){ return r >= 8 ? "rhi" : r >= 7 ? "rmd" : r >= 6 ? "rok" : "rlo"; }
-function motmCls(pos, gk){
+/* Substitutes come back with position "SUB" (no real role), which used to rate every one of them
+   with the midfield model — a sub centre-back lost his clean-sheet credit and a sub striker lost
+   shot weighting. Infer a role from what he actually did instead. */
+function motmCls(pos, gk, m){
  if(gk) return "GK";
  const x = (pos || "").toUpperCase();
+ if(x === "SUB" || !x){
+  const s = m || {};
+  const att = (s.totalShots || 0) + (s.shotsOnTarget || 0) + (s.totalGoals || 0) * 2;
+  const def = (s.defensiveInterventions || 0) + (s.effectiveTackles || 0) + (s.interceptions || 0) + (s.effectiveClearance || 0);
+  if(att >= 2 && att > def) return "FWD";
+  if(def >= 3 && att === 0) return "DEF";
+  return "MID";
+ }
  if(/ST|CF|LW|RW|^W|FW|SS|^F/.test(x)) return "FWD";
  if(/DM|CM|AM|RM|LM|MF|^M/.test(x)) return "MID";
  if(/CD|CB|LB|RB|WB|^D/.test(x)) return "DEF";
@@ -2366,12 +2394,12 @@ async function loadRatings(eid){
     const meta = sm[rf.pid] || {}, pos = meta.pos || "";
     if(gdHome != null && meta.team && homeNm) m.goalDifference = (meta.team === homeNm) ? gdHome : -gdHome;
     const gk = /^g|keeper/i.test(pos) || (m.saves > 0 || m.punches > 0 || m.crossesCaught > 0);
-    const cl = motmCls(pos, gk), rt = motmRate(m, cl);
+    const cl = motmCls(pos, gk, m), rt = motmRate(m, cl);
     if(rt == null) return;
     byId[rf.pid] = {rating:rt, c:cl, m:m, team:meta.team || "", pos:pos, name:meta.name || "", mins:m.minutes || 0};
    }catch(_){}
   }));
-  Object.keys(byId).forEach(pid => { const x = byId[pid]; if(x.name && (!motm || x.rating > motm.rating)) motm = {pid:pid, name:x.name, team:x.team, rating:x.rating, m:x.m, c:x.c}; });
+  Object.keys(byId).forEach(pid => { const x = byId[pid]; if(x.name && (!motm || x.rating > motm.rating)) motm = {pid:pid, name:x.name, team:x.team, rating:x.rating, m:x.m, c:x.c, pos:x.pos}; });
  };
  try{ await withTO(run(), 15000); completed = true; }catch(_){}
  if(completed && Object.keys(byId).length){
@@ -2800,8 +2828,10 @@ function showMain(v, fromPop){
     instead of leaving the app (QA: Back exited from Predictions/Fantasy/Chat/Settings) */
  if(!fromPop && v !== mainView){
   try{
-   if(v !== "scores") history.pushState({gkv:"tab", tab:v}, "");
-   else if(history.state && history.state.gkv === "tab"){ history.back(); return; }
+   const onTabEntry = history.state && history.state.gkv === "tab";
+   /* replace (not push) when hopping tab->tab, so Back never needs several presses to escape */
+   if(v !== "scores"){ if(onTabEntry) history.replaceState({gkv:"tab", tab:v}, ""); else history.pushState({gkv:"tab", tab:v}, ""); }
+   else if(onTabEntry){ history.back(); return; }
   }catch(_){}
  }
  mainView = v;
@@ -3362,7 +3392,7 @@ function refreshChatBar(){
  const show = mainView === "chat" && !!gkUser && validChatSession();
  bar.classList.toggle("hide", !show);
  $("chatIn").placeholder = t("chatPlaceholder");
- for(const pair of [["chatPhoto","chatPhoto"],["chatVideo","chatVideo"],["chatVoice","chatVoice"]]){
+ for(const pair of [["chatPhoto","chatPhoto"],["chatVideo","chatVideo"],["chatVoice","chatVoice"],["chatSend","chatSendVn"]]){
   $(pair[0]).title = t(pair[1]); $(pair[0]).setAttribute("aria-label", t(pair[1]));
  }
 }
@@ -3723,6 +3753,7 @@ document.addEventListener("visibilitychange", function(){
  paintNavLabels();
  $("fantSoon").textContent = t("soon");
  refreshChatNote();
+ refreshChatBar();   /* the chat bar shipped hardcoded strings until it was first opened */
  loadDay(false);
  syncMyPreds();
  refreshPushUI();
