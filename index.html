@@ -626,7 +626,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="appVer">v3.6</span></footer>
+ <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="appVer">v3.7</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -680,7 +680,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <script>
 "use strict";
 /* ============ GOALLAK · الجول جولك ============ */
-const APP_VERSION = "3.6";
+const APP_VERSION = "3.7";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
 const FORCE_RELOAD = "2026-08-15-v33";
@@ -984,7 +984,7 @@ const STR = {
  mdStats:["الإحصائيات","Stats"],
  mdStarters:["التشكيل الأساسي","Starting XI"],
  mdSubs:["البدلاء","Substitutes"],
- mdNoLineups:["لم تُعلن التشكيلة بعد","Line-ups not announced yet"],
+ mdNoLineups:["لم تُعلن التشكيلة بعد · تظهر عادة قبل انطلاق المباراة بساعة تقريبًا","Line-ups not announced yet · they usually appear about an hour before kick-off"],
  mdNoStats:["لا توجد إحصائيات متاحة لهذه المباراة","No stats available for this match"],
  mdAssist:["صناعة","assist"],
  kickoffMark:["انطلاق المباراة","KICK-OFF"],
@@ -1518,6 +1518,7 @@ function mrow(e, lg){
  const extraCompetition = eventCompetitionName(e);
  if(extraCompetition) sub += " · " + esc(extraCompetition);
  if(s === "in" || (s === "post" && !vk)) sub += ' · <span class="dhint">' + esc(t("details")) + "</span>"; /* goals/cards timeline lives in the tap-modal */
+ else if(s === "pre" && !vk && (new Date(e.date).getTime() - Date.now()) < 5400000) sub += ' · <span class="dhint">' + esc(t("mdLineups")) + "</span>";   /* XI is usually out ~1h before */
  const tv = broadcastFor(e, lg);
  if(tv && !vk){
   const tvText = tv.exact ? tv.channel : t("tvUnconfirmed");
@@ -1911,9 +1912,15 @@ function slugForEvent(e){
 }
 async function ensureSummary(eid){
  const c = sumCache[eid];
- if(c && (c.json || (c.failed && Date.now() - c.at < 60000))) return c.json || null;
- const e = EV_INDEX[eid];
- const slug = slugForEvent(e);
+ if(c && c.json){
+  /* a PRE-match summary with no line-ups yet must not be cached forever: ESPN publishes the XI
+     roughly an hour before kick-off, so re-check it every couple of minutes until it appears */
+  const ev = EV_INDEX[eid];
+  const pending = ev && evState(ev) === "pre" && !((c.json.rosters || []).some(r => (r.roster || []).length));
+  if(!(pending && Date.now() - c.at > 120000)) return c.json;
+ } else if(c && c.failed && Date.now() - c.at < 60000) return null;
+ const e0 = EV_INDEX[eid];
+ const slug = slugForEvent(e0);
  if(!slug){ sumCache[eid] = {at:Date.now(), failed:true}; return null; }
  try{
   const j = await jget(API + slug + "/summary?event=" + encodeURIComponent(eid));
@@ -2333,8 +2340,8 @@ async function renderMdBody(){
  const e = EV_INDEX[eid];
  if(!e) return;
  const tabsEl = $("mdTabs"), body = $("mdBody");
- if(!tabsEl || !body) return;
- tabsEl.innerHTML = [["E", "mdSummary"], ["L", "mdLineups"], ["S", "mdStats"]]
+ if(!body) return;                                   /* pre-match sheets render line-ups with no tab bar */
+ if(tabsEl) tabsEl.innerHTML = [["E", "mdSummary"], ["L", "mdLineups"], ["S", "mdStats"]]
   .map(p => '<button type="button" class="mdtab' + (_mdTab === p[0] ? " on" : "") + '" onclick="setMdTab(\'' + p[0] + '\')">' + esc(t(p[1])) + "</button>").join("");
  const comp = e.competitions && e.competitions[0] || {};
  const cs = comp.competitors || [];
@@ -2393,8 +2400,11 @@ function renderMatchModal(eid){
    meta += '<br><span class="tvmeta">📺 ' + esc(t("tvChannel")) + ': <b dir="ltr">' + esc(tv.channel) + "</b></span>";
   } else meta += '<br><span class="tvmeta">📺 ' + esc(t("tvUnconfirmed")) + "</span>";
  }
- /* played or in-play matches get the full tabbed detail (summary / line-ups / stats) */
+ /* played or in-play matches get the full tabbed detail; a match that has not kicked off still gets
+    the LINE-UPS view on its own, because ESPN publishes the XI about an hour before kick-off */
  const hasDetail = !vk && (s === "in" || s === "post");
+ const preLineups = !vk && s === "pre";
+ if(preLineups) _mdTab = "L";
  _mdEid = eid;
  $("mbox").innerHTML =
   '<button type="button" class="mx" onclick="closeModal()">✕</button>' +
@@ -2406,8 +2416,10 @@ function renderMatchModal(eid){
   '<div class="mmeta">' + meta + "</div>" +
   (hasDetail
    ? '<div class="mdtabs" id="mdTabs"></div><div id="mdBody"></div>'
-   : (s === "pre" ? "" : '<div class="mnoev">' + esc(t("noEvents")) + "</div>"));
- if(hasDetail) renderMdBody();
+   : preLineups
+    ? '<div id="mdBody"></div>'
+    : '<div class="mnoev">' + esc(t("noEvents")) + "</div>");
+ if(hasDetail || preLineups) renderMdBody();
  return true;
 }
 function closeModal(){
