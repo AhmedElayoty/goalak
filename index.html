@@ -310,6 +310,7 @@ html[data-theme="light"]{--dim:#44536f;--dim2:#5a6a8e}
 .authcard .autxt{font-size:14px;font-weight:700;color:var(--dim);margin-bottom:10px}
 .userchip{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 14px;margin-bottom:12px;font-size:14px}
 .userchip .signout{margin-inline-start:auto;font-size:11.5px;color:var(--red);font-weight:700}
+.userchip .uclub{font-size:11.5px;color:var(--gold);font-weight:700}
 .pin{display:flex;align-items:center;gap:6px;justify-content:center}
 .pinp{width:44px;height:38px;text-align:center;font-size:17px;font-weight:900;background:var(--card2);border:1px solid var(--line2);border-radius:9px;color:var(--txt);font-family:inherit}
 .pdash{color:var(--dim2);font-weight:900}
@@ -329,6 +330,20 @@ html[data-theme="light"]{--dim:#44536f;--dim2:#5a6a8e}
 .aunote{font-size:11.5px;color:var(--dim2);padding-top:8px;text-align:center}
 .toast{position:fixed;bottom:84px;inset-inline:0;margin-inline:auto;width:fit-content;max-width:86%;background:rgba(8,10,20,.92);color:#fff;padding:10px 18px;border-radius:12px;font-size:13.5px;font-weight:700;z-index:130;text-align:center}
 
+/* ---------- LIVE NOW strip + club hero + details hint ---------- */
+.livestrip{display:flex;gap:7px;overflow-x:auto;padding:2px 2px 8px;scrollbar-width:none}
+.livestrip::-webkit-scrollbar{display:none}
+.lvchip{flex:0 0 auto;display:flex;align-items:center;gap:7px;background:#3a1220;border:1px solid var(--red);border-radius:12px;padding:8px 13px;font-size:12.5px;font-weight:800;color:#ffe9e9}
+.lvchip .lvsc{color:#ff8f8f;font-weight:900;font-size:14px}
+html[data-theme="light"] .lvchip{background:#ffe9e9;color:#7a1010}
+html[data-theme="light"] .lvchip .lvsc{color:#c62828}
+.dhint{color:var(--acc);font-weight:800}
+.clubhero{display:block;background:linear-gradient(120deg,var(--card2),var(--card));border:1px solid var(--gold);border-radius:14px;padding:10px 14px;margin:0 0 10px;cursor:pointer;width:100%;text-align:start}
+.clubhero .chcap{font-size:10.5px;color:var(--gold);font-weight:800;letter-spacing:.5px}
+.clubhero .chtm{display:flex;align-items:center;justify-content:center;gap:10px;padding:6px 0 2px;font-size:14.5px;font-weight:900}
+.clubhero .chsub{text-align:center;font-size:11.5px;color:var(--dim);font-weight:700}
+.setchip .han{max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
 /* ---------- fantasy teaser ---------- */
 .fantsoon{text-align:center;padding:90px 10px 40px}
 .fantsoon .fbig{font-size:54px;line-height:1}
@@ -345,6 +360,7 @@ html[data-theme="light"]{--dim:#44536f;--dim2:#5a6a8e}
    <span class="gkmotto" id="motto">الجول جولك</span>
   </div>
   <span class="gkspacer"></span>
+  <button class="setchip" id="hdrAuth" type="button" onclick="hdrAuthTap()" aria-label="Account">👤</button>
   <button class="themebtn" type="button" onclick="toggleTheme()" aria-label="Light / dark theme" title="Light / dark"><svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
   <button class="setchip" id="setBtn" type="button" aria-haspopup="true" aria-controls="setSheet" onclick="toggleSettings()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg><span id="setLbl">الإعدادات</span></button>
  </header>
@@ -352,13 +368,15 @@ html[data-theme="light"]{--dim:#44536f;--dim2:#5a6a8e}
  <div class="sheet hide" id="setSheet" role="dialog" aria-label="Settings">
   <div class="shtop"><span class="shttl" id="shTtl">الإعدادات</span><button type="button" class="shx" onclick="closeSettings()" aria-label="Close">&#215;</button></div>
   <button type="button" class="shinstall hide" id="installRow" onclick="installApp()">⬇️ <span id="instTxt">ثبّت التطبيق على جهازك</span></button>
+  <div class="shrow"><span class="shlab" id="shAcct">الحساب</span><button type="button" class="lsegb" id="shAcctBtn" onclick="hdrAuthTap();closeSettings()">دخول</button></div>
+  <div class="shrow"><label class="shlab" for="clubSel" id="shClub">⭐ فريقك المفضل</label><select id="clubSel" onchange="setClubFromSel(this)"></select></div>
   <div class="shrow"><span class="shlab" id="shAlerts">🔔 التنبيهات</span><div class="seg" role="radiogroup" aria-labelledby="shAlerts"><button type="button" id="pushOffB" class="on" onclick="setPush(false)">OFF</button><button type="button" id="pushOnB" onclick="setPush(true)">ON</button></div></div>
   <div class="shrow pushlgs hide" id="pushLgRow"></div>
   <div class="shrow"><label class="shlab" for="tzSel" id="shTz">المنطقة الزمنية</label><select id="tzSel" onchange="setTZ(this.value)" aria-label="Time zone"></select></div>
   <div class="shrow"><span class="shlab" id="shClock">نظام الوقت</span><div class="seg" role="radiogroup" aria-labelledby="shClock"><button type="button" id="h12b" class="on" onclick="setHour12(true)">AM·PM</button><button type="button" id="h24b" onclick="setHour12(false)">24H</button></div></div>
   <div class="shrow"><span class="shlab" id="shLang">اللغة</span><div class="seg" role="radiogroup" aria-labelledby="shLang"><button type="button" id="lgEn" onclick="setLang('en')">EN</button><button type="button" id="lgAr" class="on" onclick="setLang('ar')">عربي</button></div></div>
   <div class="shrow"><span class="shlab" id="shTheme">🌓 المظهر</span><div class="seg" role="radiogroup" aria-labelledby="shTheme"><button type="button" id="thD" class="on" onclick="setTheme('dark')">داكن</button><button type="button" id="thL" onclick="setTheme('light')">فاتح</button></div></div>
-  <div class="shver">GOALAK · v1.3 · الجول جولك</div>
+  <div class="shver">GOALAK · v1.4 · الجول جولك</div>
  </div>
 
  <nav class="rail" id="rail" aria-label="Leagues"></nav>
@@ -367,6 +385,8 @@ html[data-theme="light"]{--dim:#44536f;--dim2:#5a6a8e}
 
  <main>
   <section id="home">
+   <div id="clubHero"></div>
+   <div class="livestrip hide" id="liveStrip"></div>
    <div class="dwrap"><div class="dstrip" id="dstrip"></div></div>
    <div class="cnt" id="cnt"></div>
    <div class="chips" id="chips"></div>
@@ -401,7 +421,7 @@ html[data-theme="light"]{--dim:#44536f;--dim2:#5a6a8e}
   </section>
  </main>
 
- <footer><b>GOALAK</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN</span> · <span id="appVer">v1.3</span></footer>
+ <footer><b>GOALAK</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN</span> · <span id="appVer">v1.4</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -418,6 +438,7 @@ html[data-theme="light"]{--dim:#44536f;--dim2:#5a6a8e}
   </div>
   <input class="auinp" id="auUser" autocomplete="username" maxlength="18">
   <input class="auinp" id="auPass" type="password" autocomplete="current-password" maxlength="40">
+  <select class="auinp" id="auClub"></select>
   <div class="auerr hide" id="auErrBox"></div>
   <button type="button" class="retrybtn aubtn" id="auGo" onclick="doAuth()">تأكيد</button>
   <div class="aunote" id="auNote"></div>
@@ -433,7 +454,7 @@ html[data-theme="light"]{--dim:#44536f;--dim2:#5a6a8e}
 <script>
 "use strict";
 /* ============ GOALAK v1.0 · الجول جولك ============ */
-const APP_VERSION = "1.3";
+const APP_VERSION = "1.4";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 
@@ -453,6 +474,85 @@ const LEAGUES = [
 ];
 const ZLAB_DEF_AR = ["دوري أبطال أوروبا","المراكز الأوروبية","الهبوط"];
 const ZLAB_DEF_EN = ["Champions League","European spots","Relegation"];
+
+/* Arabic club names (FilGoal/Yallakora register). Keyed by lowercase ESPN name; both short and
+   long forms listed where they differ. Unmapped clubs fall back to the Latin name.
+   OWNER: please review spellings - one message with corrections and I apply them. */
+const AR_TEAMS = {
+ /* Premier League + notable English */
+ "arsenal":"آرسنال","aston villa":"أستون فيلا","bournemouth":"بورنموث","afc bournemouth":"بورنموث",
+ "brentford":"برينتفورد","brighton":"برايتون","brighton & hove albion":"برايتون","burnley":"بيرنلي",
+ "chelsea":"تشيلسي","coventry city":"كوفنتري سيتي","coventry":"كوفنتري سيتي","crystal palace":"كريستال بالاس",
+ "everton":"إيفرتون","fulham":"فولهام","ipswich town":"إيبسويتش","ipswich":"إيبسويتش",
+ "leeds united":"ليدز يونايتد","leeds":"ليدز يونايتد","leicester city":"ليستر سيتي","leicester":"ليستر سيتي",
+ "liverpool":"ليفربول","man city":"مانشستر سيتي","manchester city":"مانشستر سيتي",
+ "man united":"مانشستر يونايتد","manchester united":"مانشستر يونايتد","newcastle":"نيوكاسل","newcastle united":"نيوكاسل",
+ "nottingham forest":"نوتينغهام فورست","nott'm forest":"نوتينغهام فورست","sheffield united":"شيفيلد يونايتد",
+ "southampton":"ساوثهامبتون","sunderland":"سندرلاند","tottenham":"توتنهام","tottenham hotspur":"توتنهام","spurs":"توتنهام",
+ "west ham":"وست هام","west ham united":"وست هام","wolves":"وولفرهامبتون","wolverhampton wanderers":"وولفرهامبتون",
+ /* La Liga */
+ "alavés":"ألافيس","alaves":"ألافيس","deportivo alavés":"ألافيس","athletic":"أتلتيك بيلباو","athletic club":"أتلتيك بيلباو",
+ "atlético":"أتلتيكو مدريد","atletico madrid":"أتلتيكو مدريد","atlético madrid":"أتلتيكو مدريد",
+ "barcelona":"برشلونة","celta vigo":"سيلتا فيغو","celta":"سيلتا فيغو","elche":"إلتشي","espanyol":"إسبانيول",
+ "getafe":"خيتافي","girona":"جيرونا","las palmas":"لاس بالماس","levante":"ليفانتي","mallorca":"مايوركا",
+ "osasuna":"أوساسونا","rayo vallecano":"رايو فاييكانو","rayo":"رايو فاييكانو","real betis":"ريال بيتيس","betis":"ريال بيتيس",
+ "real madrid":"ريال مدريد","real oviedo":"ريال أوفييدو","oviedo":"ريال أوفييدو","real sociedad":"ريال سوسيداد",
+ "racing santander":"راسينغ سانتاندير","racing":"راسينغ سانتاندير","sevilla":"إشبيلية","valencia":"فالنسيا","villarreal":"فياريال",
+ /* Bundesliga */
+ "augsburg":"أوغسبورغ","bayer leverkusen":"باير ليفركوزن","leverkusen":"باير ليفركوزن",
+ "bayern munich":"بايرن ميونخ","bayern":"بايرن ميونخ","bochum":"بوخوم","borussia dortmund":"بوروسيا دورتموند","dortmund":"بوروسيا دورتموند",
+ "borussia mönchengladbach":"بوروسيا مونشنغلادباخ","mönchengladbach":"بوروسيا مونشنغلادباخ","gladbach":"بوروسيا مونشنغلادباخ",
+ "eintracht frankfurt":"آينتراخت فرانكفورت","frankfurt":"آينتراخت فرانكفورت","freiburg":"فرايبورغ","sc freiburg":"فرايبورغ",
+ "hamburg":"هامبورغ","hamburger sv":"هامبورغ","heidenheim":"هايدنهايم","hoffenheim":"هوفنهايم","holstein kiel":"هولشتاين كيل",
+ "köln":"كولن","fc köln":"كولن","cologne":"كولن","mainz":"ماينتس","rb leipzig":"لايبزيغ","leipzig":"لايبزيغ",
+ "st. pauli":"سانت باولي","stuttgart":"شتوتغارت","union berlin":"يونيون برلين","werder bremen":"فيردر بريمن","bremen":"فيردر بريمن","wolfsburg":"فولفسبورغ",
+ /* Ligue 1 */
+ "angers":"أنجيه","auxerre":"أوكسير","brest":"بريست","le havre":"لوهافر","lens":"لانس","rc lens":"لانس",
+ "lille":"ليل","lorient":"لوريان","lyon":"ليون","olympique lyonnais":"ليون","marseille":"مارسيليا","olympique marseille":"مارسيليا",
+ "metz":"ميتز","monaco":"موناكو","as monaco":"موناكو","montpellier":"مونبلييه","nantes":"نانت","nice":"نيس",
+ "paris saint-germain":"باريس سان جيرمان","psg":"باريس سان جيرمان","paris fc":"باريس إف سي","reims":"ريمس","rennes":"رين","stade rennais":"رين",
+ "saint-étienne":"سانت إيتيان","strasbourg":"ستراسبورغ","toulouse":"تولوز",
+ /* Süper Lig */
+ "alanyaspor":"ألانيا سبور","amed sfk":"آمد سبور","antalyaspor":"أنطاليا سبور","basaksehir":"باشاك شهير","istanbul basaksehir":"باشاك شهير",
+ "besiktas":"بشيكتاش","beşiktaş":"بشيكتاش","caykur rizespor":"ريزه سبور","rizespor":"ريزه سبور","çorum fk":"تشوروم","corum fk":"تشوروم",
+ "erzurum":"أرضروم سبور","erzurumspor":"أرضروم سبور","eyupspor":"أيوب سبور","eyüpspor":"أيوب سبور",
+ "fenerbahce":"فنربخشة","fenerbahçe":"فنربخشة","galatasaray":"غلطة سراي","gaziantep":"غازي عنتاب","gaziantep fk":"غازي عنتاب",
+ "genclerbirli":"غنشلر بيرليغي","gençlerbirliği":"غنشلر بيرليغي","goztepe":"غوزتيبه","göztepe":"غوزتيبه",
+ "istanbul bb":"باشاك شهير","kasimpasa":"قاسم باشا","kasımpaşa":"قاسم باشا","kayserispor":"قيصري سبور",
+ "kocaelispor":"كوجايلي سبور","konyaspor":"قونيا سبور","samsunspor":"سامسون سبور","trabzonspor":"طرابزون سبور",
+ /* Scottish Premiership */
+ "aberdeen":"أبردين","celtic":"سلتيك","dundee":"دندي","dundee utd":"دندي يونايتد","dundee united":"دندي يونايتد",
+ "falkirk":"فالكيرك","hearts":"هارتس","heart of midlothian":"هارتس","hibernian":"هيبرنيان","kilmarnock":"كيلمارنوك",
+ "livingston":"ليفينغستون","motherwell":"مذرويل","rangers":"رينجرز","ross county":"روس كاونتي",
+ "st johnstone":"سانت جونستون","st mirren":"سانت ميرين","st. mirren":"سانت ميرين",
+ /* frequent UCL/UEL names */
+ "ajax":"أياكس","anderlecht":"أندرلخت","aek athens":"آيك أثينا","benfica":"بنفيكا","club brugge":"كلوب بروج",
+ "copenhagen":"كوبنهاغن","fc copenhagen":"كوبنهاغن","københavn":"كوبنهاغن","dinamo zagreb":"دينامو زغرب",
+ "feyenoord":"فيينورد","inter milan":"إنتر ميلان","inter":"إنتر ميلان","ac milan":"ميلان","milan":"ميلان",
+ "juventus":"يوفنتوس","napoli":"نابولي","atalanta":"أتالانتا","roma":"روما","as roma":"روما","lazio":"لاتسيو",
+ "bologna":"بولونيا","fiorentina":"فيورنتينا","olympiacos":"أولمبياكوس","panathinaikos":"باناثينايكوس","paok":"باوك",
+ "porto":"بورتو","fc porto":"بورتو","sporting":"سبورتينغ لشبونة","sporting cp":"سبورتينغ لشبونة","braga":"براغا",
+ "psv":"آيندهوفن","psv eindhoven":"آيندهوفن","rb salzburg":"سالزبورغ","salzburg":"سالزبورغ","red star belgrade":"النجم الأحمر",
+ "shakhtar donetsk":"شاختار دونيتسك","slavia prague":"سلافيا براغ","sparta prague":"سبارتا براغ",
+ "young boys":"يونغ بويز","fc basel":"بازل","basel":"بازل","bodo/glimt":"بودو غليمت","bodø/glimt":"بودو غليمت",
+ "lech poznan":"ليخ بوزنان","legia warsaw":"ليغيا وارسو","viktoria plzen":"فيكتوريا بلزن","viktoria plzeň":"فيكتوريا بلزن",
+ "rapid vienna":"رابيد فيينا","sturm graz":"شتورم غراتس","fc twente":"توينتي","twente":"توينتي","utrecht":"أوتريخت",
+ "malmo":"مالمو","malmö ff":"مالمو","midtjylland":"ميتييلاند","fc midtjylland":"ميتييلاند",
+ "crvena zvezda":"النجم الأحمر","partizan":"بارتيزان","ludogorets":"لودوغوريتس","qarabag":"قره باغ","fk qarabag":"قره باغ",
+ "kairat almaty":"كايرات ألماتي","pafos":"بافوس","union sg":"يونيون سان جيلواز","union saint-gilloise":"يونيون سان جيلواز",
+ "lask linz":"لاسك لينتس","lask":"لاسك لينتس","levski sofia":"ليفسكي صوفيا","viking fk":"فايكينغ","viking":"فايكينغ",
+ "hapoel be'er sheva":"هبوعيل بئر السبع","hapoel be'er":"هبوعيل بئر السبع","sabah":"صباح","nec":"نايميخن","nec nijmegen":"نايميخن",
+ "s bratislava":"سلوفان براتيسلافا","slovan bratislava":"سلوفان براتيسلافا","nk celje":"تسيليه","celje":"تسيليه",
+ "ki klaksvik":"كي كلاكسفيك","kí klaksvík":"كي كلاكسفيك","galway united":"غالواي يونايتد"
+};
+function clubAr(tm){
+ if(!tm) return "?";
+ const short = tm.shortDisplayName || tm.displayName || tm.name || "?";
+ if(LANG !== "ar") return short;
+ const k1 = String(short).toLowerCase();
+ const k2 = String(tm.displayName || "").toLowerCase();
+ return AR_TEAMS[k1] || AR_TEAMS[k2] || short;
+}
 
 /* time zones - same grouped list as the WC app (Host Nations group replaced by nothing;
    Türkiye added to Europe because we cover the Süper Lig) */
@@ -573,6 +673,12 @@ const STR = {
  alreadyPicked:["سبق أن توقعت هذه المباراة من جهاز آخر","You already predicted this match on another device"],
  fantasyNav:["فانتازي","Fantasy"],
  soon:["قريبًا…","Soon…"],
+ details:["التفاصيل","Details"],
+ account:["الحساب","Account"],
+ favClub:["⭐ فريقك المفضل","⭐ Favourite club"],
+ noClub:["بدون فريق مفضل","No favourite club"],
+ clubNext:["مباراة فريقك القادمة","Your club's next match"],
+ clubSaved:["تم حفظ فريقك المفضل ⭐","Favourite club saved ⭐"],
 };
 function t(k){ const e = STR[k]; return e ? e[LANG === "ar" ? 0 : 1] : k; }
 function lgName(lg){ return LANG === "ar" ? lg.ar : lg.en; }
@@ -758,6 +864,12 @@ function refreshSettingsUI(){
  const al = $("shAlerts");
  if(al) al.textContent = t("alertsLab");
  if(typeof renderPushLgs === "function" && !$("pushLgRow").classList.contains("hide")) renderPushLgs();
+ const ac = $("shAcct");
+ if(ac) ac.textContent = t("account");
+ const cl = $("shClub");
+ if(cl) cl.textContent = t("favClub");
+ if(typeof refreshHdrAuth === "function") refreshHdrAuth();
+ if(typeof buildClubOptions === "function") buildClubOptions($("clubSel"));
 }
 function tickClock(){
  const el = $("clock");
@@ -818,29 +930,33 @@ function eventsFor(lg, day){
  out.sort((a, b) => new Date(a.date) - new Date(b.date));
  return out;
 }
+async function fetchDayInto(day, force){
+ const tk = todayKey();
+ const nearToday = day === tk || day === addDaysKey(tk, -1);
+ let anyFail = false;
+ await Promise.all(LEAGUES.map(async lg => {
+  const ck = lg.id + "|" + day;
+  const c = dayCache[ck];
+  const hasLive = c && c.events.some(e => evState(e) === "in");
+  const ttl = hasLive ? 40000 : nearToday ? 120000 : 600000;
+  if(!force && c && Date.now() - c.at < ttl) return;
+  const slugs = [lg.slug].concat(lg.qual ? [lg.qual] : []);
+  try{
+   const results = await Promise.all(slugs.map(s => jget(API + s + "/scoreboard?dates=" + rangeParam(day, 1, 1))));
+   const evs = [];
+   results.forEach((j, si) => { (j && j.events || []).forEach(e => { if(si > 0) e._gkQual = 1; evs.push(e); }); });
+   dayCache[ck] = {at: Date.now(), events: evs};
+  }catch(_){ anyFail = true; /* keep last-good cache untouched */ }
+ }));
+ return anyFail;
+}
 let _dayInflight = null, _dayInflightDay = 0;
 async function loadDay(force){
  const day = selDay;
  if(_dayInflight && _dayInflightDay === day && !force) return _dayInflight;
  const seq = ++dayLoadSeq;
  const p = (async () => {
-  const tk = todayKey();
-  const nearToday = day === tk || day === addDaysKey(tk, -1);
-  let anyFail = false;
-  await Promise.all(LEAGUES.map(async lg => {
-   const ck = lg.id + "|" + day;
-   const c = dayCache[ck];
-   const hasLive = c && c.events.some(e => evState(e) === "in");
-   const ttl = hasLive ? 40000 : nearToday ? 120000 : 600000;
-   if(!force && c && Date.now() - c.at < ttl) return;
-   const slugs = [lg.slug].concat(lg.qual ? [lg.qual] : []);
-   try{
-    const results = await Promise.all(slugs.map(s => jget(API + s + "/scoreboard?dates=" + rangeParam(day, 1, 1))));
-    const evs = [];
-    results.forEach((j, si) => { (j && j.events || []).forEach(e => { if(si > 0) e._gkQual = 1; evs.push(e); }); });
-    dayCache[ck] = {at: Date.now(), events: evs};
-   }catch(_){ anyFail = true; /* keep last-good cache untouched */ }
-  }));
+  const anyFail = await fetchDayInto(day, force);
   if(seq !== dayLoadSeq || view !== "home" || selDay !== day) return;
   dayFailed = anyFail;
   paintHome();
@@ -857,7 +973,7 @@ function crestHtml(team){
  if(!url) return '<span class="crestfb">' + ini + "</span>";
  return '<img class="crest" src="' + esc(url) + '" alt="" loading="lazy" onerror="this.style.display=\'none\';if(this.nextElementSibling)this.nextElementSibling.style.display=\'flex\'"><span class="crestfb" style="display:none">' + ini + "</span>";
 }
-function teamName(c){ const tm = c && c.team || {}; return tm.shortDisplayName || tm.displayName || tm.name || "?"; }
+function teamName(c){ return clubAr(c && c.team || {}); }
 function mrow(e, lg){
  const comp = e.competitions && e.competitions[0] || {};
  const cs = comp.competitors || [];
@@ -884,6 +1000,7 @@ function mrow(e, lg){
   if(sh) sub += " · " + esc(t("pens")) + ' <span dir="ltr">' + sh + "</span>";
  }
  if(e._gkQual) sub += " · " + esc(t("qualTag"));
+ if(s === "in" || (s === "post" && !vk)) sub += ' · <span class="dhint">' + esc(t("details")) + "</span>"; /* goals/cards timeline lives in the tap-modal */
  return '<button type="button" class="mrow" data-eid="' + esc(e.id) + '" onclick="openMatch(this.dataset.eid)">' +
   '<span class="tm tmh">' + '<i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + "</span>" +
   '<span class="mid">' + mid + '<span class="msub">' + sub + "</span></span>" +
@@ -944,6 +1061,31 @@ function paintHome(){
   }
  }
  $("mlist").innerHTML = h;
+ renderLiveStrip();
+ renderClubHero();
+}
+/* LIVE NOW: today's in-play matches across ALL leagues, visible whatever day is being browsed */
+function renderLiveStrip(){
+ const el = $("liveStrip");
+ if(!el) return;
+ const tk = todayKey();
+ const chips = [];
+ for(const lg of LEAGUES){
+  const evs = eventsFor(lg, tk) || [];
+  for(const e of evs){
+   if(evState(e) !== "in" || voidedKey(e)) continue;
+   const comp = e.competitions && e.competitions[0] || {};
+   const cs = comp.competitors || [];
+   const H = cs.find(c => c.homeAway === "home") || cs[0] || {}, A = cs.find(c => c.homeAway === "away") || cs[1] || {};
+   EV_INDEX[e.id] = e;
+   const clock = isHT(e) ? t("ht") : ((e.status && e.status.displayClock) || "");
+   chips.push('<button type="button" class="lvchip" data-eid="' + esc(e.id) + '" onclick="openMatch(this.dataset.eid)"><span class="lvdot"></span>' +
+    esc(teamName(H)) + ' <span class="lvsc" dir="ltr">' + scoreTxt(H, A) + "</span> " + esc(teamName(A)) +
+    ' <span dir="ltr">' + esc(clock) + "</span></button>");
+  }
+ }
+ el.innerHTML = chips.join("");
+ el.classList.toggle("hide", !chips.length);
 }
 function setChip(c){ chip = c; paintHome(); }
 function toggleFold(id, btn){
@@ -1126,7 +1268,7 @@ function tableHtml(j){
   const rank = r.rank || i + 1;
   const gdN = Number(r.gd) || 0;
   h += '<div class="trow ' + zoneCls(lg, rank) + '"><span class="tpos" dir="ltr">' + rank + "</span>" +
-   '<span class="ttm">' + crestHtml(r.team) + "<i>" + esc(r.team.shortDisplayName || r.team.displayName || "") + "</i></span>" +
+   '<span class="ttm">' + crestHtml(r.team) + "<i>" + esc(clubAr(r.team)) + "</i></span>" +
    '<span class="tnum" dir="ltr">' + esc(r.p == null ? "-" : r.p) + '</span><span class="tnum" dir="ltr">' + esc(r.w == null ? "-" : r.w) + '</span><span class="tnum" dir="ltr">' + esc(r.d == null ? "-" : r.d) + '</span><span class="tnum" dir="ltr">' + esc(r.l == null ? "-" : r.l) + "</span>" +
    '<span class="tnum tgf" dir="ltr">' + esc(r.gf == null ? "-" : r.gf) + '</span><span class="tnum tga" dir="ltr">' + esc(r.ga == null ? "-" : r.ga) + "</span>" +
    '<span class="tgd" dir="ltr">' + (gdN > 0 ? "+" + gdN : gdN) + "</span>" +
@@ -1177,7 +1319,7 @@ function leadersCard(cat, titleKey, icon, which){
  for(let i = 0; i < list.length; i++){
   const L = list[i];
   const a = L.athlete || {};
-  const teamNm = (a.team && (a.team.shortDisplayName || a.team.displayName)) || "";
+  const teamNm = a.team ? clubAr(a.team) : "";
   h += '<div class="srow"><span class="srank' + (i < 3 ? " top" : "") + '" dir="ltr">' + (i + 1) + "</span>" +
    '<span class="sname"><b>' + esc(a.displayName || "?") + "</b><span>" + esc(teamNm) + "</span></span>" +
    '<span class="sval" dir="ltr">' + esc(Math.round(Number(L.value) || 0)) + "</span></div>";
@@ -1187,7 +1329,7 @@ function leadersCard(cat, titleKey, icon, which){
 }
 function heroTile(L, capKey, acc){
  const a = L.athlete || {};
- return '<div class="htile" style="--hacc:' + acc + '"><div class="hcap">' + esc(t(capKey)) + '</div><div class="hname">' + esc(a.displayName || "?") + '</div><div class="hteam">' + esc((a.team && (a.team.shortDisplayName || a.team.displayName)) || "") + '</div><div class="hnum" dir="ltr">' + esc(Math.round(Number(L.value) || 0)) + "</div></div>";
+ return '<div class="htile" style="--hacc:' + acc + '"><div class="hcap">' + esc(t(capKey)) + '</div><div class="hname">' + esc(a.displayName || "?") + '</div><div class="hteam">' + esc(a.team ? clubAr(a.team) : "") + '</div><div class="hnum" dir="ltr">' + esc(Math.round(Number(L.value) || 0)) + "</div></div>";
 }
 function statsHtml(j){
  const cats = (j && j.stats) || [];
@@ -1333,6 +1475,11 @@ function updateAuthUI(){
  $("auUser").placeholder = t("username");
  $("auPass").placeholder = t("password");
  $("auPass").setAttribute("autocomplete", _am === "C" ? "new-password" : "current-password");
+ const cSel = $("auClub");
+ if(cSel){
+  cSel.style.display = _am === "C" ? "" : "none";
+  if(_am === "C") buildClubOptions(cSel);
+ }
  $("auGo").textContent = _am === "C" ? t("createAcc") : t("login");
  $("auNote").textContent = t("authNote");
  $("auErrBox").classList.add("hide");
@@ -1359,6 +1506,8 @@ async function doAuth(){
    if(accts[k]) return auShowErr(t("authTaken"));
    const a = {uid:"g" + Math.random().toString(36).slice(2, 10), username:u, salt:Math.random().toString(36).slice(2, 10), hash:"", ts:Date.now()};
    a.hash = await sha256(a.salt + p);
+   const pickedClub = clubFromSelValue(($("auClub") || {}).value || "");
+   if(pickedClub) a.club = pickedClub;
    let saved = false, seen = 0;
    try{ seen = +localStorage.getItem("gk_acct_seen") || 0; }catch(_){}
    const cnt0 = Object.keys(accts).length;
@@ -1389,14 +1538,22 @@ function finishAuth(a){
  try{ localStorage.setItem("gk_user", JSON.stringify(gkUser)); }catch(_){}
  myPreds = {};
  try{ localStorage.removeItem("gk_preds"); }catch(_){}
+ if(a.club && a.club.id){
+  myClub = {id:String(a.club.id), n:a.club.n, s:a.club.s, lg:a.club.lg};
+  try{ localStorage.setItem("gk_club", JSON.stringify(myClub)); }catch(_){}
+  _clubSched = null;
+ }
  closeAuth();
  syncMyPreds();
  savePushSub(); /* attach uid/name to an existing push subscription */
+ refreshHdrAuth();
+ renderClubHero(true);
  renderPred();
 }
 function signOut(){
  gkUser = null; myPreds = {};
  try{ localStorage.removeItem("gk_user"); localStorage.removeItem("gk_preds"); }catch(_){}
+ refreshHdrAuth();
  renderPred();
 }
 async function syncMyPreds(){
@@ -1488,7 +1645,7 @@ function renderPred(){
  if(!gkUser){
   top.innerHTML = '<div class="authcard"><div class="autxt">🎯 ' + esc(t("predSignInMsg")) + '</div><button type="button" class="retrybtn" onclick="openAuth(\'C\')">' + esc(t("joinBtn")) + "</button></div>";
  } else {
-  top.innerHTML = '<div class="userchip">👤 <b>' + esc(gkUser.username) + '</b><button type="button" class="signout" onclick="signOut()">' + esc(t("signOut")) + "</button></div>";
+  top.innerHTML = '<div class="userchip">👤 <b>' + esc(gkUser.username) + "</b>" + (myClub ? ' <span class="uclub">⭐ ' + esc(clubLabel(myClub)) + "</span>" : "") + '<button type="button" class="signout" onclick="signOut()">' + esc(t("signOut")) + "</button></div>";
  }
  $("ptabs").innerHTML =
   '<button type="button" class="ltab' + (predTab === "M" ? " on" : "") + '" onclick="setPredTab(\'M\')">' + esc(t("predictTab")) + "</button>" +
@@ -1609,7 +1766,7 @@ async function renderLeaderboard(){
    const u = users[i];
    let pts = 0, exact = 0;
    if(pk && pk.p) for(const eid in pk.p){ const e = doneMap[eid]; if(!e) continue; const s = scorePredGk(pk.p[eid], e); pts += s; if(s === 3) exact++; }
-   return {name:u.username, uid:u.uid, pts, exact};
+   return {name:u.username, uid:u.uid, pts, exact, club:u.club || null};
   });
   rows.sort((a, b) => b.pts - a.pts || b.exact - a.exact || String(a.name).localeCompare(String(b.name)));
   lbCache = {at:Date.now(), rows};
@@ -1624,7 +1781,7 @@ function lbHtml(rows){
  let h = '<div class="statcard"><div class="stath"><span class="ic">🏆</span>' + esc(t("leaderboard")) + "</div>";
  rows.slice(0, 50).forEach((r, i) => {
   h += '<div class="srow' + (gkUser && r.uid === gkUser.uid ? " meRow" : "") + '"><span class="srank' + (i < 3 ? " top" : "") + '">' + (medals[i] || (i + 1)) + "</span>" +
-   '<span class="sname"><b>' + esc(r.name) + "</b><span>" + esc(t("exactLabel")) + ' <span dir="ltr">' + r.exact + "</span></span></span>" +
+   '<span class="sname"><b>' + esc(r.name) + "</b><span>" + (r.club ? "⭐ " + esc(clubAr({shortDisplayName:r.club.s, displayName:r.club.n})) + " · " : "") + esc(t("exactLabel")) + ' <span dir="ltr">' + r.exact + "</span></span></span>" +
    '<span class="sval" dir="ltr">' + r.pts + "</span></div>";
  });
  return h + "</div>";
@@ -1639,6 +1796,113 @@ function toastMsg(msg){
  _toastTimer = setTimeout(() => { el.style.display = "none"; }, 2600);
 }
 $("authModal").addEventListener("click", function(ev){ if(ev.target === this) closeAuth(); });
+
+/* ============ favourite club (the WC app's "nation", reborn) ============ */
+let myClub = null;
+try{ myClub = JSON.parse(localStorage.getItem("gk_club") || "null"); }catch(_){}
+let _teamsCache = null;
+async function ensureTeams(){
+ if(_teamsCache) return _teamsCache;
+ try{
+  const stored = JSON.parse(localStorage.getItem("gk_teams_v1") || "null");
+  if(stored && stored.at && Date.now() - stored.at < 7 * 86400000 && stored.lgs){ _teamsCache = stored.lgs; return _teamsCache; }
+ }catch(_){}
+ const out = {};
+ /* team lists come from the STANDINGS feed: ESPN's /teams endpoint has no CORS header in browsers */
+ await Promise.all(LEAGUES.filter(l => !l.uefa).map(async l => {
+  try{
+   const j = await jget(STAND + l.slug + "/standings");
+   const entries = ((j && j.children && j.children[0] && j.children[0].standings && j.children[0].standings.entries) || []);
+   out[l.id] = entries.map(en => en && en.team).filter(Boolean).map(tm => ({id:String(tm.id), n:tm.displayName || tm.shortDisplayName || "", s:tm.shortDisplayName || tm.displayName || ""}));
+  }catch(_){ out[l.id] = []; }
+ }));
+ _teamsCache = out;
+ try{ localStorage.setItem("gk_teams_v1", JSON.stringify({at:Date.now(), lgs:out})); }catch(_){}
+ return out;
+}
+function clubLabel(c){ return c ? clubAr({shortDisplayName:c.s, displayName:c.n}) : t("noClub"); }
+async function buildClubOptions(sel){
+ if(!sel) return;
+ const lgs = await ensureTeams();
+ let h = '<option value="">' + esc(t("noClub")) + "</option>";
+ for(const l of LEAGUES){
+  if(l.uefa || !lgs[l.id] || !lgs[l.id].length) continue;
+  const sorted = lgs[l.id].slice().sort((a, b) => clubAr({shortDisplayName:a.s, displayName:a.n}).localeCompare(clubAr({shortDisplayName:b.s, displayName:b.n}), LANG === "ar" ? "ar" : "en"));
+  h += '<optgroup label="' + esc(lgName(l)) + '">' + sorted.map(tm =>
+   '<option value="' + esc(l.id + "|" + tm.id) + '"' + (myClub && myClub.id === tm.id ? " selected" : "") + ">" + esc(clubAr({shortDisplayName:tm.s, displayName:tm.n})) + "</option>").join("") + "</optgroup>";
+ }
+ sel.innerHTML = h;
+}
+function findTeam(lgId, teamId){ const list = _teamsCache && _teamsCache[lgId] || []; return list.find(x => x.id === String(teamId)) || null; }
+function clubFromSelValue(v){
+ if(!v) return null;
+ const parts = v.split("|");
+ const tm = findTeam(parts[0], parts[1]);
+ return tm ? {id:tm.id, n:tm.n, s:tm.s, lg:parts[0]} : null;
+}
+async function setClubFromSel(sel){
+ myClub = clubFromSelValue(sel.value);
+ try{ if(myClub) localStorage.setItem("gk_club", JSON.stringify(myClub)); else localStorage.removeItem("gk_club"); }catch(_){}
+ _clubSched = null;
+ renderClubHero(true);
+ saveClubToAccount();
+ toastMsg(t("clubSaved"));
+}
+async function saveClubToAccount(){
+ if(!gkUser) return;
+ const k = gkUser.username.toLowerCase();
+ for(let i = 0; i < 2; i++){
+  try{
+   const accts = await tdbRead(ACCT_KEY, null);
+   if(!accts || typeof accts !== "object" || !accts[k]) return;
+   accts[k].club = myClub ? {id:myClub.id, n:myClub.n, s:myClub.s, lg:myClub.lg} : null;
+   await tdbWrite(ACCT_KEY, accts);
+   return;
+  }catch(_){ await sleep(300); }
+ }
+}
+let _clubSched = null;
+async function renderClubHero(force){
+ const el = $("clubHero");
+ if(!el) return;
+ if(!myClub){ el.innerHTML = ""; return; }
+ if(!force && _clubSched && Date.now() - _clubSched.at < 6 * 3600000){ paintClubHero(); return; }
+ try{
+  const lg = LEAGUES.find(l => l.id === myClub.lg);
+  if(!lg){ el.innerHTML = ""; return; }
+  /* next fixture from the CORS-open scoreboard feed (the /schedule endpoint has no CORS header) */
+  const j = await jget(API + lg.slug + "/scoreboard?dates=" + rangeParam(todayKey(), 0, 30));
+  const evs = ((j && j.events) || []).filter(e => {
+   if(!e || !e.date || voidedKey(e) || evState(e) === "post") return false;
+   const cs = (e.competitions && e.competitions[0] && e.competitions[0].competitors) || [];
+   return cs.some(c => c && c.team && String(c.team.id) === String(myClub.id));
+  });
+  evs.sort((a, b) => new Date(a.date) - new Date(b.date));
+  _clubSched = {at:Date.now(), ev:evs[0] || null};
+ }catch(_){ if(!_clubSched) return; /* keep last-good hero on transient failure */ }
+ paintClubHero();
+}
+function paintClubHero(){
+ const el = $("clubHero");
+ if(!el) return;
+ const e = _clubSched && _clubSched.ev;
+ if(!e){ el.innerHTML = ""; return; }
+ const comp = e.competitions && e.competitions[0] || {};
+ const cs = comp.competitors || [];
+ const H = cs.find(c => c.homeAway === "home") || cs[0] || {}, A = cs.find(c => c.homeAway === "away") || cs[1] || {};
+ EV_INDEX[e.id] = e;
+ el.innerHTML = '<button type="button" class="clubhero" data-eid="' + esc(e.id) + '" onclick="openMatch(this.dataset.eid)">' +
+  '<div class="chcap">⭐ ' + esc(t("clubNext")) + "</div>" +
+  '<div class="chtm"><span class="tm tmh"><i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + '</span><span class="mtime" dir="ltr">' + esc(fmtTime(e.date)) + '</span><span class="tm tma">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span></div>" +
+  '<div class="chsub">' + esc(fmtDayFull(dkey(new Date(e.date)))) + "</div></button>";
+}
+function hdrAuthTap(){ if(gkUser) showMain("pred"); else openAuth("L"); }
+function refreshHdrAuth(){
+ const b = $("hdrAuth");
+ if(b){ b.innerHTML = gkUser ? '👤 <span class="han">' + esc(gkUser.username) + "</span>" : "👤"; b.title = gkUser ? gkUser.username : t("login"); }
+ const ab = $("shAcctBtn");
+ if(ab) ab.textContent = gkUser ? gkUser.username : t("login");
+}
 
 /* ============ push notifications (client) ============ */
 const GK_VAPID_PUBLIC = "BLyDli3t0W8TTo9gL7s4ibxgVJY6_ism0HIyn8DymerLNs1Bs9mo5ct5i_wti8NNUQ_pfXxMXXZfJKdg1Gc02RM";
@@ -1767,6 +2031,7 @@ setInterval(function(){
   /* keep refreshing yesterday too: late European kickoffs cross local midnight while still live */
   const tk = todayKey();
   if(selDay === tk || selDay === addDaysKey(tk, -1)) loadDay(false);
+  else fetchDayInto(tk, false).then(function(){ if(view === "home" && mainView === "scores") renderLiveStrip(); }); /* LIVE strip stays fresh while browsing other days */
  }
  else if(view === "lg" && lgTab === "M") renderLgMatches();
 }, 45000);
