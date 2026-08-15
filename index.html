@@ -4,12 +4,26 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Goallak · الجول جولك</title>
-<meta name="description" content="Goallak · الجول جولك · live scores, fixtures, tables and stats for the top football leagues">
+<meta name="description" content="Live scores and predictions for top leagues and the UEFA Champions League. Fantasy coming soon!">
 <link rel="canonical" href="https://goallak.com/">
+<meta property="og:site_name" content="Goallak">
 <meta property="og:title" content="Goallak · الجول جولك">
-<meta property="og:description" content="Live scores, fixtures, tables and stats for the top football leagues">
+<meta property="og:description" content="Live scores and predictions for top leagues and the UEFA Champions League. Fantasy coming soon!">
 <meta property="og:url" content="https://goallak.com/">
 <meta property="og:type" content="website">
+<meta property="og:locale" content="ar_AE">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://goallak.com/goallak-social-cover.png">
+<meta property="og:image:secure_url" content="https://goallak.com/goallak-social-cover.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1731">
+<meta property="og:image:height" content="909">
+<meta property="og:image:alt" content="GOALLAK · الجول جولك">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Goallak · الجول جولك">
+<meta name="twitter:description" content="Live scores and predictions for top leagues and the UEFA Champions League. Fantasy coming soon!">
+<meta name="twitter:image" content="https://goallak.com/goallak-social-cover.png">
+<meta name="twitter:image:alt" content="GOALLAK · الجول جولك">
 <meta name="theme-color" content="#0a1230">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -416,9 +430,9 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <body>
 <div id="app">
  <header class="gkhead">
-  <div class="gklogo"><img id="logoImg" src="logo-head.svg" alt="Goallak"></div>
+  <div class="gklogo"><img id="logoImg" src="logo-head.svg" alt="جولك"></div>
   <div class="gktit">
-   <span class="gkname">GOAL<b>LAK</b></span>
+   <span class="gkname" id="brandName"><span id="brandMain">جول</span><b id="brandAccent">ك</b></span>
    <span class="gkmotto" id="motto">الجول جولك</span>
   </div>
   <span class="gkspacer"></span>
@@ -438,7 +452,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <div class="shrow"><span class="shlab" id="shClock">نظام الوقت</span><div class="seg" role="radiogroup" aria-labelledby="shClock"><button type="button" id="h12b" class="on" onclick="setHour12(true)">AM·PM</button><button type="button" id="h24b" onclick="setHour12(false)">24H</button></div></div>
   <div class="shrow"><span class="shlab" id="shLang">اللغة</span><div class="seg" role="radiogroup" aria-labelledby="shLang"><button type="button" id="lgEn" onclick="setLang('en')">EN</button><button type="button" id="lgAr" class="on" onclick="setLang('ar')">عربي</button></div></div>
   <div class="shrow"><span class="shlab" id="shTheme">🌓 المظهر</span><div class="seg" role="radiogroup" aria-labelledby="shTheme"><button type="button" id="thD" class="on" onclick="setTheme('dark')">داكن</button><button type="button" id="thL" onclick="setTheme('light')">فاتح</button></div></div>
-  <div class="shver">GOALLAK · v2.0 · الجول جولك</div>
+  <div class="shver" id="shVer">جولك · v2.1 · الجول جولك</div>
  </div>
 
  <nav class="rail" id="rail" aria-label="Leagues"></nav>
@@ -471,7 +485,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <section id="fantPane" class="hide">
    <div class="fantsoon">
     <div class="fbig">⭐</div>
-    <div class="fttl">GOALLAK FANTASY</div>
+    <div class="fttl" id="fantBrand">فانتازي جولك</div>
     <div class="fsoon" id="fantSoon">قريبًا…</div>
    </div>
   </section>
@@ -488,7 +502,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b>GOALLAK</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN</span> · <span id="appVer">v2.0</span></footer>
+ <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN</span> · <span id="appVer">v2.1</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -506,7 +520,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <input class="auinp" id="auUser" autocomplete="username" maxlength="18">
   <input class="auinp" id="auPass" type="password" autocomplete="current-password" maxlength="40">
   <select class="auinp" id="auClub"></select>
-  <div class="auerr hide" id="auErrBox"></div>
+   <div class="auerr hide" id="auErrBox" role="alert" aria-live="polite"></div>
   <button type="button" class="retrybtn aubtn" id="auGo" onclick="doAuth()">تأكيد</button>
   <div class="aunote" id="auNote"></div>
  </div>
@@ -541,7 +555,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <script>
 "use strict";
 /* ============ GOALLAK · الجول جولك ============ */
-const APP_VERSION = "2.0";
+const APP_VERSION = "2.1";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 
@@ -658,6 +672,8 @@ let TZ = (function(){ try{ const v = localStorage.getItem("gk_tz"); return (v &&
 let H12 = (function(){ try{ return localStorage.getItem("gk_h12") !== "0"; }catch(_){ return true; } })();
 let THEME = (function(){ try{ return localStorage.getItem("gk_theme") || "dark"; }catch(_){ return "dark"; } })();
 const STR = {
+ brand:["جولك","GOALLAK"],
+ fantasyBrand:["فانتازي جولك","GOALLAK FANTASY"],
  motto:["الجول جولك","El Goal Goallak"],
  footNote:["تطبيق غير رسمي · البيانات من ESPN","Unofficial fan app · Data: ESPN"],
  loading:["جارٍ التحميل…","Loading…"],
@@ -734,7 +750,7 @@ const STR = {
  authBadUser:["اسم المستخدم من 2 إلى 18 حرفًا","Username must be 2-18 characters"],
  authBadPass:["كلمة السر 4 أحرف على الأقل","Password: at least 4 characters"],
  authNet:["تعذر الوصول للخادم · حاول مرة أخرى","Can't reach the server · try again"],
- authNoUser:["لا يوجد حساب بهذا الاسم · أنشئ حسابًا؟","No such username · create an account?"],
+ authNoUser:["اسم المستخدم غير صحيح · حاول مرة أخرى","Wrong username · try again"],
  authWrongPass:["كلمة السر غير صحيحة","Wrong password · try again"],
  authTaken:["الاسم مستخدم · جرّب تسجيل الدخول","Username taken · try logging in"],
  authSaveFail:["تعذر الحفظ · حاول مرة أخرى","Save failed · try again"],
@@ -880,6 +896,15 @@ let dayLoadSeq = 0;         // guards out-of-order day renders
 let dayFailed = false;      // last loadDay had >=1 failed league (drives the stale bar)
 
 /* ============ language ============ */
+function refreshBrandUI(){
+ $("brandMain").textContent = LANG === "ar" ? "جول" : "GOAL";
+ $("brandAccent").textContent = LANG === "ar" ? "ك" : "LAK";
+ $("logoImg").alt = t("brand");
+ $("footBrand").textContent = t("brand");
+ $("shVer").textContent = t("brand") + " · v" + APP_VERSION + " · " + t("motto");
+ $("fantBrand").textContent = t("fantasyBrand");
+ document.title = t("brand") + " · " + t("motto");
+}
 function setLang(x){
  if(x !== "ar" && x !== "en") return;
  LANG = x;
@@ -888,6 +913,7 @@ function setLang(x){
  document.documentElement.dir = x === "ar" ? "rtl" : "ltr";
  $("lgEn").classList.toggle("on", x === "en");
  $("lgAr").classList.toggle("on", x === "ar");
+ refreshBrandUI();
  $("motto").textContent = t("motto");
  $("footMotto").textContent = t("motto");
  $("footNote").textContent = t("footNote");
@@ -2528,6 +2554,7 @@ document.addEventListener("visibilitychange", function(){
  document.documentElement.dir = LANG === "ar" ? "rtl" : "ltr";
  $("lgEn").classList.toggle("on", LANG === "en");
  $("lgAr").classList.toggle("on", LANG === "ar");
+ refreshBrandUI();
  $("motto").textContent = t("motto");
  $("footMotto").textContent = t("motto");
  $("footNote").textContent = t("footNote");
