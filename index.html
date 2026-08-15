@@ -169,6 +169,7 @@ html[data-theme="light"] .ico-sun{display:none}
 .msub{font-size:9.5px;color:var(--dim2);font-weight:700;letter-spacing:.4px}
 .msub .lvm{color:var(--red)}
 .tvch{display:block;max-width:110px;margin:2px auto 0;color:var(--gold);font-size:9.5px;font-weight:800;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tvch.unconfirmed{color:var(--dim2);font-weight:700}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
 .lvdot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--red);animation:pulse 1.4s infinite;vertical-align:middle;margin-inline-end:3px}
 
@@ -472,7 +473,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <div class="shrow"><span class="shlab" id="shClock">نظام الوقت</span><div class="seg" role="radiogroup" aria-labelledby="shClock"><button type="button" id="h12b" class="on" onclick="setHour12(true)">AM·PM</button><button type="button" id="h24b" onclick="setHour12(false)">24H</button></div></div>
   <div class="shrow"><span class="shlab" id="shLang">اللغة</span><div class="seg" role="radiogroup" aria-labelledby="shLang"><button type="button" id="lgEn" onclick="setLang('en')">EN</button><button type="button" id="lgAr" class="on" onclick="setLang('ar')">عربي</button></div></div>
   <div class="shrow"><span class="shlab" id="shTheme">🌓 المظهر</span><div class="seg" role="radiogroup" aria-labelledby="shTheme"><button type="button" id="thD" class="on" onclick="setTheme('dark')">داكن</button><button type="button" id="thL" onclick="setTheme('light')">فاتح</button></div></div>
-  <div class="shver" id="shVer">جولك · v2.4 · الجول جولك</div>
+  <div class="shver" id="shVer">جولك · v2.5 · الجول جولك</div>
  </div>
 
  <nav class="rail" id="rail" aria-label="Leagues"></nav>
@@ -522,7 +523,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN وFilGoal</span> · <span id="appVer">v2.4</span></footer>
+ <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="footNote">تطبيق غير رسمي · البيانات من ESPN وFilGoal</span> · <span id="appVer">v2.5</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -575,7 +576,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <script>
 "use strict";
 /* ============ GOALLAK · الجول جولك ============ */
-const APP_VERSION = "2.4";
+const APP_VERSION = "2.5";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -834,6 +835,7 @@ const STR = {
   chatReconnectBtn:["توصيل الدردشة","Reconnect chat"],
   tvChannel:["القناة","TV channel"],
   tvBroadcaster:["الناقل","Broadcaster"],
+  tvUnconfirmed:["القناة غير مؤكدة","Channel not confirmed"],
   tvSource:["المصدر","Source"],
   predHeroTitle:["توقع مباريات الأبطال واكسب النقاط","Predict the Champions League & earn points"],
  predComp:["توقعات دوري أبطال أوروبا","Champions League Predictions"],
@@ -1241,8 +1243,7 @@ function broadcastFor(e, lg){
  };
  const right = pack.rights && pack.rights[lg.id];
  if(right && right.broadcaster) return {
-  channel:String(right.broadcaster).slice(0, 120), exact:false,
-  source:String(right.source || ""), sourceUrl:safeTvUrl(right.sourceUrl)
+  channel:"", exact:false, rightsOnly:true
  };
  return null;
 }
@@ -1275,7 +1276,10 @@ function mrow(e, lg){
  if(e._gkQual) sub += " · " + esc(t("qualTag"));
  if(s === "in" || (s === "post" && !vk)) sub += ' · <span class="dhint">' + esc(t("details")) + "</span>"; /* goals/cards timeline lives in the tap-modal */
  const tv = broadcastFor(e, lg);
- if(tv && !vk) sub += '<span class="tvch" title="' + esc((tv.exact ? t("tvChannel") : t("tvBroadcaster")) + ": " + tv.channel) + '">📺 <span dir="ltr">' + esc(tv.channel) + "</span></span>";
+ if(tv && !vk){
+  const tvText = tv.exact ? tv.channel : t("tvUnconfirmed");
+  sub += '<span class="tvch' + (tv.exact ? "" : " unconfirmed") + '" title="' + esc(tv.exact ? t("tvChannel") + ": " + tv.channel : t("tvUnconfirmed")) + '">📺 <span' + (tv.exact ? ' dir="ltr"' : "") + '>' + esc(tvText) + "</span></span>";
+ }
  return '<button type="button" class="mrow" data-eid="' + esc(e.id) + '" onclick="openMatch(this.dataset.eid)">' +
   '<span class="tm tmh">' + '<i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + "</span>" +
   '<span class="mid">' + mid + '<span class="msub">' + sub + "</span></span>" +
@@ -1669,8 +1673,10 @@ function openMatch(eid){
  if(e._gkQual) meta += " · " + esc(t("qualTag"));
  if(venue) meta += "<br>" + esc(t("venue")) + ": " + esc(venue);
  if(tv){
-  meta += '<br><span class="tvmeta">📺 ' + esc(tv.exact ? t("tvChannel") : t("tvBroadcaster")) + ': <b dir="ltr">' + esc(tv.channel) + "</b></span>";
-  if(tv.sourceUrl) meta += '<a class="tvsource" href="' + esc(tv.sourceUrl) + '" target="_blank" rel="noopener noreferrer">' + esc(t("tvSource") + ": " + tv.source) + "</a>";
+  if(tv.exact){
+   meta += '<br><span class="tvmeta">📺 ' + esc(t("tvChannel")) + ': <b dir="ltr">' + esc(tv.channel) + "</b></span>";
+   if(tv.sourceUrl) meta += '<a class="tvsource" href="' + esc(tv.sourceUrl) + '" target="_blank" rel="noopener noreferrer">' + esc(t("tvSource") + ": " + tv.source) + "</a>";
+  } else meta += '<br><span class="tvmeta">📺 ' + esc(t("tvUnconfirmed")) + "</span>";
  }
  const dets = (comp.details || []).slice().sort((x, y) => {
   const xv = x.clock && x.clock.value || 0, yv = y.clock && y.clock.value || 0;
