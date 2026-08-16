@@ -302,8 +302,8 @@ html[data-theme="light"] .motm .msb,html[data-theme="light"] .motm .mtag{color:#
 .pitch svg{position:absolute;inset:0;width:100%;height:100%}
 .pchip{position:absolute;transform:translate(-50%,-50%);width:19%;text-align:center;z-index:2;background:none;border:none;padding:0;cursor:pointer}
 .pnum{width:26px;height:26px;margin:0 auto;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;color:#fff;border:1.5px solid rgba(255,255,255,.75);box-shadow:0 1px 3px rgba(0,0,0,.5)}
-.pname{display:block;font-size:8.5px;color:#fff;margin-top:2px;line-height:1.1;text-shadow:0 1px 2px rgba(0,0,0,.95);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pname .pic{font-size:7.5px;letter-spacing:-1px}
+.gkPname{display:block;font-size:8.5px;color:#fff;margin-top:2px;line-height:1.1;text-shadow:0 1px 2px rgba(0,0,0,.95);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gkPname .pic{font-size:7.5px;letter-spacing:-1px}
 .prate{position:absolute;top:-7px;inset-inline-start:58%;min-width:19px;height:15px;border-radius:4px;font-weight:900;font-size:9.5px;color:#0d1533;display:flex;align-items:center;justify-content:center;padding:0 2px;z-index:4;box-shadow:0 1px 2px rgba(0,0,0,.6)}
 .prate.rhi{background:#37d27f}.prate.rmd{background:#9fd957}.prate.rok{background:#e8c552}.prate.rlo{background:#dd8a55}
 .lnform{display:flex;justify-content:space-between;gap:8px;padding:10px 2px 8px;font-size:12px;font-weight:800;color:var(--gold)}
@@ -366,7 +366,7 @@ html[dir="rtl"] .tlside.r{text-align:right}
 /* while a sheet is open the page underneath must not move at all */
 body.gk-lock{overflow:hidden}
 @media(min-width:520px){.mbox{border-radius:18px}}
-.mx{position:sticky;top:0;float:inline-end;background:var(--card2);border-radius:50%;width:30px;height:30px;font-size:15px;color:var(--dim)}
+.mx{position:sticky;top:0;z-index:40;float:inline-end;background:var(--card2);border-radius:50%;width:30px;height:30px;font-size:15px;color:var(--dim)}
 .mvs{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:6px 0 4px}
 .mvt{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
 .mvt img,.mvt .crestfb{width:44px;height:44px}
@@ -482,7 +482,7 @@ html[data-theme="light"] .bnav{background:linear-gradient(180deg,#ffffff,#e8edf8
 .pod.p3 .pava{border-color:#c9803a}
 .pod .pcrown{position:absolute;top:-19px;inset-inline:0;text-align:center;font-size:17px}
 .pod .prank{font-size:10px;font-weight:900;color:var(--dim2)}
-.pod .pname{font-size:12px;font-weight:800;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pod .pname{font-size:12px;font-weight:800;color:var(--txt);text-shadow:none;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pod.p1 .pname{font-size:13.5px;color:var(--gold)}
 .pod .ppts{font-size:15px;font-weight:900;color:var(--gold)}
 .pod .pclub{font-size:9.5px;color:var(--dim2);max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -673,7 +673,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <div class="shrow"><span class="shlab" id="shClock">نظام الوقت</span><div class="seg" role="radiogroup" aria-labelledby="shClock"><button type="button" id="h12b" class="on" onclick="setHour12(true)">AM·PM</button><button type="button" id="h24b" onclick="setHour12(false)">24H</button></div></div>
   <div class="shrow"><span class="shlab" id="shLang">اللغة</span><div class="seg" role="radiogroup" aria-labelledby="shLang"><button type="button" id="lgEn" onclick="setLang('en')">EN</button><button type="button" id="lgAr" class="on" onclick="setLang('ar')">عربي</button></div></div>
   <div class="shrow"><span class="shlab" id="shTheme">🌓 المظهر</span><div class="seg" role="radiogroup" aria-labelledby="shTheme"><button type="button" id="thD" class="on" onclick="setTheme('dark')">داكن</button><button type="button" id="thL" onclick="setTheme('light')">فاتح</button></div></div>
- <div class="shver" id="shVer">جولك · v4.4 · الجول جولك</div>
+ <div class="shver" id="shVer">جولك · v4.5 · الجول جولك</div>
  </section>
 
  <nav class="rail" id="rail" aria-label="Leagues"></nav>
@@ -723,7 +723,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="appVer">v4.4</span></footer>
+ <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="appVer">v4.5</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -782,10 +782,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <script>
 "use strict";
 /* ============ GOALLAK · الجول جولك ============ */
-const APP_VERSION = "4.4";
+const APP_VERSION = "4.5";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-16-v44";
+const FORCE_RELOAD = "2026-08-16-v45";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -918,12 +918,50 @@ const AR_TEAMS = {
  "málaga":"ملقا","malaga":"ملقا","elversberg":"إلفرسبرغ","paderborn":"بادربورن","sc paderborn":"بادربورن",
  "schalke":"شالكه","schalke 04":"شالكه","le havre ac":"لوهافر","le havre":"لوهافر","le mans":"لومان","troyes":"تروا"
 };
-function clubArabic(tm){
+/* National teams. AR_TEAMS holds CLUBS only and contains generic short names ("racing",
+   "sporting", "milan"), so a country must never be looked up there. Ported verbatim from the
+   World Cup app, where these spellings were owner-reviewed over a whole tournament. */
+const AR_NATIONS = {
+ "argentina":"الأرجنتين","france":"فرنسا","spain":"إسبانيا","england":"إنجلترا","brazil":"البرازيل","morocco":"المغرب",
+ "portugal":"البرتغال","netherlands":"هولندا","germany":"ألمانيا","belgium":"بلجيكا","colombia":"كولومبيا","mexico":"المكسيك",
+ "croatia":"كرواتيا","united states":"الولايات المتحدة","usa":"الولايات المتحدة","senegal":"السنغال","japan":"اليابان",
+ "uruguay":"أوروغواي","switzerland":"سويسرا","austria":"النمسا","south korea":"كوريا الجنوبية","korea republic":"كوريا الجنوبية",
+ "australia":"أستراليا","iran":"إيران","türkiye":"تركيا","turkey":"تركيا","norway":"النرويج","ecuador":"الإكوادور",
+ "egypt":"مصر","ivory coast":"ساحل العاج","côte d'ivoire":"ساحل العاج","algeria":"الجزائر","canada":"كندا","sweden":"السويد",
+ "scotland":"اسكتلندا","panama":"بنما","paraguay":"باراغواي","dr congo":"الكونغو الديمقراطية","czechia":"التشيك",
+ "qatar":"قطر","tunisia":"تونس","uzbekistan":"أوزبكستان","saudi arabia":"السعودية","iraq":"العراق","south africa":"جنوب أفريقيا",
+ "bosnia and herzegovina":"البوسنة والهرسك","cape verde":"الرأس الأخضر","ghana":"غانا","jordan":"الأردن","new zealand":"نيوزيلندا",
+ "curacao":"كوراساو","haiti":"هايتي","north korea":"كوريا الشمالية","trinidad and tobago":"ترينيداد وتوباغو",
+ "el salvador":"السلفادور","serbia":"صربيا","bolivia":"بوليفيا","peru":"بيرو","chile":"تشيلي","romania":"رومانيا",
+ "cuba":"كوبا","wales":"ويلز","bulgaria":"بلغاريا","russia":"روسيا","cameroon":"الكاميرون","costa rica":"كوستاريكا",
+ "honduras":"هندوراس","greece":"اليونان","denmark":"الدنمارك","poland":"بولندا","italy":"إيطاليا","nigeria":"نيجيريا",
+ "ukraine":"أوكرانيا","hungary":"المجر","slovakia":"سلوفاكيا","slovenia":"سلوفينيا","albania":"ألبانيا","georgia":"جورجيا",
+ "finland":"فنلندا","iceland":"آيسلندا","ireland":"إيرلندا","republic of ireland":"إيرلندا","northern ireland":"إيرلندا الشمالية",
+ "israel":"إسرائيل","kosovo":"كوسوفو","north macedonia":"مقدونيا الشمالية","montenegro":"الجبل الأسود","armenia":"أرمينيا",
+ "azerbaijan":"أذربيجان","belarus":"بيلاروسيا","estonia":"إستونيا","latvia":"لاتفيا","lithuania":"ليتوانيا","moldova":"مولدوفا",
+ "cyprus":"قبرص","malta":"مالطا","luxembourg":"لوكسمبورغ","kazakhstan":"كازاخستان","uae":"الإمارات","united arab emirates":"الإمارات",
+ "kuwait":"الكويت","bahrain":"البحرين","oman":"عُمان","yemen":"اليمن","syria":"سوريا","lebanon":"لبنان","palestine":"فلسطين",
+ "libya":"ليبيا","sudan":"السودان","mauritania":"موريتانيا","somalia":"الصومال","djibouti":"جيبوتي","comoros":"جزر القمر",
+ "mali":"مالي","burkina faso":"بوركينا فاسو","guinea":"غينيا","gabon":"الغابون","angola":"أنغولا","zambia":"زامبيا",
+ "kenya":"كينيا","uganda":"أوغندا","tanzania":"تنزانيا","zimbabwe":"زيمبابوي","mozambique":"موزمبيق","benin":"بنين",
+ "togo":"توغو","niger":"النيجر","chad":"تشاد","congo":"الكونغو","equatorial guinea":"غينيا الاستوائية","gambia":"غامبيا",
+ "guinea-bissau":"غينيا بيساو","sierra leone":"سيراليون","liberia":"ليبيريا","namibia":"ناميبيا","botswana":"بوتسوانا",
+ "madagascar":"مدغشقر","malawi":"مالاوي","rwanda":"رواندا","burundi":"بوروندي","ethiopia":"إثيوبيا","eritrea":"إريتريا",
+ "china":"الصين","china pr":"الصين","india":"الهند","indonesia":"إندونيسيا","thailand":"تايلاند","vietnam":"فيتنام",
+ "malaysia":"ماليزيا","singapore":"سنغافورة","philippines":"الفلبين","myanmar":"ميانمار","cambodia":"كمبوديا",
+ "jordan ":"الأردن","kyrgyzstan":"قيرغيزستان","tajikistan":"طاجيكستان","turkmenistan":"تركمانستان","afghanistan":"أفغانستان",
+ "pakistan":"باكستان","bangladesh":"بنغلاديش","sri lanka":"سريلانكا","nepal":"نيبال","hong kong":"هونغ كونغ",
+ "venezuela":"فنزويلا","guatemala":"غواتيمالا","jamaica":"جامايكا","nicaragua":"نيكاراغوا","suriname":"سورينام",
+ "guyana":"غيانا","bermuda":"برمودا","fiji":"فيجي","tahiti":"تاهيتي","papua new guinea":"بابوا غينيا الجديدة",
+ "new caledonia":"كاليدونيا الجديدة","solomon islands":"جزر سليمان","vanuatu":"فانواتو","samoa":"ساموا","tonga":"تونغا"
+};
+function clubArabic(tm, isNation){
  if(!tm) return "?";
  const short = tm.shortDisplayName || tm.displayName || tm.name || "?";
- const k1 = String(short).toLowerCase();
- const k2 = String(tm.displayName || "").toLowerCase();
- return AR_TEAMS[k1] || AR_TEAMS[k2] || short;
+ const k1 = String(short).toLowerCase().trim();
+ const k2 = String(tm.displayName || "").toLowerCase().trim();
+ if(isNation) return AR_NATIONS[k1] || AR_NATIONS[k2] || short;
+ return AR_NATIONS[k2] || AR_TEAMS[k1] || AR_TEAMS[k2] || short;
 }
 function clubAr(tm){
  if(!tm) return "?";
@@ -973,13 +1011,13 @@ const STR = {
  goals:["الهدافون","Top scorers"],
  assists:["صناع الأهداف","Top assists"],
  statsSoon:["تتوفر الإحصائيات بعد انطلاق الموسم","Stats will appear once the season starts"],
- lastSeasonData:["البيانات المعروضة عن الموسم الماضي 2025-2026","Showing last season (2025-26) data"],
+ lastSeasonData:["البيانات المعروضة عن الموسم الماضي {S}","Showing last season ({S}) data"],
  installLab:["ثبّت التطبيق على جهازك","Install the app"],
  iosHint:["للتثبيت على الآيفون: افتح الموقع في Safari ثم اضغط زر المشاركة واختر \"إضافة إلى الشاشة الرئيسية\"","On iPhone: open in Safari, tap Share, then choose 'Add to Home Screen'"],
  tableSoonUefa:["جدول مرحلة الدوري يظهر بعد إجراء القرعة","The league phase table appears after the draw"],
- lastSeasonShown:["المعروض: الموسم المنتهي 2025-2026","Showing the finished 2025-26 season"],
+ lastSeasonShown:["المعروض: الموسم المنتهي {S}","Showing the finished {S} season"],
  curSeason:["الموسم الحالي","This season"],
- prevSeason:["موسم 2025-2026","2025-26 season"],
+ prevSeason:["موسم {S}","{S} season"],
  showAll:["عرض الكل","Show all"],
  showLess:["عرض أقل","Show less"],
  team:["الفريق","Team"],
@@ -1105,6 +1143,14 @@ const STR = {
  offLab:["إيقاف","OFF"],
  onLab:["تشغيل","ON"],
  lbNoResults:["تعذر تحميل نتائج المباريات · النقاط قد تكون غير مكتملة","Match results unavailable · points may be incomplete"],
+ lbPartial:["تعذر تحميل توقعات بعض اللاعبين · الترتيب غير مكتمل","Some players' predictions could not be loaded · standings incomplete"],
+ railLab:["البطولات","Leagues"],
+ h12Lab:["ص · م","AM·PM"],
+ h24Lab:["24 ساعة","24H"],
+ dismissLab:["إغلاق","Dismiss"],
+ foldLab:["طي القائمة","Collapse list"],
+ homeLab:["الفريق صاحب الأرض","Home team"],
+ awayLab:["الفريق الضيف","Away team"],
  mdLoadFail:["تعذر تحميل تفاصيل المباراة","Could not load match details"],
  stPossession:["الاستحواذ %","Possession %"],
  stShots:["التسديدات","Shots"],
@@ -1138,7 +1184,7 @@ const STR = {
  motmCleanSheet:["شباك نظيفة","clean sheet"],
  motmTackles:["تدخلات","tackles"],
 };
-function t(k){ const e = STR[k]; return e ? e[LANG === "ar" ? 0 : 1] : k; }
+function t(k, vars){ const e = STR[k]; let s = e ? e[LANG === "ar" ? 0 : 1] : k; if(vars) for(const n in vars) s = s.split("{" + n + "}").join(vars[n]); return s; }
 function lgName(lg){ return LANG === "ar" ? lg.ar : lg.en; }
 /* country leagues get real flag images (emoji flags do not render on Windows); UEFA comps keep their emoji */
 function lgIcon(lg){
@@ -1179,6 +1225,15 @@ function addDaysKey(k, n){
  return d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate();
 }
 function rangeParam(k, before, after){ return addDaysKey(k, -(before)) + "-" + addDaysKey(k, after); }
+/* WC v3.31: ESPN SILENTLY caps a scoreboard at 100 events when no limit is sent — a truncated
+   response is indistinguishable from a real one. That bug hid an entire knockout round.
+   Every scoreboard call in this app goes through here. Never build the URL by hand. */
+function sbUrl(slug, range){ return API + slug + "/scoreboard?dates=" + range + "&limit=300"; }
+/* European season runs Aug->May. Derived, never hardcoded, so it stays correct after every
+   July rollover (standing rule 13: no baked-in dates). */
+function curSeasonYear(){ const d = new Date(); return d.getUTCMonth() >= 6 ? d.getUTCFullYear() : d.getUTCFullYear() - 1; }
+function seasonStartMs(){ return Date.UTC(curSeasonYear(), 7, 1); }
+function seasonLabel(y){ return y + "-" + (y + 1); }
 function locale(){ return LANG === "ar" ? "ar-EG-u-nu-latn" : "en-GB"; }
 function fmtTime(iso){ try{ return new Intl.DateTimeFormat(locale(), {hour:"numeric", minute:"2-digit", hour12:H12, timeZone:TZ}).format(new Date(iso)); }catch(_){ try{ return new Intl.DateTimeFormat(locale(), {hour:"numeric", minute:"2-digit", hour12:H12}).format(new Date(iso)); }catch(__){ return ""; } } }
 function fmtDayFull(k){ try{ return new Intl.DateTimeFormat(locale(), {weekday:"long", day:"numeric", month:"long"}).format(keyToDate(k)); }catch(_){ return String(k); } }
@@ -1243,6 +1298,7 @@ function refreshBrandUI(){
  $("logoImg").alt = t("brand");
  $("footBrand").textContent = t("brand");
  $("shVer").textContent = t("brand") + " · v" + APP_VERSION + " · " + t("motto");
+ $("appVer").textContent = "v" + APP_VERSION;   /* never hand-typed: the marker the owner reads must follow APP_VERSION */
  $("fantBrand").textContent = t("fantasyBrand");
  document.title = t("brand") + " · " + t("motto");
 }
@@ -1263,6 +1319,7 @@ function setLang(x){
  if(fs) fs.textContent = t("soon");
  /* an open match sheet must follow the language too (it used to keep the old one) */
  if(_mdEid && !$("modal").classList.contains("hide")) renderMatchModal(_mdEid);
+ if(_pcPid && !$("playerCard").classList.contains("hide")) openPlayerCard(_pcPid);   /* the player card must follow it too */
  const cn = $("chatNote");
  if(cn) refreshChatNote();
  if(typeof refreshChatBar === "function") refreshChatBar();
@@ -1362,6 +1419,11 @@ function refreshSettingsUI(){
  const ha = $("hdrAuth"); if(ha) ha.setAttribute("aria-label", t("account"));
  const ts = $("tzSel"); if(ts) ts.setAttribute("aria-label", t("tzLab"));
  const ss = $("setSheet"); if(ss) ss.setAttribute("aria-label", t("settings"));
+ const tb = document.querySelector(".themebtn"); if(tb){ tb.setAttribute("aria-label", t("themeLab")); tb.setAttribute("title", t("themeLab")); }
+ const rl = $("rail"); if(rl) rl.setAttribute("aria-label", t("railLab"));
+ const b12 = $("h12b"); if(b12) b12.textContent = t("h12Lab");
+ const b24 = $("h24b"); if(b24) b24.textContent = t("h24Lab");
+ const ib = document.querySelector(".ibx"); if(ib) ib.setAttribute("aria-label", t("dismissLab"));
  if(typeof renderPushLgs === "function" && !$("pushLgRow").classList.contains("hide")) renderPushLgs();
  const ac = $("shAcct");
  if(ac) ac.textContent = t("account");
@@ -1516,9 +1578,12 @@ async function fetchDayInto(day, force){
   if(!force && c && Date.now() - c.at < ttl) return;
   const slugs = [lg.slug].concat(lg.qual ? [lg.qual] : []);
   try{
-   const results = await Promise.all(slugs.map(s => jget(API + s + "/scoreboard?dates=" + rangeParam(day, 1, 1))));
+   const results = await Promise.all(slugs.map(s => jget(sbUrl(s, rangeParam(day, 1, 1)))));
    const evs = [];
-   results.forEach((j, si) => { (j && j.events || []).forEach(e => { if(si > 0) e._gkQual = 1; evs.push(e); }); });
+   /* SOLE writer of _gkLeagueId. Tagged at CACHE time, never at render time: the live strip,
+      the LIVE list and the match sheet all read this field for events that were never drawn
+      by mrow() (yesterday's still-running match). See LESSONS_AUDIT F-01. */
+   results.forEach((j, si) => { (j && j.events || []).forEach(e => { if(si > 0) e._gkQual = 1; e._gkLeagueId = lg.id; evs.push(e); }); });
    dayCache[ck] = {at: Date.now(), events: evs};
   }catch(_){ anyFail = true; /* keep last-good cache untouched */ }
  }));
@@ -1535,7 +1600,7 @@ async function fetchExtrasInto(day, force){
   const ttl = hasLive ? 22000 : nearToday ? 120000 : 600000;
   if(!force && cached && Date.now() - cached.at < ttl) return;
   try{
-   const j = await jget(API + source.slug + "/scoreboard?dates=" + rangeParam(day, 1, 1));
+   const j = await jget(sbUrl(source.slug, rangeParam(day, 1, 1)));
    let events = (j && Array.isArray(j.events) ? j.events : []).map(event => Object.assign({}, event, {
     _gkCompetition:{en:source.en, ar:source.ar, slug:source.slug}
    }));
@@ -1558,7 +1623,7 @@ async function fetchExtrasInto(day, force){
    const cached = extraSourceCache[source.slug + "|" + day];
    if(!cached) continue;
    haveSource = true;
-   events.push(...cached.events);
+   for(const event of cached.events){ event._gkLeagueId = group.id; events.push(event); }   /* tag at cache time — see F-01 */
   }
   if(haveSource) dayCache[group.id + "|" + day] = {at:now, events};
  }
@@ -1663,7 +1728,7 @@ function mrow(e, lg){
  const H = cs.find(c => c.homeAway === "home") || cs[0] || {};
  const A = cs.find(c => c.homeAway === "away") || cs[1] || {};
  const s = evState(e);
- e._gkLeagueId = lg.id;
+ if(!e._gkLeagueId) e._gkLeagueId = lg.id;   /* fallback only; the real writer is fetchDayInto/fetchExtrasInto */
  EV_INDEX[e.id] = e;
  const vk = voidedKey(e);
  let mid, sub;
@@ -1759,7 +1824,7 @@ function paintHome(){
     ? '<div class="lgopen allonly"><span class="lgico">' + lgIcon(p.lg) + '</span><span class="lgnm">' + esc(lgName(p.lg)) + '</span><span class="lgn" dir="ltr">' + list.length + '</span></div>'
     : '<button type="button" class="lgopen" onclick="gotoLeague(\'' + p.lg.id + '\')"><span class="lgico">' + lgIcon(p.lg) + '</span><span class="lgnm">' + esc(lgName(p.lg)) + '</span><span class="lgn" dir="ltr">' + list.length + '</span><span class="lgarrow">›</span></button>';
    h += '<section class="lgsec"><div class="lghead">' + heading +
-    '<button type="button" class="fold" aria-label="fold" onclick="toggleFold(\'' + p.lg.id + '\', this)">' + (folded ? "+" : "−") + "</button>" +
+    '<button type="button" class="fold" aria-label="' + esc(t("foldLab")) + '" onclick="toggleFold(\'' + p.lg.id + '\', this)">' + (folded ? "+" : "−") + "</button>" +
    '</div><div class="lgbody' + (folded ? " hide" : "") + '" id="fold_' + p.lg.id + '">' + list.map(e => mrow(e, p.lg)).join("") + "</div></section>";
  }
  if(!h){
@@ -1845,7 +1910,7 @@ function gotoLeague(id){
 /* Android/installed-PWA back button: close overlays first, then leave the league page, never exit-with-overlay */
 window.addEventListener("popstate", function(){
  const pc = $("playerCard");
- if(pc && !pc.classList.contains("hide")){ hideSheet("playerCard"); return; }
+ if(pc && !pc.classList.contains("hide")){ _pcPid = null; hideSheet("playerCard"); return; }
  const modal = $("modal");
  if(!modal.classList.contains("hide")){ _mdEid = null; hideSheet("modal"); return; }
  const am = $("authModal");
@@ -1917,7 +1982,7 @@ async function renderLgMatches(){
  const range = seg === "up" ? rangeParam(tk, 0, 45) : rangeParam(tk, 45, 0);
  const slugs = [lg.slug].concat(lg.qual ? [lg.qual] : []);
  try{
-  const results = await Promise.all(slugs.map(s => jget(API + s + "/scoreboard?dates=" + range)));
+  const results = await Promise.all(slugs.map(s => jget(sbUrl(s, range))));
   const seen = {}; const evs = [];
   results.forEach((j, si) => { (j && j.events || []).forEach(e => { if(e && e.id && !seen[e.id]){ seen[e.id] = 1; if(si > 0) e._gkQual = 1; evs.push(e); } }); });
   evs.sort((a, b) => seg === "up" ? new Date(a.date) - new Date(b.date) : new Date(b.date) - new Date(a.date));
@@ -1939,7 +2004,8 @@ function lgMatchesHtml(evs, seg){
  const tk = todayKey();
  const list = evs.filter(e => {
   if(voidedKey(e)) return seg === "up" ? dkey(new Date(e.date)) >= tk : dkey(new Date(e.date)) < tk;
-  return seg === "up" ? evState(e) !== "post" : evState(e) === "post" || evState(e) === "in";
+  /* a live match belongs in Results (it has a score) and NOT also in Upcoming — it was listed twice */
+  return seg === "up" ? evState(e) === "pre" : evState(e) === "post" || evState(e) === "in";
  });
  if(!list.length) return '<div class="empty"><div class="big">🗓️</div>' + esc(t("noMatchesRange")) + "</div>";
  let h = "", lastDay = 0;
@@ -1999,7 +2065,7 @@ function tableHtml(j){
   };
  }).sort((a, b) => a.rank - b.rank);
  let h = "";
- if(lg.uefa && seasonYear && seasonYear < 2026) h += '<div class="seasonnote">ℹ️ ' + esc(t("lastSeasonShown")) + " · " + esc(t("tableSoonUefa")) + "</div>";
+ if(lg.uefa && seasonYear && seasonYear < curSeasonYear()) h += '<div class="seasonnote">ℹ️ ' + esc(t("lastSeasonShown", {S:seasonLabel(seasonYear)})) + " · " + esc(t("tableSoonUefa")) + "</div>";
  h += '<div class="tblwrap"><div class="trow thead"><span class="tpos">#</span><span class="ttm">' + esc(t("team")) + '</span>' +
   '<span class="tnum">' + esc(t("played")) + '</span><span class="tnum">' + esc(t("wins")) + '</span><span class="tnum">' + esc(t("draws")) + '</span><span class="tnum">' + esc(t("losses")) + '</span>' +
   '<span class="tnum tgf">' + esc(t("gf")) + '</span><span class="tnum tga">' + esc(t("ga")) + "</span>" +
@@ -2049,7 +2115,7 @@ async function renderStats(fromToggle){
 function seasonChips(){
  return '<div class="lseg">' +
   '<button type="button" class="lsegb' + (statsSeason === 0 ? " on" : "") + '" onclick="setStatsSeason(0)">' + esc(t("curSeason")) + "</button>" +
-  '<button type="button" class="lsegb' + (statsSeason === 2025 ? " on" : "") + '" onclick="setStatsSeason(2025)">' + esc(t("prevSeason")) + "</button></div>";
+  '<button type="button" class="lsegb' + (statsSeason === curSeasonYear() - 1 ? " on" : "") + '" onclick="setStatsSeason(' + (curSeasonYear() - 1) + ')">' + esc(t("prevSeason", {S:seasonLabel(curSeasonYear() - 1)})) + "</button></div>";
 }
 function leadersCard(cat, titleKey, icon, which){
  const leaders = (cat && cat.leaders) || [];
@@ -2080,7 +2146,7 @@ function statsHtml(j){
  /* honesty note: UEFA comps keep serving LAST season's stats until the new league phase exists.
     Data-driven off the response's season year, so it disappears by itself once 2026-27 data lands. */
  const dataYear = j && j.season && j.season.year;
- if(statsSeason === 0 && dataYear && dataYear < 2026) h += '<div class="seasonnote">ℹ️ ' + esc(t("lastSeasonData")) + "</div>";
+ if(statsSeason === 0 && dataYear && dataYear < curSeasonYear()) h += '<div class="seasonnote">ℹ️ ' + esc(t("lastSeasonData", {S:seasonLabel(dataYear)})) + "</div>";
  const g0 = goals && goals.leaders && goals.leaders[0];
  const a0 = assists && assists.leaders && assists.leaders[0];
  if(g0 || a0) h += '<div class="htiles">' + (g0 ? heroTile(g0, "topScorer", "var(--gold)") : "") + (a0 ? heroTile(a0, "topAssister", "var(--acc)") : "") + "</div>";
@@ -2105,6 +2171,7 @@ function detIcon(txt, d){
 /* ---- match detail: summary feed (line-ups, formations, per-player + team stats) ---- */
 const sumCache = {};      // eventId -> {at, json} | {at, failed:true}
 let _mdEid = null, _mdTab = "E";
+let _pcPid = null;          /* player currently shown in the card, so setLang can repaint it */
 function slugForEvent(e){
  if(e && e._gkCompetition && e._gkCompetition.slug) return e._gkCompetition.slug;
  const lg = SCORE_GROUPS.find(l => l.id === (e && e._gkLeagueId));
@@ -2266,7 +2333,7 @@ function mdLineupsHtml(sum, H, A){
   const ic = playerIcons(pl.p);
   return '<button type="button" class="pchip" style="left:' + pl.x.toFixed(1) + "%;top:" + pl.y.toFixed(1) + '%" data-pid="' + esc(pl.pid) + '" onclick="openPlayerCard(this.dataset.pid)">' + badge +
    '<span class="pnum" style="background:' + colour + '" dir="ltr">' + esc(String(pl.num)) + "</span>" +
-   '<span class="pname">' + esc(pl.name) + (ic ? ' <span class="pic">' + ic + "</span>" : "") + "</span></button>";
+   '<span class="gkPname">' + esc(pl.name) + (ic ? ' <span class="pic">' + ic + "</span>" : "") + "</span></button>";
  }).join("");
  const svg = '<svg viewBox="0 0 100 150" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="0.6">' +
   '<rect x="3" y="3" width="94" height="144"/><line x1="3" y1="75" x2="97" y2="75"/>' +
@@ -2615,10 +2682,17 @@ function openPlayerCard(pid){
   '<div class="pcid"><b>' + esc(name) + "</b><span>" + esc(clubAr({displayName:team, shortDisplayName:team})) + (pos ? " · " + esc(pos) : "") + "</span></div>" +
   (rt ? '<span class="pcrate ' + rateCls(rt.rating) + '" dir="ltr">' + rt.rating.toFixed(1) + "</span>" : "") + "</div>" +
   (rows ? '<div class="pcstats">' + rows + "</div>" : '<div class="mnoev">' + esc(t("mdNoStats")) + "</div>");
+ _pcPid = pid;
+ if($("playerCard").classList.contains("hide")){ try{ history.pushState({gkp:1}, ""); }catch(_){} }   /* Back must close THIS sheet, not consume the tab's entry */
  $("playerCard").classList.remove("hide");
  lockScroll(true);
 }
-function closePlayerCard(){ hideSheet("playerCard"); }
+function closePlayerCard(){
+ if($("playerCard").classList.contains("hide")) return;
+ _pcPid = null;
+ if(history.state && history.state.gkp){ try{ history.back(); return; }catch(_){} }
+ hideSheet("playerCard");
+}
 function setMdTab(x){ _mdTab = x; renderMdBody(); }
 async function renderMdBody(){
  const eid = _mdEid;
@@ -2740,7 +2814,14 @@ function closeModal(){
  hideSheet("modal");
 }
 $("modal").addEventListener("click", function(ev){ if(ev.target === this) closeModal(); });
-document.addEventListener("keydown", function(ev){ if(ev.key === "Escape"){ closePlayerCard(); closeModal(); } });
+/* Escape closes ONLY the topmost sheet — one press must never dismiss two layers at once */
+document.addEventListener("keydown", function(ev){
+ if(ev.key !== "Escape") return;
+ const pc = $("playerCard"), au = $("authModal");
+ if(au && !au.classList.contains("hide")) return closeAuth();
+ if(pc && !pc.classList.contains("hide")) return closePlayerCard();
+ closeModal();
+});
 $("playerCard").addEventListener("click", function(ev){ if(ev.target === this) closePlayerCard(); });
 
 /* ============ predictions: textdb storage (namespaced goalak_*, per-user pred keys) ============ */
@@ -2831,8 +2912,16 @@ async function renewStoredChatSession(){
 
 /* ---- auth (same scheme as the WC app: salt + sha256(salt+password), wipe guard, verify-after-write) ---- */
 let _am = "C";
-function openAuth(mode){ _am = mode || "C"; updateAuthUI(); $("authModal").classList.remove("hide"); lockScroll(true); }
-function closeAuth(){ hideSheet("authModal"); }
+function openAuth(mode){
+ _am = mode || "C"; updateAuthUI();
+ if($("authModal").classList.contains("hide")){ try{ history.pushState({gka:1}, ""); }catch(_){} }
+ $("authModal").classList.remove("hide"); lockScroll(true);
+}
+function closeAuth(){
+ if($("authModal").classList.contains("hide")) return;
+ if(history.state && history.state.gka){ try{ history.back(); return; }catch(_){} }
+ hideSheet("authModal");
+}
 function authMode(m){ _am = m; updateAuthUI(); }
 function updateAuthUI(){
  $("auTitle").textContent = t("authTitle");
@@ -2999,15 +3088,17 @@ async function loadPredData(force){
   const lgs = LEAGUES.filter(l => l.pred);
   const tk = todayKey();
   try{
-   /* results window reaches back to season start (2026-08-01) so leaderboard points never decay */
-  const resDays = Math.min(150, Math.max(14, Math.floor((Date.now() - Date.UTC(2026, 7, 1)) / 86400000) + 2));
+   /* Results window reaches back to THIS season's start so leaderboard points never decay.
+      No cap and no hardcoded year: a Math.min() here would silently shave a player's earliest
+      correct predictions off their total every day once the season passed the cap. */
+  const resDays = Math.max(14, Math.floor((Date.now() - seasonStartMs()) / 86400000) + 2);
   const jobs = [];
   for(const l of lgs){
    /* Predictions are for the Champions League proper only, never qualifying rounds. */
    jobs.push({slug:l.slug, id:l.id, range:rangeParam(tk, 0, 14)});
    jobs.push({slug:l.slug, id:l.id, range:rangeParam(tk, resDays, 0)});
   }
-  const results = await Promise.all(jobs.map(jb => jget(API + jb.slug + "/scoreboard?dates=" + jb.range)));
+  const results = await Promise.all(jobs.map(jb => jget(sbUrl(jb.slug, jb.range))));
    const all = {};
    results.forEach((j, idx) => {
     const jb = jobs[idx];
@@ -3077,8 +3168,8 @@ function predCard(e){
  } else if(!gkUser){
   mid = '<button type="button" class="pgo" onclick="openAuth(\'C\')">' + esc(t("joinShort")) + "</button>";
  } else {
-  const inH = '<input class="pinp" inputmode="numeric" pattern="[0-9]*" maxlength="2" id="ph_' + esc(e.id) + '" aria-label="home">';
-  const inA = '<input class="pinp" inputmode="numeric" pattern="[0-9]*" maxlength="2" id="pa_' + esc(e.id) + '" aria-label="away">';
+  const inH = '<input class="pinp" inputmode="numeric" pattern="[0-9]*" maxlength="2" id="ph_' + esc(e.id) + '" aria-label="' + esc(t("homeLab")) + '">';
+  const inA = '<input class="pinp" inputmode="numeric" pattern="[0-9]*" maxlength="2" id="pa_' + esc(e.id) + '" aria-label="' + esc(t("awayLab")) + '">';
   const pair = LANG === "ar" ? (inA + '<span class="pdash">-</span>' + inH) : (inH + '<span class="pdash">-</span>' + inA);
   mid = '<span class="pin" dir="ltr">' + pair + "</span>" +
    '<button type="button" class="pgo" data-eid="' + esc(e.id) + '" onclick="submitPredGk(this.dataset.eid, this)">' + esc(t("saveBtn")) + "</button>";
@@ -3174,16 +3265,22 @@ async function renderLeaderboard(){
   }
   const doneMap = {};
   (predCache.res || []).forEach(e => { doneMap[e.id] = e; });
-  const packs = await Promise.all(users.map(u => tdbRead(predKeyFor(u.uid), null).catch(() => null)));
-  const rows = packs.map((pk, i) => {
+  /* A read that FAILED is not a player who scored zero. Keep the two apart: a flaky request must
+     never drop a real player to the bottom of the board. WC lesson 2.2. */
+  const packs = await Promise.all(users.map(u => tdbRead(predKeyFor(u.uid), null).then(v => ({ok:true, v:v})).catch(() => ({ok:false, v:null}))));
+  const rows = [];
+  let unread = 0;
+  packs.forEach((pack, i) => {
    const u = users[i];
+   if(!pack.ok){ unread++; return; }
+   const pk = pack.v;
    let pts = 0, exact = 0;
    if(pk && pk.p) for(const eid in pk.p){ const e = doneMap[eid]; if(!e) continue; const s = scorePredGk(pk.p[eid], e); pts += s; if(s === 3) exact++; }
-   return {name:u.username, uid:u.uid, pts, exact, club:u.club || null};
+   rows.push({name:u.username, uid:u.uid, pts, exact, club:u.club || null});
   });
   rows.sort((a, b) => b.pts - a.pts || b.exact - a.exact || String(a.name).localeCompare(String(b.name)));
-  lbCache = {at:Date.now(), rows};
-  if(mainView === "pred" && predTab === "L") body.innerHTML = lbHtml(rows);
+  if(!unread) lbCache = {at:Date.now(), rows};   /* never cache a partial board */
+  if(mainView === "pred" && predTab === "L") body.innerHTML = (unread ? '<div class="stale">⚠️ ' + esc(t("lbPartial")) + "</div>" : "") + lbHtml(rows);
  }catch(_){
   if(lbCache.rows){ body.innerHTML = '<div class="stale">⚠️ ' + esc(t("staleNote")) + "</div>" + lbHtml(lbCache.rows); }
   else body.innerHTML = '<div class="errbox"><div class="big">📡</div>' + esc(t("loadFail")) + '<br><button type="button" class="retrybtn" onclick="lbCache.at=0;renderLeaderboard()">' + esc(t("retry")) + "</button></div>";
@@ -3231,26 +3328,39 @@ $("authModal").addEventListener("click", function(ev){ if(ev.target === this) cl
 let myClub = null;
 try{ myClub = JSON.parse(localStorage.getItem("gk_club") || "null"); }catch(_){}
 let _teamsCache = null;
+let _teamsComplete = false;
 let _teamsInflight = null;
 async function ensureTeams(){
- if(_teamsCache) return _teamsCache;
+ if(_teamsCache && _teamsComplete) return _teamsCache;
+ if(_teamsCache && _teamsInflight) return _teamsInflight;   /* incomplete: allow a retry, but only one at a time */
  try{
   const stored = JSON.parse(localStorage.getItem("gk_teams_v1") || "null");
-  if(stored && stored.at && Date.now() - stored.at < 7 * 86400000 && stored.lgs){ _teamsCache = stored.lgs; return _teamsCache; }
+  if(stored && stored.at && Date.now() - stored.at < 7 * 86400000 && stored.lgs){ _teamsCache = stored.lgs; _teamsComplete = true; return _teamsCache; }
  }catch(_){}
  if(_teamsInflight) return _teamsInflight;
  _teamsInflight = (async function(){
   const out = {};
+  const want = LEAGUES.filter(l => !l.uefa);
+  let complete = true;
   /* team lists come from the STANDINGS feed: ESPN's /teams endpoint has no CORS header in browsers */
-  await Promise.all(LEAGUES.filter(l => !l.uefa).map(async l => {
+  await Promise.all(want.map(async l => {
    try{
     const j = await jget(STAND + l.slug + "/standings");
     const entries = ((j && j.children && j.children[0] && j.children[0].standings && j.children[0].standings.entries) || []);
-    out[l.id] = entries.map(en => en && en.team).filter(Boolean).map(tm => ({id:String(tm.id), n:tm.displayName || tm.shortDisplayName || "", s:tm.shortDisplayName || tm.displayName || ""}));
-   }catch(_){ out[l.id] = []; }
+    const list = entries.map(en => en && en.team).filter(Boolean).map(tm => ({id:String(tm.id), n:tm.displayName || tm.shortDisplayName || "", s:tm.shortDisplayName || tm.displayName || ""}));
+    if(!list.length) complete = false;
+    out[l.id] = list;
+   }catch(_){
+    /* a failed league keeps its last-good list and is NEVER persisted as "this league has no
+       clubs" — that would break the favourite-club picker for 7 days. WC lesson 2.2 / never
+       cache a negative. */
+    complete = false;
+    out[l.id] = (_teamsCache && _teamsCache[l.id]) || [];
+   }
   }));
   _teamsCache = out;
-  try{ localStorage.setItem("gk_teams_v1", JSON.stringify({at:Date.now(), lgs:out})); }catch(_){}
+  _teamsComplete = complete;
+  if(complete){ try{ localStorage.setItem("gk_teams_v1", JSON.stringify({at:Date.now(), lgs:out})); }catch(_){} }
   return out;
  })();
  try{ return await _teamsInflight; }
@@ -3304,14 +3414,26 @@ async function setClubFromSel(sel){
 async function saveClubToAccount(){
  if(!gkUser) return;
  const k = gkUser.username.toLowerCase();
- for(let i = 0; i < 2; i++){
+ /* This rewrites the WHOLE shared accounts object, so it carries the same wipe guard and
+    verify-after-write as doAuth: a stale snapshot written back would delete every account
+    created since the read. WC chat rules / goalak-v9. */
+ let seen = 0;
+ try{ seen = +localStorage.getItem("gk_acct_seen") || 0; }catch(_){}
+ for(let i = 0; i < 3; i++){
   try{
-   const accts = await tdbRead(ACCT_KEY, null);
-   if(!accts || typeof accts !== "object" || !accts[k]) return;
-   accts[k].club = myClub ? {id:myClub.id, n:myClub.n, s:myClub.s, lg:myClub.lg} : null;
-   await tdbWrite(ACCT_KEY, accts);
-   return;
-  }catch(_){ await sleep(300); }
+   const fresh = await tdbRead(ACCT_KEY, null);
+   const obj = fresh && typeof fresh === "object" ? fresh : {};
+   const cnt = Object.keys(obj).length;
+   if(cnt > seen){ seen = cnt; try{ localStorage.setItem("gk_acct_seen", String(cnt)); }catch(_){} }
+   if(cnt === 0 && seen > 0){ await sleep(400); continue; }   /* WIPE GUARD */
+   if(!obj[k]) return;                                        /* account not there: nothing to attach a club to */
+   obj[k].club = myClub ? {id:myClub.id, n:myClub.n, s:myClub.s, lg:myClub.lg} : null;
+   const want = Object.keys(obj).length;
+   await tdbWrite(ACCT_KEY, obj);
+   await sleep(350);
+   const chk = await tdbRead(ACCT_KEY, null);
+   if(chk && chk[k] && Object.keys(chk).length >= want) return;   /* landed AND nobody was dropped */
+  }catch(_){ await sleep(350); }
  }
 }
 let _clubSched = null;
@@ -3324,7 +3446,7 @@ async function renderClubHero(force){
   const lg = LEAGUES.find(l => l.id === myClub.lg);
   if(!lg){ el.innerHTML = ""; return; }
   /* next fixture from the CORS-open scoreboard feed (the /schedule endpoint has no CORS header) */
-  const j = await jget(API + lg.slug + "/scoreboard?dates=" + rangeParam(todayKey(), 0, 30));
+  const j = await jget(sbUrl(lg.slug, rangeParam(todayKey(), 1, 30)));   /* start yesterday: a match that kicked off before midnight is still live — F-40 */
   const evs = ((j && j.events) || []).filter(e => {
    if(!e || !e.date || voidedKey(e) || evState(e) === "post") return false;
    const cs = (e.competitions && e.competitions[0] && e.competitions[0].competitors) || [];
@@ -3451,7 +3573,10 @@ async function loadChat(){
   const r = await fetch(CHAT_API + "/api/chat/history", {headers:chatAuthHeaders(), cache:"no-store"});
   if(r.status === 401){ clearChatSession(); closeChatSocket(); refreshChatBar(); if(mainView === "chat") renderChat(); return; }
   const j = await r.json().catch(() => ({}));
-  if(r.ok && j.ok && Array.isArray(j.messages)){
+  /* An empty history is only believed when we have nothing cached. chatHistory always answers
+     ok:true, so a room migration or storage blip is indistinguishable from "the room is empty" —
+     and believing it would wipe the instant-open cache. Never render "failed" as "empty". */
+  if(r.ok && j.ok && Array.isArray(j.messages) && (j.messages.length || !chatMsgs.length)){
    chatMsgs = normChat(j.messages);
    cacheChat();
   }
@@ -3840,10 +3965,16 @@ async function refreshPushUI(){
 }
 
 /* ============ refresh loop + lifecycle ============ */
+/* At midnight, follow the user onto the new day instead of leaving them on yesterday.
+   One helper, called from the tick AND from resume — an installed PWA is backgrounded across
+   midnight every single night, so the tick alone would never fire for the normal case. */
+function followToday(){
+ const tk = todayKey();
+ if(stripBuiltFor && stripBuiltFor !== tk && selDay === stripBuiltFor) selectDay(tk);
+}
 setInterval(function(){
  if(document.hidden) return;
- /* at midnight, follow the user onto the new day instead of leaving them on yesterday */
- (function(){ const tk = todayKey(); if(stripBuiltFor && stripBuiltFor !== tk && selDay === stripBuiltFor && mainView === "scores" && view === "home"){ selectDay(tk); } })();
+ followToday();
  buildStrip(false); /* day rollover rebuilds the strip */
  if(mainView === "chat") return; /* chat has its own 12s poll */
  loadChat(); /* background room check keeps the unread badge honest */
@@ -3855,13 +3986,15 @@ setInterval(function(){
   /* whatever day is on screen, keep TODAY and YESTERDAY warm so the live strip/chip never
      goes blank right after midnight while a match is still being played */
   const others = [tk, yd].filter(d => d !== selDay);
-  if(others.length) Promise.all(others.map(d => fetchDayInto(d, false)))
+  /* broadcasts too, or a match that crossed midnight loses its TV channel in the sheet */
+  if(others.length) Promise.all(others.map(d => Promise.all([fetchDayInto(d, false), fetchBroadcastInto(d, false)])))
    .then(function(){ if(view === "home" && mainView === "scores"){ renderLiveStrip(); paintHome(); } });
  }
  else if(view === "lg" && lgTab === "M") renderLgMatches();
 }, 25000);
 document.addEventListener("visibilitychange", function(){
  if(document.hidden) return;
+ followToday();          /* resumed after midnight: move to today before anything repaints */
  buildStrip(false);
  if(gkUser && validChatSession()){ connectChat(); loadChat(); }
  if(mainView === "pred"){ loadPredData(false); return; }
