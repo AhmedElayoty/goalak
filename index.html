@@ -57,8 +57,14 @@ html[data-theme="light"]{
  --gk3d-d1:#8e9bc6; --gk3d-d2:#57648a; --gk3d-d3:#2e3a58;
  --gk3d-d4:#1c2540; --gk3d-d5:#0e1424; --gk3d-rim:rgba(18,29,68,.32);
  --bg:#eef1f8; --card:#ffffff; --card2:#e6ebf6; --line:#c3cde2; --line2:#9fb0d4;
- --txt:#0d1533; --dim:#51607e; --dim2:#6b7a9c;
- --acc:#c2451b; --accdark:#c2451b; --gold:#946400; --red:#c62828;
+ /* Light is the DEFAULT theme because it is the readable one for older eyes, so every token here
+    must clear WCAG AA (4.5:1) against the WORST ground it can land on - #ffffff card, #eef1f8 page
+    AND #e6ebf6 card2. Measured, not guessed:
+      --acc  #b03f18  5.20 / 5.88 / 4.92   (was #c2451b: 4.46 / 5.05 / 4.22 - failed on two of three)
+      --dim2 #5c6a89  4.79 / 5.42 / 4.53   (was #6b7a9c: 3.80 / 4.30 / 3.60 - failed on all three)
+      --gold #8a5d00  4.94 / 5.59 / 4.82   (was #946400: 4.55 / 5.14 / 4.31 - failed on card2) */
+ --txt:#0d1533; --dim:#51607e; --dim2:#5c6a89;
+ --acc:#b03f18; --accdark:#b03f18; --gold:#8a5d00; --red:#c62828;
  --rz-g:#0f9d58; --rz-a:#a67c00; --rz-r:#c62828;
 }
 html[data-theme="light"] .stale{background:#fff3d6;border-color:#d9b64a;color:#7a5d00}
@@ -597,6 +603,23 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
  #hdrAuth{width:38px;padding:7px;justify-content:center}
  #hdrAuth .han{display:none}
 }
+
+/* ---------- keyboard focus ----------
+   :focus-visible only, so a TAP never paints a ring but a keyboard/switch user always knows
+   where they are. Two-tone ring so it survives on both the navy and the white grounds. */
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px;border-radius:6px}
+.bnav button:focus-visible,.chip:focus-visible,.lgchip:focus-visible{outline-offset:-3px}
+.mx:focus-visible,.ibx:focus-visible{outline-offset:1px}
+
+/* ---------- reduced motion ----------
+   Honour the OS switch. Decoration stops dead; the SPINNER keeps turning (slowly) because it is
+   the only signal that a fetch is still running - freezing it would read as a hung app. */
+@media(prefers-reduced-motion:reduce){
+ *,*::before,*::after{transition-duration:.01ms !important;scroll-behavior:auto !important}
+ .lvdot{animation:none;opacity:1}
+ .chattool.recording{animation:none}
+ .spinner{animation-duration:1.8s}
+}
 </style>
 </head>
 <body>
@@ -673,7 +696,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <div class="shrow"><span class="shlab" id="shClock">نظام الوقت</span><div class="seg" role="radiogroup" aria-labelledby="shClock"><button type="button" id="h12b" class="on" onclick="setHour12(true)">AM·PM</button><button type="button" id="h24b" onclick="setHour12(false)">24H</button></div></div>
   <div class="shrow"><span class="shlab" id="shLang">اللغة</span><div class="seg" role="radiogroup" aria-labelledby="shLang"><button type="button" id="lgEn" onclick="setLang('en')">EN</button><button type="button" id="lgAr" class="on" onclick="setLang('ar')">عربي</button></div></div>
   <div class="shrow"><span class="shlab" id="shTheme">🌓 المظهر</span><div class="seg" role="radiogroup" aria-labelledby="shTheme"><button type="button" id="thD" class="on" onclick="setTheme('dark')">داكن</button><button type="button" id="thL" onclick="setTheme('light')">فاتح</button></div></div>
- <div class="shver" id="shVer">جولك · v4.5 · الجول جولك</div>
+ <div class="shver" id="shVer">جولك · v4.6 · الجول جولك</div>
  </section>
 
  <nav class="rail" id="rail" aria-label="Leagues"></nav>
@@ -723,7 +746,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </section>
  </main>
 
- <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="appVer">v4.5</span></footer>
+ <footer><b id="footBrand">جولك</b> · <span id="footMotto">الجول جولك</span> · <span id="appVer">v4.6</span></footer>
 </div>
 
 <div id="modal" class="hide">
@@ -782,10 +805,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <script>
 "use strict";
 /* ============ GOALLAK · الجول جولك ============ */
-const APP_VERSION = "4.5";
+const APP_VERSION = "4.6";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-16-v45";
+const FORCE_RELOAD = "2026-08-16-v46";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -2685,6 +2708,7 @@ function openPlayerCard(pid){
  _pcPid = pid;
  if($("playerCard").classList.contains("hide")){ try{ history.pushState({gkp:1}, ""); }catch(_){} }   /* Back must close THIS sheet, not consume the tab's entry */
  $("playerCard").classList.remove("hide");
+ sheetOpened($("playerCard"));
  lockScroll(true);
 }
 function closePlayerCard(){
@@ -2726,6 +2750,7 @@ function openMatch(eid){
  _mdTab = "E";
  if(!renderMatchModal(eid)) return;
  $("modal").classList.remove("hide");
+ sheetOpened($("modal"));
  lockScroll(true);
  try{ history.pushState({gkm:1}, ""); }catch(_){}
 }
@@ -2745,9 +2770,53 @@ function lockScroll(on){
   window.scrollTo(0, _scrollY);
  }
 }
+/* ---------- sheet focus management ----------
+   Sheets are visual overlays, but to a screen reader or a keyboard the page behind them is still
+   fully reachable — Tab walks straight out of an open sheet into the match list underneath. One
+   trap at the lowest common layer, driven by the SAME topmost-sheet order Escape uses, so a new
+   sheet inherits it for free. */
+const SHEET_IDS = ["modal", "playerCard", "authModal"];       /* base -> topmost */
 function anySheetOpen(){
- return ["modal", "playerCard", "authModal"].some(id => { const el = $(id); return el && !el.classList.contains("hide"); });
+ return SHEET_IDS.some(id => { const el = $(id); return el && !el.classList.contains("hide"); });
 }
+function topSheet(){
+ for(let i = SHEET_IDS.length - 1; i >= 0; i--){
+  const el = $(SHEET_IDS[i]);
+  if(el && !el.classList.contains("hide")) return el;
+ }
+ return null;
+}
+const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+function focusablesIn(el){
+ return [...el.querySelectorAll(FOCUSABLE)].filter(n => n.offsetParent !== null || n === document.activeElement);
+}
+let _focusReturn = [];
+function sheetOpened(el){
+ if(!el) return;
+ el.setAttribute("role", "dialog");
+ el.setAttribute("aria-modal", "true");
+ _focusReturn.push(document.activeElement);
+ const f = focusablesIn(el);
+ /* focus the panel itself, not the ✕ — landing on "close" reads as if the sheet is already ending */
+ const panel = el.firstElementChild || el;
+ if(!panel.hasAttribute("tabindex")) panel.setAttribute("tabindex", "-1");
+ try{ (f.length ? panel : el).focus({preventScroll:true}); }catch(_){}
+}
+function sheetClosed(){
+ const back = _focusReturn.pop();
+ if(back && document.contains(back)){ try{ back.focus({preventScroll:true}); }catch(_){} }
+}
+document.addEventListener("keydown", function(ev){
+ if(ev.key !== "Tab") return;
+ const sheet = topSheet();
+ if(!sheet) return;
+ const f = focusablesIn(sheet);
+ if(!f.length){ ev.preventDefault(); return; }
+ const first = f[0], last = f[f.length - 1];
+ if(!sheet.contains(document.activeElement)){ ev.preventDefault(); first.focus(); return; }
+ if(ev.shiftKey && document.activeElement === first){ ev.preventDefault(); last.focus(); }
+ else if(!ev.shiftKey && document.activeElement === last){ ev.preventDefault(); first.focus(); }
+}, true);
 /* header + tabs render, WITHOUT touching history — so a language switch can repaint an open sheet */
 function renderMatchModal(eid){
  const e = EV_INDEX[eid];
@@ -2804,7 +2873,9 @@ function renderMatchModal(eid){
 /* single place a sheet is actually hidden, so the scroll lock is always released with it */
 function hideSheet(id){
  const el = $(id);
+ const wasOpen = el && !el.classList.contains("hide");
  if(el) el.classList.add("hide");
+ if(wasOpen){ el.removeAttribute("aria-modal"); sheetClosed(); }   /* hand focus back to whatever opened it */
  if(!anySheetOpen()) lockScroll(false);
 }
 function closeModal(){
@@ -2915,7 +2986,7 @@ let _am = "C";
 function openAuth(mode){
  _am = mode || "C"; updateAuthUI();
  if($("authModal").classList.contains("hide")){ try{ history.pushState({gka:1}, ""); }catch(_){} }
- $("authModal").classList.remove("hide"); lockScroll(true);
+ $("authModal").classList.remove("hide"); sheetOpened($("authModal")); lockScroll(true);
 }
 function closeAuth(){
  if($("authModal").classList.contains("hide")) return;
