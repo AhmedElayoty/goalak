@@ -665,8 +665,10 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
  /* opaque for the same reason as .hdr - the tab labels had ghost text sitting behind them */
  background:linear-gradient(180deg,#0A1024,#080D1E);border-top:1px solid var(--fx-line-2);
  padding:7px 6px calc(7px + env(safe-area-inset-bottom))}
-.bnav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 2px;
- color:var(--fx-ink-mute);font-size:10.5px;font-weight:700}
+/* six items now, so the label has to survive 60px at 360 wide */
+.bnav button{flex:1;min-inline-size:0;display:flex;flex-direction:column;align-items:center;gap:3px;
+ padding:5px 1px;color:var(--fx-ink-mute);font-size:9.5px;font-weight:700}
+.bnav button span:last-child{max-inline-size:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bnav button.on{color:var(--fx-gold)}
 /* THE NAV IS FIXED, SO THE PAGE MUST END ABOVE IT. Measured at 360x800: the bench sat at
    y=708 under a nav at y=737 — all four substitutes 0% visible — and the primary button at
@@ -855,7 +857,6 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
   <div class="hname" id="hname">جولك <b>فانتازي</b></div>
   <div class="hsub" id="hsub"></div>
  </div>
- <button class="hbtn" id="toolsBtn" onclick="openTools()" aria-label="الإعدادات">⚙</button>
  <button class="hbtn" id="langBtn" onclick="toggleLang()" aria-label="اللغة">EN</button>
 </header>
 
@@ -988,6 +989,7 @@ const STR = {
  mgrDefault:["المدير","Manager"],
  renameTeam:["اسم الفريق","Team name"],
  replayTut:["شوف الشرح من الأول","Replay the tutorial"],
+ navSet:["إعدادات","Settings"],
  renameAsk:["سمّي فريقك","Name your team"],
  toolsTitle:["إعدادات الفريق","Team settings"],
  formLab:["الخطة","Formation"],
@@ -1410,7 +1412,8 @@ function paintChrome(){
  /* the subtitle is the MANAGER now, not a rules recap the wizard already gave once */
  $("hsub").textContent = squad.length ? teamName() : t("brandSub");
  $("bnav").innerHTML =
-  [["team","👕","navTeam"],["pick","➕","navPick"],["chips","🃏","chipsLab"],["points","📊","navPts"],["board","🏆","navBoard"]]
+  [["team","👕","navTeam"],["pick","➕","navPick"],["chips","🃏","chipsLab"],
+   ["points","📊","navPts"],["board","🏆","navBoard"],["tools","⚙","navSet"]]
   .map(n => '<button type="button" class="' + (view === n[0] ? "on" : "") + '" onclick="navTo(\'' + n[0] + '\')">'
    + '<span class="ic">' + n[1] + '</span><span>' + esc(t(n[2])) + "</span></button>").join("");
 }
@@ -1418,6 +1421,7 @@ function setView(v){ swapFrom = null; view = v; paintChrome(); render(); }
 function navTo(v){
  if(v === "pick") return openPicker();
  if(v === "chips") return openChips();
+ if(v === "tools") return openTools();
  if(v === "help") return openHelp();
  setView(v);
 }
