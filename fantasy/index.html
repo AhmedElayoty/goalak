@@ -761,13 +761,58 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
  .cc--empty{animation:none !important;opacity:.85 !important}
 }
 </style>
+<script>
+/* ---------- owner preview gate ----------
+   Fantasy has not started. The app's tab says "coming soon"; this page is the game itself,
+   and a public URL, so it checks the same signed-in session (same origin, so gk_user is the
+   very same record the app wrote) and shows the same holding screen to everyone else.
+   This is a RELEASE GATE, not security: the list is readable in this file. It exists so the
+   game is not open before it starts, not to protect anything secret. */
+(function fxGate(){
+ var OWNERS = ["ahmedelayoty","ahmedayoty","ahmed","ayoty","elayoty"];
+ var key = function(v){ return String(v||"").toLowerCase().replace(/[^a-z]/g,""); };
+ var ok = false;
+ try{ if(localStorage.getItem("gk_fx_owner") === "1") ok = true; }catch(_){}
+ try{
+  if(/[?&]fxowner=1/.test(location.search)){ localStorage.setItem("gk_fx_owner","1"); ok = true; }
+  var u = JSON.parse(localStorage.getItem("gk_user") || "null");
+  if(u && OWNERS.indexOf(key(u.username)) >= 0) ok = true;
+ }catch(_){}
+ if(ok) return;
+ /* honour the language the visitor last chose in the game, not the markup default */
+ var ar = true;
+ try{ ar = (localStorage.getItem("fx_lang") || "ar") !== "en"; }catch(_){}
+ document.documentElement.dir = ar ? "rtl" : "ltr";
+ document.addEventListener("DOMContentLoaded", function(){
+  document.body.innerHTML =
+   '<div style="min-height:100dvh;display:flex;flex-direction:column;align-items:center;'
+   + 'justify-content:center;gap:14px;padding:28px;text-align:center;color:#F2F5FF;'
+   + 'background:#070B1A;font-family:system-ui,sans-serif">'
+   + '<div style="font-size:54px">⭐</div>'
+   + '<div style="font-size:22px;font-weight:900;letter-spacing:1.5px;color:#FFC53D">'
+   + (ar ? "فانتازي جولك" : "GOALLAK FANTASY") + "</div>"
+   + '<div style="font-size:16px;font-weight:700;color:#A9B7E4">'
+   + (ar ? "قريبًا…" : "Coming soon…") + "</div>"
+   + '<a href="/" style="margin-top:18px;padding:12px 26px;border-radius:12px;'
+   + 'background:#182246;color:#F2F5FF;text-decoration:none;font-weight:800">'
+   + (ar ? "رجوع للتطبيق" : "Back to the app") + "</a></div>";
+ });
+ /* The app must NOT boot behind the holding screen. Letting it run was not harmless: it
+    replaced the body, then paintChrome looked for a header that no longer existed and threw
+    an uncaught TypeError on every gated visit. Caught by the suite's no-console-errors
+    assertion, which is exactly the kind of thing that used to reach production here.
+    Deliberately not window.stop() either - aborting the parse can stop DOMContentLoaded
+    firing at all, leaving a blank page instead of a holding screen. */
+ window.__FX_GATED = 1;
+})();
+</script>
 <script src="modules.js"></script>
 </head>
 <body>
 
 <header class="hdr">
  <div class="hbrand">
-  <div class="hname">جولك <b>فانتازي</b></div>
+  <div class="hname" id="hname">جولك <b>فانتازي</b></div>
   <div class="hsub" id="hsub"></div>
  </div>
  <button class="hbtn" id="toolsBtn" onclick="openTools()" aria-label="الإعدادات">⚙</button>
@@ -850,6 +895,9 @@ try{ seenCoach = JSON.parse(localStorage.getItem("fx_coach") || "{}"); }catch(_)
 /* ---------------- i18n. Every user-visible string lives here. ---------------- */
 const STR = {
  brandSub:["11 + 4 بدلاء · 120 مليون","11 + 4 subs · 120M"],
+ /* the brand is two words so the second can be gold; it was hardcoded Arabic in the markup
+    and never translated, so the English build still read جولك فانتازي in its header */
+ brandA:["جولك","GOALLAK"], brandB:["فانتازي","FANTASY"],
  demoNote:["النقط دلوقتي محسوبة بمحاكاة، مش من نتايج حقيقية — الفريق بتاعك محفوظ على تليفونك. أول ما الموسم يبدأ هتتحسب من الماتشات الحقيقية.",
            "Points are simulated for now, not taken from real results — your team is saved on your phone. When the season starts they will come from the real matches."],
  segTeam:["فريقي","My team"], segPts:["النقاط","Points"], segBoard:["الترتيب","Standings"],
@@ -1198,6 +1246,7 @@ function paintChrome(){
  document.documentElement.lang = LANG;
  document.documentElement.dir = LANG === "ar" ? "rtl" : "ltr";
  $("langBtn").textContent = LANG === "ar" ? "EN" : "ع";
+ $("hname").innerHTML = esc(t("brandA")) + " <b>" + esc(t("brandB")) + "</b>";
  /* the subtitle is the MANAGER now, not a rules recap the wizard already gave once */
  $("hsub").textContent = squad.length ? teamName() : t("brandSub");
  $("bnav").innerHTML =
@@ -2103,6 +2152,8 @@ function toggleLang(){
 
 /* ---------------- boot ---------------- */
 (async function boot(){
+ /* the owner gate above replaced the page; there is no app DOM to paint */
+ if(window.__FX_GATED) return;
  try{
   const [cj, pj, kj] = await Promise.all([
    fetch("clubs.json").then(r => r.json()),

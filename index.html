@@ -736,8 +736,8 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    <div class="fantsoon">
     <div class="fbig">⭐</div>
     <div class="fttl" id="fantBrand">فانتازي جولك</div>
-    <div class="fsoon" id="fantSoon">اختار 15 نادي · 120 مليون · 36 جولة</div>
-    <a class="fantcta" id="fantCta" href="fantasy/">إبدأ فريقك</a>
+    <div class="fsoon" id="fantSoon">قريبًا…</div>
+    <a class="fantcta hide" id="fantCta" href="fantasy/">إبدأ فريقك</a>
    </div>
   </section>
 
@@ -1118,6 +1118,7 @@ const STR = {
  alreadyPicked:["سبق أن توقعت هذه المباراة من جهاز آخر","You already predicted this match on another device"],
  fantasyNav:["فانتازي","Fantasy"],
  fantasyTag:["اختار 15 نادي · 120 مليون · 36 جولة","Pick 15 clubs · 120M · 36 rounds"],
+ fantasySoon:["قريبًا…","Coming soon…"],
  fantasyCta:["إبدأ فريقك","Build your team"],
  soon:["قريبًا…","Soon…"],
  details:["التفاصيل","Details"],
@@ -1332,8 +1333,8 @@ function refreshBrandUI(){
  $("shVer").textContent = t("brand") + " · v" + APP_VERSION + " · " + t("motto");
  $("appVer").textContent = "v" + APP_VERSION;   /* never hand-typed: the marker the owner reads must follow APP_VERSION */
  $("fantBrand").textContent = t("fantasyBrand");
- $("fantSoon").textContent = t("fantasyTag");
  $("fantCta").textContent = t("fantasyCta");
+ paintFantasyGate();
  document.title = t("brand") + " · " + t("motto");
 }
 function setLang(x){
@@ -3075,6 +3076,7 @@ async function doAuth(){
 async function finishAuth(a, password){
  gkUser = {uid:a.uid, username:a.username};
  try{ localStorage.setItem("gk_user", JSON.stringify(gkUser)); }catch(_){}
+ try{ paintFantasyGate(); }catch(_){}
  const chatReady = await createChatSession(a.username, password);
  myPreds = {};
  try{ localStorage.removeItem("gk_preds"); }catch(_){}
@@ -3102,6 +3104,7 @@ function signOut(){
  clearChatSession();
  closeChatSocket();
  try{ localStorage.removeItem("gk_user"); localStorage.removeItem("gk_preds"); }catch(_){}
+ try{ paintFantasyGate(); }catch(_){}
  refreshHdrAuth();
  refreshChatBar();
  if(mainView === "chat") renderChat();
@@ -3553,6 +3556,33 @@ function paintClubHero(){
   '<div class="chtm"><span class="tm tmh"><i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + '</span><span class="mtime" dir="ltr">' + esc(fmtTime(e.date)) + '</span><span class="tm tma">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span></div>" +
   '<div class="chsub">' + esc(fmtDayFull(dkey(new Date(e.date)))) + "</div></button>";
 }
+
+/* ---------- fantasy: owner preview ----------
+   Fantasy is NOT open. The tab says "coming soon" to everyone, and the way in appears only
+   for the owner's own signed-in account so he can work in it before it starts.
+   This is a RELEASE GATE, not a security control: the list is in client JavaScript, anyone
+   can read it, and /fantasy/ is still a public URL that a determined person could type. It
+   stops the tab advertising an unfinished game to the app's users, which is what it is for.
+   Real protection needs the worker, the same way chat is protected. */
+const FX_OWNERS = ["ahmedelayoty", "ahmedayoty", "ahmed", "ayoty", "elayoty"];
+function fxKey(v){ return String(v || "").toLowerCase().replace(/[^a-z]/g, ""); }
+function fxAllowed(){
+ try{ if(localStorage.getItem("gk_fx_owner") === "1") return true; }catch(_){}
+ return !!(gkUser && FX_OWNERS.indexOf(fxKey(gkUser.username)) >= 0);
+}
+function paintFantasyGate(){
+ const cta = $("fantCta"), soon = $("fantSoon");
+ if(!cta || !soon) return;
+ const ok = fxAllowed();
+ cta.classList.toggle("hide", !ok);
+ soon.textContent = ok ? t("fantasyTag") : t("fantasySoon");
+}
+/* the owner can unlock any device he signs in on: goallak.com/?fxowner=1 */
+try{
+ if(/[?&]fxowner=1/.test(location.search)){ localStorage.setItem("gk_fx_owner", "1"); }
+ if(/[?&]fxowner=0/.test(location.search)){ localStorage.removeItem("gk_fx_owner"); }
+}catch(_){}
+
 function hdrAuthTap(){ if(gkUser) showMain("pred"); else openAuth("L"); }
 function refreshHdrAuth(){
  const b = $("hdrAuth");
