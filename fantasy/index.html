@@ -64,7 +64,13 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
 .hname{font-size:17px;font-weight:900;letter-spacing:.2px}
 .hname b{color:var(--fx-gold)}
 .hsub{font-size:10.5px;color:var(--fx-ink-mute)}
-a.hbtn{text-decoration:none;display:flex;align-items:center;justify-content:center}
+/* An arrow on its own is a guess. This is the only way out of a page that is not a tab, so
+   it says where it goes, full width, directly under the header where a back control belongs. */
+.backbar{display:flex;align-items:center;gap:8px;text-decoration:none;
+ padding:11px var(--pad);background:var(--fx-surface-2);
+ border-block-end:1px solid var(--fx-line-2);color:var(--fx-ink-dim);font-size:13.5px}
+.backbar b{font-weight:800;color:var(--fx-ink)}
+.backbar:active{background:var(--fx-surface-3)}
 .hbtn{width:38px;height:38px;border-radius:11px;background:var(--fx-surface-2);border:1px solid var(--fx-line);
  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex:0 0 auto}
 /* was gold-on-navy at 12.4:1 - the brightest thing on the screen was a debug label */
@@ -849,11 +855,13 @@ a.hbtn{text-decoration:none;display:flex;align-items:center;justify-content:cent
   <div class="hname" id="hname">جولك <b>فانتازي</b></div>
   <div class="hsub" id="hsub"></div>
  </div>
- <a class="hbtn hide" id="backBtn" href="../" aria-label="رجوع">↩</a>
  <button class="hbtn" id="toolsBtn" onclick="openTools()" aria-label="الإعدادات">⚙</button>
  <button class="hbtn" id="langBtn" onclick="toggleLang()" aria-label="اللغة">EN</button>
 </header>
 
+<a class="backbar hide" id="backBtn" href="../">
+ <span aria-hidden="true">↩</span><b id="backLbl">الرجوع لتطبيق جولك</b>
+</a>
 <main class="wrap">
  <!-- #demoNote and #segbar are gone. Measured at 360x640 they cost 34px and 62px above the
       pitch for nothing: the note was a standing disclaimer that the DEMO tag and the settings
@@ -945,7 +953,7 @@ const STR = {
  /* the brand is two words so the second can be gold; it was hardcoded Arabic markup that
     paintChrome never touched, so the English build read جولك فانتازي in its own header */
  brandA:["جولك","GOALLAK"], brandB:["فانتازي","FANTASY"],
- backToApp:["رجوع للتطبيق","Back to the app"],
+ backToApp:["الرجوع لتطبيق جولك","Go back to the Goallak app"],
  demoNote:["دي نسخة تجريبية للعرض بس — من غير حساب ومن غير سيرفر، وكل حاجة متسجلة على تليفونك. النقط اللي هنا مش حقيقية، دي عشان تشوف الشكل.",
            "Demo build for review only — no account, no server. Everything is stored on your device and the points are simulated to show the design."],
  segTeam:["فريقي","My team"], segPts:["النقاط","Points"], segBoard:["الترتيب","Standings"],
@@ -979,6 +987,7 @@ const STR = {
  teamDefault:["فريقي","My team"],
  mgrDefault:["المدير","Manager"],
  renameTeam:["اسم الفريق","Team name"],
+ replayTut:["شوف الشرح من الأول","Replay the tutorial"],
  renameAsk:["سمّي فريقك","Name your team"],
  toolsTitle:["إعدادات الفريق","Team settings"],
  formLab:["الخطة","Formation"],
@@ -1395,7 +1404,8 @@ function paintChrome(){
  try{
   var inApp = location.pathname.indexOf("/fantasy/") >= 0;
   $("backBtn").classList.toggle("hide", !inApp);
-  $("backBtn").setAttribute("aria-label", t("backToApp"));
+  $("backLbl").textContent = t("backToApp");
+ $("backBtn").setAttribute("aria-label", t("backToApp"));
  }catch(_){}
  /* the subtitle is the MANAGER now, not a rules recap the wizard already gave once */
  $("hsub").textContent = squad.length ? teamName() : t("brandSub");
@@ -1814,6 +1824,7 @@ function openTools(){
   + (full ? '<button type="button" class="btn ghost" onclick="closeSheet();openCaptain()">' + esc(t("capTitle")) + "</button>" : "")
   + (full ? '<button type="button" class="btn ghost" onclick="closeSheet();openChips()">' + esc(t("chipsLab")) + "</button>" : "")
   + (full ? '<button type="button" class="btn ghost" onclick="closeSheet();openShare()">' + esc(t("shareTitle")) + "</button>" : "")
+  + '<button type="button" class="btn ghost" onclick="replayTutorial()">' + esc(t("replayTut")) + "</button>"
   + '<button type="button" class="btn ghost" onclick="closeSheet();openHelp()">' + esc(t("rulesTitle")) + "</button>"
   + '<button type="button" class="btn ghost" onclick="closeSheet();openRename()">' + esc(t("renameTeam")) + "</button>"
   + '<button type="button" class="btn ghost" onclick="resetDemo()">' + esc(t("resetDemo")) + "</button>"
@@ -1824,6 +1835,16 @@ function openTools(){
 function teamName(){
  try{ return localStorage.getItem("fx_team") || t("teamDefault"); }catch(_){ return t("teamDefault"); }
 }
+/* Replaying the lesson must not cost you your team. resetDemo wipes everything, which is the
+   right behaviour for starting over and the wrong one for wanting to see the walkthrough
+   again. This clears only the flag that says you have seen it. Also reachable as
+   /fantasy/?tutorial=1, so it can be re-run without hunting through a sheet. */
+function replayTutorial(){
+ try{ localStorage.removeItem("fx_onboarded"); }catch(_){}
+ closeSheet();
+ openWizard();
+}
+try{ if(/[?&]tutorial=1/.test(location.search)) localStorage.removeItem("fx_onboarded"); }catch(_){}
 function openRename(){
  const cur = teamName();
  const v = window.prompt(t("renameAsk"), cur === t("teamDefault") ? "" : cur);

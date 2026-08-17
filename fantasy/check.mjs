@@ -92,6 +92,15 @@ const created = new Set([...body.matchAll(/\.id\s*=\s*"([A-Za-z][\w-]*)"/g)].map
 const orphan = [...idsUsed].filter(id => !idsInMarkup.has(id) && !created.has(id));
 if (orphan.length) fail.push("the script reads ids that no element has: " + orphan.join(", "));
 
+/* 9. NO DUPLICATE ids. An edit that adds a replacement element without removing the old one
+      leaves two, and getElementById silently returns the first - so the code updates the
+      wrong node and the visible one never changes. That is exactly how a back control ended
+      up present twice, one of them invisible. */
+const idCounts = {};
+for (const m of s.matchAll(/id="([A-Za-z][\w-]*)"/g)) idCounts[m[1]] = (idCounts[m[1]] || 0) + 1;
+const dupes = Object.keys(idCounts).filter(k => idCounts[k] > 1);
+if (dupes.length) fail.push("duplicate ids in the markup: " + dupes.join(", "));
+
 if (fail.length) { fail.forEach(f => console.log("  FAIL  " + f)); process.exit(1); }
 console.log("check.mjs: index.html parses, " + called.size + " handlers and "
   + usedKeys.size + " strings resolve, data files intact");
