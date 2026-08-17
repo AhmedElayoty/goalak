@@ -586,6 +586,12 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 .fantsoon .fbig{font-size:54px;line-height:1}
 .fantsoon .fttl{font-family:'Alexandria','Cairo',system-ui,sans-serif;font-weight:800;font-size:22px;letter-spacing:1.5px;margin:14px 0 6px;color:var(--gold)}
 .fantsoon .fsoon{font-size:16px;color:var(--dim);font-weight:700}
+.fantcta{display:inline-block;margin-top:22px;padding:14px 30px;border-radius:14px;
+ background:linear-gradient(180deg,#FF9563,#FF7A45 46%,#E45E2C);color:#0B1020;
+ font-weight:900;font-size:16px;text-decoration:none;
+ box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 6px 14px -6px rgba(255,122,69,.55)}
+.fantcta:active{transform:translateY(1px)}
+.fantwho{margin-top:14px;font-size:11.5px;color:var(--dim2)}
 @media(max-width:520px){
  .gkhead{gap:6px}
  .gklogo{width:40px;height:40px;flex-basis:40px}
@@ -731,6 +737,8 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
     <div class="fbig">⭐</div>
     <div class="fttl" id="fantBrand">فانتازي جولك</div>
     <div class="fsoon" id="fantSoon">قريبًا…</div>
+    <a class="fantcta hide" id="fantCta" href="fantasy/">إبدأ فريقك</a>
+    <div class="fantwho" id="fantWho"></div>
    </div>
   </section>
 
@@ -1126,6 +1134,10 @@ const STR = {
  pushKeepOne:["اختر بطولة واحدة على الأقل أو أوقف التنبيهات","Keep at least one league or turn alerts off"],
  alreadyPicked:["سبق أن توقعت هذه المباراة من جهاز آخر","You already predicted this match on another device"],
  fantasyNav:["فانتازي","Fantasy"],
+ fantasyTag:["اختار 15 نادي · 120 مليون · 36 جولة","Pick 15 clubs · 120M · 36 rounds"],
+ fantasySoon:["قريبًا…","Coming soon…"],
+ fantasyCta:["إبدأ فريقك","Build your team"],
+ fantasyWho:["داخل باسم {u} — لسه مقفول على الحساب ده","Signed in as {u} — not unlocked for this account"],
  soon:["قريبًا…","Soon…"],
  details:["التفاصيل","Details"],
  account:["الحساب","Account"],
@@ -1342,6 +1354,7 @@ function refreshBrandUI(){
  $("shVer").textContent = t("brand") + " · v" + APP_VERSION + " · " + t("motto");
  $("appVer").textContent = "v" + APP_VERSION;   /* never hand-typed: the marker the owner reads must follow APP_VERSION */
  $("fantBrand").textContent = t("fantasyBrand");
+ try{ paintFantasyGate(); }catch(_){}
  document.title = t("brand") + " · " + t("motto");
 }
 function setLang(x){
@@ -3275,6 +3288,7 @@ async function doAuth(){
 async function finishAuth(a, password){
  gkUser = {uid:a.uid, username:a.username};
  try{ localStorage.setItem("gk_user", JSON.stringify(gkUser)); }catch(_){}
+ try{ paintFantasyGate(); }catch(_){}
  const chatReady = await createChatSession(a.username, password);
  myPreds = {};
  try{ localStorage.removeItem("gk_preds"); }catch(_){}
@@ -3302,6 +3316,7 @@ function signOut(){
  clearChatSession();
  closeChatSocket();
  try{ localStorage.removeItem("gk_user"); localStorage.removeItem("gk_preds"); }catch(_){}
+ try{ paintFantasyGate(); }catch(_){}
  refreshHdrAuth();
  refreshChatBar();
  if(mainView === "chat") renderChat();
@@ -3753,6 +3768,42 @@ function paintClubHero(){
   '<div class="chtm"><span class="tm tmh"><i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + '</span><span class="mtime" dir="ltr">' + esc(fmtTime(e.date)) + '</span><span class="tm tma">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span></div>" +
   '<div class="chsub">' + esc(fmtDayFull(dkey(new Date(e.date)))) + "</div></button>";
 }
+/* ---------- fantasy: owner preview ----------
+   Fantasy is not open yet. The tab says "coming soon" to everyone and the way in appears
+   only for the owner's own signed-in account.
+
+   THE MATCH IS DELIBERATELY GENEROUS. A previous version compared the username against a
+   list of exact spellings and the owner - the one person it exists for - was locked out of
+   his own product, because nobody outside his account knows how he actually typed it. It
+   now normalises to letters only and accepts any username CONTAINING his family name, plus
+   an explicit unlock for a device he is signed in on.
+
+   This is a RELEASE GATE, not a security control: the check is readable in this file and
+   /fantasy/ is a public path. It stops an unfinished game being advertised to the app's
+   users. Real protection belongs in the worker, the way chat already is. */
+const FX_OWNER_MARKS = ["ayoty", "elayoty", "ahmedayoty", "ahmedelayoty"];
+function fxKey(v){ return String(v || "").toLowerCase().replace(/[^a-z]/g, ""); }
+function fxAllowed(){
+ try{ if(localStorage.getItem("gk_fx_owner") === "1") return true; }catch(_){}
+ const k = fxKey(gkUser && gkUser.username);
+ return !!k && FX_OWNER_MARKS.some(m => k.indexOf(m) >= 0);
+}
+function paintFantasyGate(){
+ const cta = $("fantCta"), soon = $("fantSoon"), who = $("fantWho");
+ if(!cta || !soon) return;
+ const ok = fxAllowed();
+ cta.classList.toggle("hide", !ok);
+ cta.textContent = t("fantasyCta");
+ soon.textContent = ok ? t("fantasyTag") : t("fantasySoon");
+ /* If he is signed in and still shut out, the screen must say WHICH account it is judging -
+    otherwise the only way to debug it is to ask him to guess his own username. */
+ if(who) who.textContent = (!ok && gkUser && gkUser.username)
+   ? t("fantasyWho").replace("{u}", gkUser.username) : "";
+}
+try{
+ if(/[?&]fxowner=1/.test(location.search)) localStorage.setItem("gk_fx_owner", "1");
+ if(/[?&]fxowner=0/.test(location.search)) localStorage.removeItem("gk_fx_owner");
+}catch(_){}
 function hdrAuthTap(){ if(gkUser) showMain("pred"); else openAuth("L"); }
 function refreshHdrAuth(){
  const b = $("hdrAuth");

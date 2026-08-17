@@ -798,14 +798,18 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
    This is a RELEASE GATE, not security: the list is readable in this file. It exists so the
    game is not open before it starts, not to protect anything secret. */
 (function fxGate(){
- var OWNERS = ["ahmedelayoty","ahmedayoty","ahmed","ayoty","elayoty"];
+ /* Generous on purpose: an exact-spelling list locked the owner out of his own product,
+    because nobody outside his account knows how he actually typed his username. Letters
+    only, and any username CONTAINING his family name counts. */
+ var MARKS = ["ayoty","elayoty","ahmedayoty","ahmedelayoty"];
  var key = function(v){ return String(v||"").toLowerCase().replace(/[^a-z]/g,""); };
  var ok = false;
  try{ if(localStorage.getItem("gk_fx_owner") === "1") ok = true; }catch(_){}
  try{
   if(/[?&]fxowner=1/.test(location.search)){ localStorage.setItem("gk_fx_owner","1"); ok = true; }
   var u = JSON.parse(localStorage.getItem("gk_user") || "null");
-  if(u && OWNERS.indexOf(key(u.username)) >= 0) ok = true;
+  var k = u ? key(u.username) : "";
+  if(k) for(var i=0;i<MARKS.length;i++){ if(k.indexOf(MARKS[i])>=0){ ok = true; break; } }
  }catch(_){}
  if(ok) return;
  /* honour the language the visitor last chose in the game, not the markup default */
