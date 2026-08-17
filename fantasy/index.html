@@ -1297,11 +1297,25 @@ function roundLocked(gw){
  const ms = gwLockMs(gw);
  return isFinite(ms) && Date.now() >= ms;
 }
-function gwDates(gw){
+/* `lang` is OPTIONAL and defaults to the live LANG, which is what every screen
+   wants. The tutorial is the one caller that needs BOTH languages at once: it is
+   handed a frozen [ar, en] pair at open time and then only re-renders from that
+   pair, so without this the English tutorial printed Arabic month names for the
+   whole session. */
+function gwDates(gw, lang){
  const r = gwRound(gw); if(!r) return "";
+ const L = (lang || LANG) === "ar" ? "ar" : "en";
  const d = str => { const p = str.split("-");
-   return num(String(+p[2])) + " " + MONTHS[LANG === "ar" ? "ar" : "en"][+p[1] - 1]; };
+   return num(String(+p[2])) + " " + MONTHS[L][+p[1] - 1]; };
  return d(r[0]) + " – " + d(r[1]);
+}
+/* one end of one round, in both languages. `withYear` adds it — "10 يونيو 2027" —
+   for the two season bounds, which are 10 months apart and meaningless without
+   it. The year is read off the calendar row, never typed. */
+function gwEdgePair(gw, end, withYear){
+ const r = gwRound(gw); if(!r) return null;
+ const y = withYear ? " " + String(r[end]).slice(0, 4) : "";
+ return [gwDates(gw, "ar").split(" – ")[end] + y, gwDates(gw, "en").split(" – ")[end] + y];
 }
 function simMatch(clubId, gw){
  /* No CLUBS.find() here. It used to look the club up and discard the result — a 126-item
@@ -2414,13 +2428,16 @@ function maybeCoach(key, anchorId, strKey){
  c.classList.remove("hide");
 }
 
-/* ---------------- first-run wizard ----------------
-   Target: a complete team in under 3 minutes, and the fast path is 8 taps because
-   step 3 hands the user a finished squad instead of an empty board. */
 /* ---------------- the tutorial ----------------
-   The demo resets on every open, so this is the most-seen screen in the product. The
-   module owns the content and the state machine; the host owns commit, focus and scroll.
-   Every control carries data-tut-act — no inline handlers, because the module is pure. */
+   This is the most-seen screen in the product, and since v2 it is also where the team is
+   actually built. The module owns the content, the copy and the state machine; the host owns
+   the commit, the focus and the scroll. Every control carries data-tut-act — no inline
+   handlers, because the module is pure.
+
+   THE OWNER'S INSTRUCTION, TWICE: "the tutorial should start with the pitch empty! and then
+   accurately guide the player on how to put the team and how to choose wild cards — step by
+   step, when he makes it he goes to the next step". So the fifteen clubs he picks in here ARE
+   his team; there is nothing to throw away at the end and nothing generated at the start. */
 let TS = null;
 function tutMount(){ $("wizBox").innerHTML = tutHtml(TS); }
 function openWizard(){
@@ -2438,15 +2455,25 @@ function openWizard(){
      It all comes from the frozen calendar now: the round the app is actually on, that round's
      real window, and a lock stated as a DATE, because a date is what we know. Nothing here
      may be typed by hand again. */
-  const cur = gwRound(CURRENT_GW);
-  const fromTxt = cur ? gwDates(CURRENT_GW).split(" – ")[0] : "";
-  const toTxt   = cur ? gwDates(CURRENT_GW).split(" – ")[1] : "";
-  TS = tutInit({clubs: CLUBS, price: priceOf, leagueName: leagueName, lang: LANG,
+  /* `leagues` (not leagueName) because the module must stay PURE: a callback that reads the
+     LANG global from inside a render is a render that depends on a global, and the whole
+     suite rests on tutHtml being a function of its argument alone. */
+  const from = gwEdgePair(CURRENT_GW, 0), to = gwEdgePair(CURRENT_GW, 1);
+  /* REPLAYING THE LESSON MUST NOT COST YOU YOUR TEAM — the rule replayTutorial() has carried
+     since it was written. Since v2 the tutorial commits whatever it is holding, so a manager
+     who opens the walkthrough again is handed his OWN fifteen clubs to walk through: every
+     gate is already satisfied, he reads and taps out, and nothing is lost. A genuine first
+     run passes an empty array and the pitch is empty, which is the instruction. */
+  TS = tutInit({clubs: CLUBS, leagues: LEAGUES, price: priceOf, lang: LANG,
+                squad: squad.slice(), captain: captain,
                 size: SQUAD_SIZE, startSize: START_SIZE, budget: BUDGET,
-                maxPerLeague: MAX_PER_LEAGUE, minPrice: MIN_CLUB_PRICE, seed: 20260816,
-                gw: {no: CURRENT_GW, from: [fromTxt, fromTxt], to: [toTxt, toTxt],
-                     lock: [t("locksOn", {d: fromTxt}), t("locksOn", {d: fromTxt})],
-                     fixture: ["أول ماتش", "first match"]}});
+                maxPerLeague: MAX_PER_LEAGUE, minPrice: MIN_CLUB_PRICE,
+                gw: {no: CURRENT_GW,
+                     from: from, to: to,
+                     /* the deadline is a DATE, because a date is what we know. The old build
+                        printed a kick-off time this product has never had. */
+                     lock: from,
+                     seasonFrom: gwEdgePair(1, 0, true), seasonTo: gwEdgePair(36, 1, true)}});
   tutMount();
  }
  $("wiz").classList.remove("hide");
@@ -2455,22 +2482,47 @@ function openWizard(){
 $("wizBox").addEventListener("click", function(e){
  const el = e.target.closest("[data-tut-act]");
  if(!el || !TS) return;
- TS = tutReduce(TS, {type: el.dataset.tutAct, arg: el.dataset.tutArg});
+ const wasStep = TS.step, wasTop = $("wizBox").scrollTop;
+ const wasArg = el.dataset.tutArg || "", wasAct = el.dataset.tutAct;
+ TS = tutReduce(TS, {type: wasAct, arg: el.dataset.tutArg});
  if(TS.done){
-  /* THE TUTORIAL TEACHES, IT DOES NOT PICK. It used to commit the squad it had built during
-     the lesson, so a player finished onboarding owning eleven clubs he had never chosen -
-     and the same was true of Skip. The pitch is empty when the lesson ends; choosing the
-     team is the first thing the player actually does. */
-  squad = []; captain = null; save();
+  /* THE TEAM HE BUILT IS THE TEAM HE OWNS. The first version of this handler committed a
+     squad the tutorial had GENERATED, so a player finished onboarding owning eleven clubs he
+     had never chosen. The correction after that threw the squad away and handed over an empty
+     pitch, which was honest but left the lesson connected to nothing. Since v2 the tutorial
+     has nothing of its own to commit: TS.squad is exactly what he tapped, in the order he
+     tapped it, and Skip commits however much of it existed at the moment he pressed Skip -
+     including none at all, which is a state the app already has a first-class screen for. */
+  squad = TS.squad.slice(); captain = TS.captain || null; save();
   /* paintChrome, not just render: the header subtitle becomes the TEAM NAME once a squad
      exists, and the tutorial is the moment a squad first exists. Without this the header
      kept showing the rules recap for the whole session. */
   paintChrome(); closeWizard(); return;
  }
  tutMount();
- const f = $("wizBox").querySelector("[data-tut-focus]");
- if(f) f.focus({preventScroll:true});
- $("wizBox").scrollTop = 0;
+ /* A LIVE PICKER MUST NOT JUMP.
+    The old handler reset the scroll to 0 and moved focus after EVERY action, which was
+    harmless when a step was one screen of prose. It is intolerable now: picking a club two
+    thirds of the way down a 126-row list threw the list back to the top, so the eleventh pick
+    took eleven scrolls. Scroll and focus are only reset when the STEP actually changes; a
+    pick is a re-render of the same step, and focus goes back to the row he just touched
+    (matched by data-tut-arg, because PICK becomes DROP on the same club). */
+ const box = $("wizBox");
+ if(TS.step === wasStep){
+  box.scrollTop = wasTop;
+  let mate = null;
+  const all = box.querySelectorAll("[data-tut-act]");
+  for(let i = 0; i < all.length && !mate; i++){
+   const n = all[i];
+   if(wasArg ? (n.dataset.tutArg || "") === wasArg : n.dataset.tutAct === wasAct) mate = n;
+  }
+  const f = mate && !mate.disabled ? mate : box.querySelector("[data-tut-focus]");
+  if(f) f.focus({preventScroll:true});
+ } else {
+  box.scrollTop = 0;
+  const f = box.querySelector("[data-tut-focus]");
+  if(f) f.focus({preventScroll:true});
+ }
 });
 function closeWizard(){
  /* Re-arm the walk-out. boot() paints the pitch and then covers it with the wizard, so the

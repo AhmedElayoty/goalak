@@ -1389,11 +1389,6 @@ const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({
 const num = n => String(n);
 const ltr = s => '<span dir="ltr">' + esc(s) + "</span>";
 
-function rng(seed) {
-  let s = (seed >>> 0) || 1;
-  return function () { s = (s * 1103515245 + 12345) >>> 0; return s / 4294967296; };
-}
-
 const TUT_STR = {
 
   tutSkip:      ["بعدين", "Skip"],
@@ -1402,66 +1397,114 @@ const TUT_STR = {
   tutStepAria:  ["خطوة {n} من {total}", "Step {n} of {total}"],
 
   tutW1Ttl:  ["مش هتختار لاعيبة — هتختار أندية", "You don't pick players — you pick clubs"],
-  tutW1Body: ["كل نادي في فريقك بيجيب لك نقط من نتايجه الحقيقية. مفيش لاعيبة، ومفيش إصابات.",
-              "Every club in your team earns you points from its real results. No players, no injuries."],
-  tutW1Note: ["دقيقتين وفريقك جاهز", "Two minutes and your team is ready"],
+  tutW1Body: ["كل نادي في فريقك بيجيب لك نقط من نتايجه الحقيقية: الفوز 6، وكل جول 2، والشباك النضيفة 3. مفيش لاعيبة، ومفيش إصابات.",
+              "Every club in your team earns you points from its real results: a win is 6, each goal 2, a clean sheet 3. No players, no injuries."],
+  tutW1Note: ["الملعب فاضي دلوقتي، وإنت اللي هتملاه — نادي نادي.",
+              "The pitch is empty right now, and you are the one who fills it — club by club."],
   tutW1Cta:  ["يلا نبدأ", "Let's go"],
 
-  tutFavTtl:  ["إنت بتشجع مين؟", "Who do you support?"],
-  tutFavBody: ["هنبني فريقك حواليه، وهيلعب أساسي.", "We'll build your team around them, and they'll start."],
-  tutFavNone: ["مش بشجع حد", "No favourite"],
-  tutFavAria: ["اختار {club}", "Choose {club}"],
+  tutP1Ttl:  ["ابدأ بنادي بتحبه", "Start with a club you love"],
+  tutP1Body: ["الملعب قدامك فاضي. دوس على أي نادي من اللستة وهتلاقيه نزل الملعب على طول.",
+              "The pitch in front of you is empty. Tap any club in the list and you will see it land on the pitch."],
+  tutP1Live: ["مستني أول نادي.", "Waiting for your first club."],
+  tutP1Ok:   ["{club} بقى في فريقك.", "{club} is in your team now."],
+  tutP1Cta:  ["كمّل", "Keep going"],
 
-  tutSqTtl:   ["جهزنالك فريق", "We built you a team"],
-  tutSqBody:  ["دي بداية كاملة ومظبوطة. سيبها زي ما هي، أو غيّرها.",
-               "A complete, correct starting squad. Keep it, or change it."],
-  tutSqFav:   ["{club} أساسي عندك", "{club} starts for you"],
-  tutSqReroll:["فريق تاني", "Another team"],
-  tutSqCta:   ["الفريق ده يعجبني", "I like this team"],
-  tutPillN:   ["{n} نادي", "{n} clubs"],
-  tutPillM:   ["{n} مليون", "{n}M"],
-  tutPillXi:  ["11 في الملعب و4 على الدكة", "11 on the pitch, 4 subs"],
-  tutPillLg:  ["3 من كل دوري بالكتير", "Max 3 per league"],
+  tutBgTtl:  ["120 مليون، و15 نادي", "120M, and 15 clubs"],
+  tutBgBody: ["الميزانية 120 مليون تشتري بيها 15 نادي: 11 في الملعب و4 على الدكة. مش فلوس حقيقية — دي بس اللي بتوزن بيها اختياراتك.",
+              "Your budget is 120M and it buys 15 clubs: 11 on the pitch and 4 on the bench. It is not real money — it is what balances your choices."],
+  tutBgBig:  ["الأندية الكبيرة الأربعة متسعّرة بحيث الأربعة مايدخلوش مع بعض أبداً. تلاتة أكتر حاجة تقدر تملكها.",
+              "The four superclubs are priced so that all four can never fit together. Three is the most you can own."],
+  tutBgP1:   ["126 نادي من 7 دوريات", "126 clubs from 7 leagues"],
+  tutBgP2:   ["3 أندية بالكتير من الدوري الواحد", "Max 3 from any one league"],
+  tutBgP3:   ["أرخص نادي 4.5 مليون", "The cheapest club is 4.5M"],
+  tutBgP4:   ["11 في الملعب و4 على الدكة", "11 on the pitch, 4 subs"],
+  tutBgCta:  ["فهمت", "Got it"],
 
-  tutSwTtl:   ["الملعب ده قرارك إنت", "The pitch is your call"],
-  tutSwBody:  ["رتبناهم بالسعر — بس إنت اللي بتعرف مين هيكسب الجولة دي.",
-               "We ordered them by price — but you're the one who knows who's winning this round."],
-  tutSwDo1:   ["دوس على {a} اللي على الدكة", "Tap {a} on the bench"],
-  tutSwDo2:   ["تمام. دلوقتي دوس على {b} اللي في الملعب", "Good. Now tap {b} on the pitch"],
-  tutSwOk:    ["كده بالظبط. أي نادي تقدر تبدله في أي وقت.",
-               "Exactly that. You can swap any club, any time."],
-  tutSwPitch: ["الملعب", "The pitch"],
-  tutSwBench: ["الدكة · بيدخلوا لوحدهم لو ناديك مالوش ماتش",
-               "The bench · they come on automatically when a starter has no match"],
-  tutSwCta:   ["فهمت", "Got it"],
-  tutSwPass:  ["كمل من غير ما أجرب", "Continue without trying"],
-  tutSwSlot:  ["{club} · {price} مليون", "{club} · {price}M"],
+  tutXiTtl:  ["كمّل الـ11", "Fill your eleven"],
+  tutXiBody: ["الـ11 دول هم اللي بيجمعوا لك نقط كل جولة. اختار اللي إنت شايف إنهم هيكسبوا.",
+              "These eleven are the clubs that score for you every round. Pick the ones you think will win."],
+  tutXiLive: ["{n} من 11 · باقي {m}", "{n} of 11 · {m} to go"],
+  tutXiFull: ["تمام — الـ11 كملوا.", "That is your eleven."],
+  tutXiCta:  ["الـ11 كملوا", "My eleven is complete"],
+
+  tutBnTtl:  ["الدكة · 4 أندية كمان", "The bench · four more clubs"],
+  tutBnBody: ["لو نادي من الـ11 مالوش ماتش في الجولة، بياخد صفر. ساعتها بديل من الدكة بيدخل مكانه لوحده من غير ما تعمل حاجة.",
+              "If a club in your eleven has no match in a round, it scores zero. A substitute then comes on in its place automatically, with no action from you."],
+  tutBnFact: ["النادي اللي مالوش ماتش بيكلفك 6.85 نقطة في المتوسط، وموسم كامل من غير دكة شغالة بيضيع 183 نقطة.",
+              "A club with no match costs you 6.85 points on average, and a whole season with no working bench forfeits 183 points."],
+  tutBnLive: ["{n} من 15 · باقي {m} للدكة", "{n} of 15 · {m} more for the bench"],
+  tutBnFull: ["الفريق كمل — 15 نادي.", "Your squad is complete — 15 clubs."],
+  tutBnCta:  ["الفريق كمل", "My squad is complete"],
 
   tutCapTtl:  ["الكابتن بياخد ضعف النقط", "Your captain scores double"],
-  tutCapBody: ["لو جاب 12، تاخد 24. دوس على النادي اللي واثق فيه.",
-               "If they score 12, you get 24. Tap the club you trust."],
-  tutCapPre:  ["خليناه {club} — غيّره لو عايز.", "We've set {club} — change it if you like."],
+  tutCapBody: ["نادي واحد بس، ولازم يكون من الـ11 اللي في الملعب. لو جاب 12، تاخد 24. دوس على النادي اللي واثق فيه.",
+               "One club only, and it has to be one of the eleven on the pitch. If it scores 12, you get 24. Tap the club you trust."],
+  tutCapLive: ["لسه ما اخترتش كابتن.", "You have not chosen a captain yet."],
+  tutCapOk:   ["{club} هو الكابتن بتاعك.", "{club} is your captain."],
   tutCapCta:  ["تمام", "Done"],
   tutCapAria: ["خلي {club} الكابتن", "Make {club} captain"],
 
-  tutGwTtl:    ["الجولة {n}", "Round {n}"],
+  tutChTtl:  ["الجوكرات", "Chips"],
+  tutChBody: ["8 جوكرات في الموسم: اتنين من كل نوع، واحد في كل نص. وجوكر واحد بس في الجولة الواحدة.",
+              "Eight chips a season: two of each kind, one in each half. And only one chip in any single round."],
+  tutChTap:  ["دوس على أي جوكر عشان تعرف بيعمل إيه.", "Tap any chip to see what it does."],
+  tutChSeen: ["كده عرفت. تقدر تفتح الباقي، أو تكمل.", "Now you know. Open the rest, or carry on."],
+  tutChWhere:["هتلاقيهم في «الجوكرات» تحت في أي وقت — مش لازم تستخدم حاجة دلوقتي.",
+              "You will find them under Chips at the bottom whenever you want — you do not have to use one now."],
+  tutChCta:  ["تمام", "Done"],
+  tutChAria: ["{chip}. دوس عشان تشوف بيعمل إيه.", "{chip}. Tap to see what it does."],
+  tutChPer:  ["مرتين في الموسم", "Twice a season"],
+
+  tutChipWc:      ["تغيير شامل", "Wildcard"],
+  tutChipWcEff:   ["كل انتقالاتك في الجولة دي ببلاش — غيّر اللي إنت عايزه من غير خصم −4.",
+                   "Every transfer you make this round is free — change whatever you like with no −4."],
+  tutChipWcWhen:  ["استخدمه لما تحب تغيّر نص فريقك مرة واحدة.",
+                   "Use it when you want to rebuild half your squad at once."],
+  tutChipFh:      ["فريق مؤقت", "Free Hit"],
+  tutChipFhEff:   ["انتقالات مفتوحة لجولة واحدة بس. وفي الإقفال الجاي فريقك بيرجع زي ما كان بالظبط.",
+                   "Unlimited transfers for one round only. At the next deadline your squad goes back exactly as it was."],
+  tutChipFhWhen:  ["استخدمه في الجولة اللي أغلب أنديتك مالهاش ماتش فيها.",
+                   "Use it in a round where most of your clubs have no match."],
+  tutChipTc:      ["الكابتن الثلاثي", "Triple Captain"],
+  tutChipTcEff:   ["نقاط الكابتن ×3 بدل ×2 في الجولة دي.",
+                   "Your captain scores ×3 instead of ×2 this round."],
+  tutChipTcWhen:  ["استخدمه لما كابتنك يلعب ماتشين في جولة واحدة.",
+                   "Use it when your captain plays twice in one round."],
+  tutChipFs:      ["الفريق الكامل", "Full Squad"],
+  tutChipFsEff:   ["البدلاء الأربعة كلهم بيجيبوا نقط في الجولة دي، مش بس اللي بيدخل بدل نادي مالوش ماتش.",
+                   "All four of your substitutes score this round, not just the one covering a club with no match."],
+  tutChipFsWhen:  ["استخدمه في الجولة اللي الخمستاشر نادي كلهم لاعبين فيها.",
+                   "Use it in a round where all fifteen of your clubs have a match."],
+
+  tutDnTtl:    ["فريقك جاهز", "Your team is ready"],
   tutGwLine:   ["الجولة الأولى: من {from} لـ {to}. كل ماتش تلعبه أنديتك فيها بيتحسب لك.",
                 "Round 1: {from} to {to}. Every match your clubs play in it counts for you."],
   tutGwLineNd: ["كل ماتش تلعبه أنديتك في الجولة دي بيتحسب لك.",
                 "Every match your clubs play in this round counts for you."],
-  tutGwLock:   ["بيقفل {when}", "Locks {when}"],
-  tutGwBody:   ["ده آخر ميعاد تقدر تغيّر فيه فريقك.", "This is the last moment you can change your team."],
-  tutGwCta:    ["يلا نشوف الملعب", "Take me to the pitch"],
+  tutDnLock:   ["الجولة {n} بتقفل {when}", "Round {n} locks {when}"],
+  tutDnBody:   ["أول ما الجولة تبدأ بتتقفل، ومش هتقدر تغيّر فيها فريقك ولا الكابتن. قبل كده غيّر زي ما إنت عايز.",
+                "A round locks the moment it starts, and after that you cannot change your team or your captain in it. Before that, change whatever you like."],
+  tutDnSeason: ["الموسم 36 جولة، من {a} لحد {b}.", "The season is 36 rounds, {a} to {b}."],
+  tutDnNoPts:  ["الموسم لسه ما بدأش، فمفيش نقط لحد دلوقتي — ولا ليك ولا لغيرك.",
+                "The season has not started, so there are no points yet — not yours and not anyone else's."],
+  tutDnCta:    ["يلا نشوف الملعب", "Take me to the pitch"],
 
-  tutHkTtl:    ["ميعاد الكابتن", "Your captain's appointment"],
-  tutHkLine:   ["{club} بيلعب {when}.", "{club} play {when}."],
-  tutHkLineNt: ["{club} هو الكابتن بتاعك.", "{club} is your captain."],
-  tutHkX2:     ["نقطه بتتضاعف", "Their points double"],
-  tutHkWhy:    ["إنت اخترته. ارجع وشوف لو كنت على حق.", "You chose them. Come back and see if you were right."],
-  tutHkCta:    ["يلا", "Let's go"],
-
-  tutSkipDone: ["جهزنالك فريق كامل. تقدر تغيّره في أي وقت.",
-                "We built you a complete team. You can change it any time."]
+  tutPkAll:    ["الكل", "All"],
+  tutPkFilter: ["صفّي بالدوري", "Filter by league"],
+  tutPkAdd:    ["ضيف {club} بـ {price} مليون", "Add {club} for {price}M"],
+  tutPkDrop:   ["شيل {club} من فريقك", "Remove {club} from your team"],
+  tutPkNone:   ["مفيش نادي تقدر تضيفه من الدوري ده دلوقتي.", "No club from this league can be added right now."],
+  tutBudLeft:  ["المتبقي", "Remaining"],
+  tutBudSlots: ["أماكن فاضية", "Slots left"],
+  tutBudNext:  ["أغلى نادي تقدر تشتريه", "Max for your next club"],
+  tutWhyFull:  ["فريقك كمل", "Your squad is full"],
+  tutWhyLeague:["عندك 3 أندية من الدوري ده", "3 clubs from this league already"],
+  tutWhyMoney: ["أغلى من اللي فاضل معاك", "Over your remaining budget"],
+  tutLabPitch: ["الملعب", "The pitch"],
+  tutLabBench: ["الدكة · بيدخلوا لوحدهم لو ناديك مالوش ماتش",
+                "The bench · they come on automatically when a starter has no match"],
+  tutSlotAria: ["{club} · {price} مليون", "{club} · {price}M"]
 };
 
 function tutT(key, lang) {
@@ -1478,16 +1521,15 @@ function tutFill(key, lang, vars) {
   return s;
 }
 
-const TUT_STEPS = Object.freeze(["welcome", "fav", "squad", "swap", "captain", "round", "hook"]);
+const TUT_STEPS = Object.freeze(["welcome", "first", "budget", "eleven", "bench", "captain", "chips", "done"]);
 function tutSteps() { return TUT_STEPS.slice(); }
 const stepIndex = id => TUT_STEPS.indexOf(id);
 
-const BANDS = Object.freeze([
-  { min: 15.0, max: Infinity, n: 1 },
-  { min: 11.0, max: 14.99,    n: 2 },
-  { min: 8.5,  max: 10.99,    n: 3 },
-  { min: 6.0,  max: 8.49,     n: 5 },
-  { min: 4.5,  max: 5.99,     n: 4 }
+const TUT_CHIPS = Object.freeze([
+  Object.freeze({ id: "wildcard",  glyph: "⇄",  ltr: false, name: "tutChipWc", eff: "tutChipWcEff", when: "tutChipWcWhen" }),
+  Object.freeze({ id: "freehit",   glyph: "⟲",  ltr: false, name: "tutChipFh", eff: "tutChipFhEff", when: "tutChipFhWhen" }),
+  Object.freeze({ id: "tripcap",   glyph: "×3", ltr: true,  name: "tutChipTc", eff: "tutChipTcEff", when: "tutChipTcWhen" }),
+  Object.freeze({ id: "fullsquad", glyph: "+4", ltr: true,  name: "tutChipFs", eff: "tutChipFsEff", when: "tutChipFsWhen" })
 ]);
 
 function ctxOf(input) {
@@ -1499,97 +1541,6 @@ function ctxOf(input) {
     budget:       input.budget      != null ? input.budget      : 120.0,
     maxPerLeague: input.maxPerLeague!= null ? input.maxPerLeague: 3,
     minPrice:     input.minPrice    != null ? input.minPrice    : 4.5
-  };
-}
-
-function floorFor(quota, picked, c) {
-  const slotsLeft = c.size - picked - 1;
-  if (slotsLeft <= 0) return 0;
-  let soft = 0, left = slotsLeft;
-  for (let i = 0; i < BANDS.length && left > 0; i++) {
-    const take = Math.min(quota[i], left);
-    soft += take * BANDS[i].min; left -= take;
-  }
-  return Math.max(slotsLeft * c.minPrice, soft);
-}
-
-function bandOf(p) {
-  for (let i = 0; i < BANDS.length; i++) if (p >= BANDS[i].min && p <= BANDS[i].max) return i;
-  return BANDS.length - 1;                     /* anything under the floor bands with it */
-}
-
-function tutBuildSquad(input) {
-  const c = ctxOf(input);
-  const rnd = rng(input.seed != null ? input.seed : 1);
-  const priceOf = id => c.price(id);
-  const quota = BANDS.map(b => b.n);
-  const picked = [], lgN = {};
-  let spend = 0;
-
-  const take = id => {
-    const club = c.clubs.find(x => x.id === id); if (!club) return false;
-    picked.push(id); lgN[club.lg] = (lgN[club.lg] || 0) + 1; spend += priceOf(id);
-    const b = bandOf(priceOf(id)); if (quota[b] > 0) quota[b]--;
-    return true;
-  };
-
-  if (input.fav && c.clubs.some(x => x.id === input.fav)) take(input.fav);
-
-  const eligible = (club) => {
-    if (picked.includes(club.id)) return false;
-    if ((lgN[club.lg] || 0) >= c.maxPerLeague) return false;
-    return true;
-  };
-
-  const cheapestRest = (n, extraId) => {
-    if (n <= 0) return 0;
-    const held = extraId ? picked.concat([extraId]) : picked;
-    const cnt = {};
-    for (const id of held) { const cl = c.clubs.find(x => x.id === id); if (cl) cnt[cl.lg] = (cnt[cl.lg] || 0) + 1; }
-    const pool = c.clubs.filter(x => held.indexOf(x.id) < 0)
-                        .sort((a, b2) => priceOf(a.id) - priceOf(b2.id));
-    let tot = 0, got = 0;
-    for (const x of pool) {
-      if (got >= n) break;
-      if ((cnt[x.lg] || 0) >= c.maxPerLeague) continue;
-      cnt[x.lg] = (cnt[x.lg] || 0) + 1; tot += priceOf(x.id); got++;
-    }
-    return got < n ? Infinity : tot;
-  };
-  for (let b = 0; b < BANDS.length; b++) {
-    while (quota[b] > 0 && picked.length < c.size) {
-      const cands = c.clubs.filter(x =>
-        eligible(x) && priceOf(x.id) >= BANDS[b].min && priceOf(x.id) <= BANDS[b].max);
-      let best = null, bestScore = -Infinity;
-      for (const x of cands) {
-        const p = priceOf(x.id);
-        if (spend + p + cheapestRest(c.size - picked.length - 1, x.id) > c.budget) continue;
-        const score = (x.fame || 0) + rnd() * 0.35 + (x.ar ? 0.10 : 0) + p / 400;
-        if (score > bestScore) { bestScore = score; best = x; }
-      }
-      if (!best) { quota[b] = 0; break; }
-      take(best.id);
-    }
-  }
-
-  let guard = 0;
-  while (picked.length < c.size && guard++ < 400) {
-    const cands = c.clubs.filter(x => eligible(x) &&
-      spend + priceOf(x.id) + cheapestRest(c.size - picked.length - 1, x.id) <= c.budget);
-    if (!cands.length) break;
-    cands.sort((a, b2) => priceOf(a.id) - priceOf(b2.id) || (b2.fame || 0) - (a.fame || 0));
-    take(cands[0].id);
-  }
-
-  const fav = input.fav && picked.includes(input.fav) ? input.fav : null;
-  const rest = picked.filter(id => id !== fav).sort((a, b) => priceOf(b) - priceOf(a));
-  const squad = fav ? [fav].concat(rest) : rest;
-
-  return {
-    squad: squad,
-    ok: squad.length === c.size,
-    spend: +spend.toFixed(1),
-    reason: squad.length === c.size ? null : "pool exhausted"
   };
 }
 
@@ -1612,38 +1563,79 @@ function tutIsLegal(squad, input) {
   return { ok: errors.length === 0, errors: errors, spend: spend };
 }
 
-function tutFavouritePool(clubs, n) {
-  const size = n || 12;
-  const ok = (clubs || []).filter(c => c.ar);
-  const byFame = ok.slice().sort((a, b) =>
-    (b.fame || 0) - (a.fame || 0) || String(a.id).localeCompare(String(b.id)));
-  const out = [], seen = {};
-  for (const c of byFame) if (!seen[c.lg]) { seen[c.lg] = 1; out.push(c); }
-  for (const c of byFame) { if (out.length >= size) break; if (!out.includes(c)) out.push(c); }
-  return out.slice(0, size).sort((a, b) => (b.fame || 0) - (a.fame || 0));
+const clubOf = (s, id) => s.clubs.find(x => x.id === id) || null;
+const priceOf = (s, id) => { const p = s.price(id); return typeof p === "number" && isFinite(p) ? p : 0; };
+const spendOf = s => +s.squad.reduce((a, id) => a + priceOf(s, id), 0).toFixed(1);
+const leagueCount = (s, lg) => s.squad.filter(id => { const c = clubOf(s, id); return c && c.lg === lg; }).length;
+
+function poolAsc(s) {
+  return s.clubs.filter(x => s.squad.indexOf(x.id) < 0)
+                .slice().sort((a, b) => priceOf(s, a.id) - priceOf(s, b.id));
+}
+
+function cheapestFill(s, n, extraId, pool) {
+  if (n <= 0) return 0;
+  const p = pool || poolAsc(s);
+  const cnt = {};
+  for (const id of s.squad) { const c = clubOf(s, id); if (c) cnt[c.lg] = (cnt[c.lg] || 0) + 1; }
+  if (extraId) { const c = clubOf(s, extraId); if (c) cnt[c.lg] = (cnt[c.lg] || 0) + 1; }
+  let tot = 0, got = 0;
+  for (const x of p) {
+    if (got >= n) break;
+    if (extraId && x.id === extraId) continue;
+    if ((cnt[x.lg] || 0) >= s.maxPerLeague) continue;
+    cnt[x.lg] = (cnt[x.lg] || 0) + 1; tot += priceOf(s, x.id); got++;
+  }
+  return got < n ? Infinity : +tot.toFixed(1);
+}
+
+function tutBudget(s, pool) {
+  const p = pool || poolAsc(s);
+  const spend = spendOf(s);
+  const slotsLeft = Math.max(0, s.size - s.squad.length);
+  const reserve = cheapestFill(s, Math.max(0, slotsLeft - 1), null, p);
+  const remaining = +(s.budget - spend).toFixed(1);
+  const maxNext = slotsLeft <= 0 || !isFinite(reserve) ? 0 : +(remaining - reserve).toFixed(1);
+  return { spend: spend, remaining: remaining, slotsLeft: slotsLeft, reserve: reserve, maxNext: maxNext };
+}
+
+function tutBlockReason(s, club, pool) {
+  if (!club) return null;
+  if (s.squad.indexOf(club.id) >= 0) return null;              /* owned: removable, not blocked */
+  if (s.squad.length >= s.size) return "tutWhyFull";
+  if (leagueCount(s, club.lg) >= s.maxPerLeague) return "tutWhyLeague";
+  const p = pool || poolAsc(s);
+  const rest = cheapestFill(s, s.size - s.squad.length - 1, club.id, p);
+  if (spendOf(s) + priceOf(s, club.id) + rest > s.budget + 1e-9) return "tutWhyMoney";
+  return null;
 }
 
 function tutInit(opts) {
   const o = opts || {};
+  const clubs = o.clubs || [];
+  const size = o.size != null ? o.size : 15;
+  const startSize = o.startSize != null ? o.startSize : 11;
+  const seed = Array.isArray(o.squad)
+    ? o.squad.map(String).filter((id, i, a) => a.indexOf(id) === i && clubs.some(c => c.id === id)).slice(0, size)
+    : [];
+  const cap = o.captain != null && seed.slice(0, startSize).indexOf(String(o.captain)) >= 0 ? String(o.captain) : null;
   return Object.freeze({
     step: "welcome",
     lang: o.lang === "en" ? "en" : "ar",
-    clubs: o.clubs || [],
+    clubs: clubs,
+    leagues: o.leagues || [],
     price: o.price || (() => 8),
-    leagueName: o.leagueName || (id => id),
-    size: o.size != null ? o.size : 15,
-    startSize: o.startSize != null ? o.startSize : 11,
+    size: size,
+    startSize: startSize,
     budget: o.budget != null ? o.budget : 120.0,
     maxPerLeague: o.maxPerLeague != null ? o.maxPerLeague : 3,
     minPrice: o.minPrice != null ? o.minPrice : 4.5,
-    gw: o.gw || null,          /* {no, from:[ar,en], to:[ar,en], lock:[ar,en], fixture:[ar,en], lineHtml} */
-    seed: o.seed != null ? o.seed : 7,
-    fav: null,
-    squad: [],
-    captain: null,
-    swapFrom: null,
-    swapDone: false,
-    rerolls: 0,
+    gw: o.gw || null,   /* {no, from:[ar,en], to:[ar,en], lock:[ar,en], seasonFrom, seasonTo, rounds, lineHtml} */
+    squad: seed,
+    captain: cap,
+    filter: "all",
+    chipOpen: null,      /* which chip card is expanded right now (accordion) */
+    chipsSeen: [],       /* which chips have EVER been opened — this is the gate */
     skipped: false,
     done: false
   });
@@ -1651,40 +1643,51 @@ function tutInit(opts) {
 
 const next = (s, patch) => Object.freeze(Object.assign({}, s, patch));
 
-function defaultCaptain(s, squad) {
-  const xi = squad.slice(0, s.startSize);
-  if (s.fav && xi.includes(s.fav)) return s.fav;
-  let best = null, bp = -Infinity;
-  for (const id of xi) { const p = s.price(id); if (p > bp) { bp = p; best = id; } }
-  return best;
+const ACCEPTS = Object.freeze({
+  PICK:   Object.freeze({ first: 1, eleven: 1, bench: 1 }),
+  DROP:   Object.freeze({ first: 1, eleven: 1, bench: 1 }),
+  FILTER: Object.freeze({ first: 1, eleven: 1, bench: 1 }),
+  CAP:    Object.freeze({ captain: 1 }),
+  CHIP:   Object.freeze({ chips: 1 })
+});
+function stepAccepts(step, type) {
+  const m = ACCEPTS[type];
+  return !m || !!m[step];
 }
 
-function ensureSquad(s) {
-  if (s.squad.length === s.size) return s;
-  const built = tutBuildSquad({
-    clubs: s.clubs, price: s.price, fav: s.fav, seed: s.seed,
-    size: s.size, startSize: s.startSize, budget: s.budget,
-    maxPerLeague: s.maxPerLeague, minPrice: s.minPrice
-  });
-  const withSquad = next(s, { squad: built.squad });
-  return next(withSquad, { captain: s.captain || defaultCaptain(withSquad, built.squad) });
+function tutGateMet(s) {
+  switch (s.step) {
+    case "first":   return s.squad.length >= 1;
+    case "eleven":  return s.squad.length >= s.startSize;
+    case "bench":   return s.squad.length >= s.size;
+    case "captain": return !!s.captain && s.squad.slice(0, s.startSize).indexOf(s.captain) >= 0;
+    case "chips":   return s.chipsSeen.length >= 1;
+    default:        return true;                    /* welcome, budget, done */
+  }
 }
 
 function goto(s, id) {
   const i = stepIndex(id);
   if (i < 0) return s;
-  let t = (i >= stepIndex("squad")) ? ensureSquad(s) : s;
-  if (i >= stepIndex("captain") && !t.captain) t = next(t, { captain: defaultCaptain(t, t.squad) });
-  return next(t, { step: id, swapFrom: null });
+  let t = next(s, { step: id });
+  if (t.captain && t.squad.slice(0, t.startSize).indexOf(t.captain) < 0) t = next(t, { captain: null });
+  return t;
+}
+
+function settle(s) {
+  const cap = s.captain && s.squad.slice(0, s.startSize).indexOf(s.captain) >= 0 ? s.captain : null;
+  return next(s, { captain: cap });
 }
 
 function tutReduce(state, action) {
   const s = state, a = action || {};
+  if (!stepAccepts(s.step, a.type)) return s;
   switch (a.type) {
 
     case "NEXT": {
+      if (!tutGateMet(s)) return s;
       const i = stepIndex(s.step);
-      if (i >= TUT_STEPS.length - 1) return next(ensureSquad(s), { done: true });
+      if (i >= TUT_STEPS.length - 1) return next(settle(s), { done: true });
       return goto(s, TUT_STEPS[i + 1]);
     }
 
@@ -1693,49 +1696,53 @@ function tutReduce(state, action) {
       return i <= 0 ? s : goto(s, TUT_STEPS[i - 1]);
     }
 
-    case "SKIP": {
-      const t = ensureSquad(s);
-      return next(t, { done: true, skipped: true, captain: t.captain || defaultCaptain(t, t.squad) });
-    }
+    case "SKIP":
+      return next(settle(s), { done: true, skipped: true });
 
-    case "FAV": {
-      if (!a.arg) return s;
-      const t = next(s, { fav: String(a.arg), squad: [], captain: null });
-      return goto(t, "squad");
-    }
-
-    case "FAV_NONE":
-      return goto(next(s, { fav: null, squad: [], captain: null }), "squad");
-
-    case "REROLL": {
-      if (s.rerolls >= 5) return s;
-      const t = next(s, { rerolls: s.rerolls + 1, seed: s.seed + 101, squad: [], captain: null });
-      return ensureSquad(t);
-    }
-
-    case "TAP": {
-      const i = parseInt(a.arg, 10);
-      if (!(i >= 0 && i < s.squad.length)) return s;
-      if (s.swapFrom === null) return next(s, { swapFrom: i });
-      if (s.swapFrom === i) return next(s, { swapFrom: null });
-      const j = s.swapFrom;
-      const sq = s.squad.slice();
-      const tmp = sq[i]; sq[i] = sq[j]; sq[j] = tmp;
-      const crossed = (i < s.startSize) !== (j < s.startSize);
-      let t = next(s, { squad: sq, swapFrom: null, swapDone: s.swapDone || crossed });
-      if (t.captain && !sq.slice(0, s.startSize).includes(t.captain))
-        t = next(t, { captain: defaultCaptain(t, sq) });
+    case "PICK": {
+      const id = a.arg == null ? "" : String(a.arg);
+      const club = clubOf(s, id);
+      if (!club) return s;
+      if (s.squad.indexOf(id) >= 0) return s;
+      if (tutBlockReason(s, club)) return s;          /* the guard, not the UI, is the rule */
+      const squad = s.squad.concat([id]);
+      const t = next(s, { squad: squad });
+      if (s.step === "first"  && squad.length >= 1)           return goto(t, "budget");
+      if (s.step === "eleven" && squad.length >= s.startSize) return goto(t, "bench");
+      if (s.step === "bench"  && squad.length >= s.size)      return goto(t, "captain");
       return t;
     }
 
+    case "DROP": {
+      const id = a.arg == null ? "" : String(a.arg);
+      const i = s.squad.indexOf(id);
+      if (i < 0) return s;
+      const squad = s.squad.slice(); squad.splice(i, 1);
+      let t = next(s, { squad: squad });
+      if (t.captain && squad.slice(0, t.startSize).indexOf(t.captain) < 0) t = next(t, { captain: null });
+      return t;
+    }
+
+    case "FILTER": {
+      const id = a.arg == null ? "all" : String(a.arg);
+      if (id !== "all" && !s.leagues.some(l => l.id === id)) return s;
+      return next(s, { filter: id });
+    }
+
     case "CAP": {
-      if (!a.arg) return s;
-      const id = String(a.arg);
-      return s.squad.includes(id) ? next(s, { captain: id }) : s;
+      const id = a.arg == null ? "" : String(a.arg);
+      return s.squad.slice(0, s.startSize).indexOf(id) >= 0 ? next(s, { captain: id }) : s;
+    }
+
+    case "CHIP": {
+      const id = a.arg == null ? "" : String(a.arg);
+      if (!TUT_CHIPS.some(c => c.id === id)) return s;
+      const seen = s.chipsSeen.indexOf(id) >= 0 ? s.chipsSeen : s.chipsSeen.concat([id]);
+      return next(s, { chipOpen: s.chipOpen === id ? null : id, chipsSeen: seen });
     }
 
     case "DONE":
-      return next(ensureSquad(s), { done: true });
+      return next(settle(s), { done: true });
 
     case "LANG":
       return next(s, { lang: a.arg === "en" ? "en" : "ar" });
@@ -1745,11 +1752,13 @@ function tutReduce(state, action) {
   }
 }
 
-const clubOf = (s, id) => s.clubs.find(x => x.id === id) || null;
 const clubName = (s, c) => !c ? "" : (s.lang === "ar" && c.ar ? c.ar : (c.short || c.name || c.code || ""));
-const priceStr = (s, id) => s.price(id).toFixed(1);
+const clubNameCard = (s, c) => !c ? ""
+  : (s.lang === "ar" ? (c.arShort || c.ar || c.short || c.name || c.code || "") : (c.short || c.name || c.code || ""));
+const priceStr = (s, id) => priceOf(s, id).toFixed(1);
 const T = (s, k, v) => tutFill(k, s.lang, v);
 const pair = (s, p) => !p ? "" : (Array.isArray(p) ? (s.lang === "en" ? p[1] : p[0]) : String(p));
+const lgName = (s, id) => { const l = s.leagues.find(x => x.id === id); return l ? (s.lang === "en" ? l.en : l.ar) : id; };
 
 function tutKit(c, size) {
   if (!c) return "";
@@ -1766,7 +1775,30 @@ function btn(label, act, cls, arg, extra) {
     + (extra || "") + ">" + label + "</button>";
 }
 
-function tutProgressHtml(s) {
+function focusPlan(s, rows, pool) {
+  const gate = tutGateMet(s);
+  if (s.step === "first" || s.step === "eleven" || s.step === "bench") {
+    for (const c of rows) if (!tutBlockReason(s, c, pool) && s.squad.indexOf(c.id) < 0)
+      return { kind: "row", id: c.id };
+    if (s.filter !== "all") return { kind: "filter", id: "all" };
+    if (gate) return { kind: "cta" };
+    return { kind: "skip" };            /* never a dead end, even in a state we did not foresee */
+  }
+  if (s.step === "captain") {
+    if (gate) return { kind: "cta" };
+    const xi = s.squad.slice(0, s.startSize);
+    return xi.length ? { kind: "cap", id: xi[0] } : { kind: "skip" };
+  }
+  if (s.step === "chips") {
+    if (gate) return { kind: "cta" };
+    return { kind: "chip", id: TUT_CHIPS[0].id };
+  }
+  return { kind: "cta" };               /* welcome, budget, done */
+}
+const focusAttr = (F, kind, id) => (F.kind === kind && (id == null || F.id === id)) ? " data-tut-focus" : "";
+
+function tutProgressHtml(s, F) {
+  const f = F || { kind: "" };
   const i = stepIndex(s.step), n = TUT_STEPS.length;
   const dots = TUT_STEPS.map((_, k) =>
     '<span class="tut-dot' + (k === i ? " on" : (k < i ? " past" : "")) + '"></span>').join("");
@@ -1775,189 +1807,243 @@ function tutProgressHtml(s) {
     + ' aria-valuenow="' + num(i + 1) + '" aria-label="' + esc(tutT("tutStepAria", s.lang)
         .split("{n}").join(num(i + 1)).split("{total}").join(num(n))) + '">' + dots + "</div>"
     + btn(T(s, "tutSkip"), "SKIP", "tut-skip", null,
-          ' aria-label="' + esc(tutT("tutSkipAria", s.lang)) + '"')
+          ' aria-label="' + esc(tutT("tutSkipAria", s.lang)) + '"' + focusAttr(f, "skip"))
     + "</div>";
-}
-
-function pills(s) {
-  const spend = s.squad.reduce((a, id) => a + s.price(id), 0).toFixed(1);
-  return '<div class="tut-pills">'
-    + '<span class="tut-pill">' + T(s, "tutPillN", { n: s.size }) + "</span>"
-    + '<span class="tut-pill">' + T(s, "tutPillM", { n: spend }) + "</span>"
-    + '<span class="tut-pill">' + T(s, "tutPillXi") + "</span>"
-    + '<span class="tut-pill">' + T(s, "tutPillLg") + "</span>"
-    + "</div>";
-}
-
-function slot(s, i, opts) {
-  const id = s.squad[i], c = clubOf(s, id); if (!c) return "";
-  const o = opts || {};
-  const cls = "tut-slot"
-    + (s.swapFrom === i ? " arm" : "")
-    + (o.hint ? " hint" : "")
-    + (id === s.fav ? " fav" : "");
-  return '<button type="button" class="' + cls + '" data-tut-act="TAP" data-tut-arg="' + num(i) + '"'
-    + (s.swapFrom === i ? ' aria-pressed="true"' : ' aria-pressed="false"')
-    + (o.focus ? " data-tut-focus" : "")
-    + ' aria-label="' + esc(tutT("tutSwSlot", s.lang)
-        .split("{club}").join(clubName(s, c)).split("{price}").join(priceStr(s, id))) + '">'
-    + tutKit(c, "k34")
-    + '<span class="tut-nm">' + esc(clubName(s, c)) + "</span>"
-    + '<span class="tut-pr" dir="ltr">' + esc(priceStr(s, id)) + "</span>"
-    + "</button>";
-}
-
-function pitch(s, hintA, hintB) {
-  const rows = [4, 4, 3], out = []; let k = 0;
-  for (const r of rows) {
-    const cells = [];
-    for (let x = 0; x < r && k < s.startSize; x++, k++)
-      cells.push(slot(s, k, { hint: k === hintA || k === hintB, focus: k === hintA }));
-    out.push('<div class="tut-line">' + cells.join("") + "</div>");
-  }
-  const bench = [];
-  for (let i = s.startSize; i < s.squad.length; i++)
-    bench.push(slot(s, i, { hint: i === hintA || i === hintB, focus: i === hintA }));
-  return '<div class="tut-board">'
-    + '<div class="tut-lab">' + T(s, "tutSwPitch") + "</div>"
-    + out.join("")
-    + '<div class="tut-lab tut-lab--b">' + T(s, "tutSwBench") + "</div>"
-    + '<div class="tut-line tut-line--b">' + bench.join("") + "</div>"
-    + "</div>";
-}
-
-function drillPair(s) {
-  const benchIdx = s.startSize;
-  let starterIdx = -1, lo = Infinity;
-  for (let i = 0; i < s.startSize; i++) {
-    if (s.squad[i] === s.fav) continue;
-    const p = s.price(s.squad[i]);
-    if (p < lo) { lo = p; starterIdx = i; }
-  }
-  return { bench: benchIdx, starter: starterIdx < 0 ? 0 : starterIdx };
 }
 
 function live(html) { return '<p class="tut-live" data-tut-live aria-live="polite">' + html + "</p>"; }
 
+function budgetStrip(s, b) {
+  const pct = Math.max(0, Math.min(100, (b.spend / s.budget) * 100));
+  const rpct = Math.max(0, Math.min(100 - pct, ((isFinite(b.reserve) ? b.reserve : 0) / s.budget) * 100));
+  return '<div class="tut-bud">'
+    + '<div class="tut-bud__top"><span class="tut-bud__lab">' + T(s, "tutBudLeft") + "</span>"
+    + '<span class="tut-bud__big" dir="ltr">' + esc(b.remaining.toFixed(1)) + "M</span></div>"
+    + '<div class="tut-bud__track">'
+    + '<div class="tut-bud__fill" style="inline-size:' + pct.toFixed(2) + '%"></div>'
+    + (rpct > 0 ? '<div class="tut-bud__resv" style="inline-size:' + rpct.toFixed(2) + '%"></div>' : "")
+    + "</div>"
+    + '<div class="tut-bud__foot">'
+    + "<span>" + T(s, "tutBudSlots") + ' <b dir="ltr">' + esc(num(b.slotsLeft)) + "</b></span>"
+    + "<span>" + T(s, "tutBudNext") + ' <b dir="ltr">' + esc(b.maxNext.toFixed(1)) + "M</b></span>"
+    + "</div></div>";
+}
+
+function slot(s, i, nextEmpty) {
+  const id = s.squad[i], c = clubOf(s, id);
+  if (!c) {
+    return '<span class="tut-slot tut-slot--e' + (i === nextEmpty ? " tut-slot--next" : "") + '" aria-hidden="true">'
+      + '<span class="tut-slot__ph"></span></span>';
+  }
+  return '<button type="button" class="tut-slot tut-slot--on' + (id === s.captain ? " cap" : "") + '"'
+    + ' data-tut-act="DROP" data-tut-arg="' + esc(id) + '"'
+    + ' aria-label="' + esc(tutT("tutPkDrop", s.lang).split("{club}").join(clubName(s, c))) + '">'
+    + tutKit(c, "k34")
+    + '<span class="tut-nm">' + esc(clubNameCard(s, c)) + "</span>"
+    + '<span class="tut-pr" dir="ltr">' + esc(priceStr(s, id)) + "</span>"
+    + (id === s.captain ? '<span class="tut-arm" aria-hidden="true">C</span>' : "")
+    + "</button>";
+}
+
+function board(s, showBench) {
+  const rows = [4, 4, 3], out = []; let k = 0;
+  const nextEmpty = s.squad.length < s.size ? s.squad.length : -1;
+  for (const r of rows) {
+    const cells = [];
+    for (let x = 0; x < r && k < s.startSize; x++, k++) cells.push(slot(s, k, nextEmpty));
+    out.push('<div class="tut-line">' + cells.join("") + "</div>");
+  }
+  let bench = "";
+  if (showBench) {
+    const cells = [];
+    for (let i = s.startSize; i < s.size; i++) cells.push(slot(s, i, nextEmpty));
+    bench = '<div class="tut-lab tut-lab--b">' + T(s, "tutLabBench") + "</div>"
+      + '<div class="tut-line tut-line--b">' + cells.join("") + "</div>";
+  }
+  return '<div class="tut-board">'
+    + '<div class="tut-lab">' + T(s, "tutLabPitch") + "</div>"
+    + out.join("") + bench + "</div>";
+}
+
+function pickRows(s) {
+  return s.clubs.filter(c => s.filter === "all" || c.lg === s.filter)
+                .slice().sort((a, b) => priceOf(s, b.id) - priceOf(s, a.id));
+}
+
+function picker(s, rows, pool, F) {
+  const chips = [{ id: "all", nm: tutT("tutPkAll", s.lang) }]
+    .concat(s.leagues.map(l => ({ id: l.id, nm: s.lang === "en" ? l.en : l.ar })));
+  const strip = '<div class="tut-filters" role="group" aria-label="' + esc(tutT("tutPkFilter", s.lang)) + '">'
+    + chips.map(l => '<button type="button" class="tut-fchip' + (s.filter === l.id ? " on" : "") + '"'
+        + ' data-tut-act="FILTER" data-tut-arg="' + esc(l.id) + '"'
+        + ' aria-pressed="' + (s.filter === l.id ? "true" : "false") + '"'
+        + focusAttr(F, "filter", l.id) + ">" + esc(l.nm) + "</button>").join("")
+    + "</div>";
+
+  const list = rows.map(c => {
+    const owned = s.squad.indexOf(c.id) >= 0;
+    const why = owned ? null : tutBlockReason(s, c, pool);
+    const aria = owned
+      ? tutT("tutPkDrop", s.lang).split("{club}").join(clubName(s, c))
+      : tutT("tutPkAdd", s.lang).split("{club}").join(clubName(s, c)).split("{price}").join(priceStr(s, c.id));
+    return '<button type="button" class="tut-row' + (owned ? " on" : (why ? " no" : "")) + '"'
+      + ' data-tut-act="' + (owned ? "DROP" : "PICK") + '" data-tut-arg="' + esc(c.id) + '"'
+      + (why ? " disabled" : "")
+      + focusAttr(F, "row", c.id)
+      + ' aria-label="' + esc(aria) + '">'
+      + tutKit(c, "k34")
+      + '<span class="tut-rnm"><span class="tut-rn">' + esc(clubName(s, c)) + "</span>"
+      + '<span class="' + (why ? "tut-rwhy" : "tut-rl") + '">' + (why ? T(s, why) : esc(lgName(s, c.lg))) + "</span></span>"
+      + '<span class="tut-rp" dir="ltr">' + esc(priceStr(s, c.id)) + "</span>"
+      + '<span class="tut-rx" aria-hidden="true">' + (owned ? "✓" : why ? "✕" : "+") + "</span>"
+      + "</button>";
+  }).join("");
+
+  return strip + '<div class="tut-list">'
+    + (rows.length ? list : '<p class="tut-note">' + T(s, "tutPkNone") + "</p>")
+    + "</div>";
+}
+
+function pickingStep(s, ttlKey, bodyKey, liveHtml, ctaKey, F, rows, pool, b) {
+  return '<h2 class="tut-h">' + T(s, ttlKey) + "</h2>"
+    + '<p class="tut-p">' + T(s, bodyKey) + "</p>"
+    + budgetStrip(s, b)
+    + board(s, s.squad.length > s.startSize || stepIndex(s.step) >= stepIndex("bench"))
+    + live(liveHtml)
+    + picker(s, rows, pool, F)
+    + (tutGateMet(s) ? btn(T(s, ctaKey), "NEXT", "tut-cta", null, focusAttr(F, "cta")) : "");
+}
+
 function tutHtml(state) {
   const s = state;
-  const head = tutProgressHtml(s);
-  const back = stepIndex(s.step) > 0
-    ? btn(T(s, "tutBack"), "BACK", "tut-back") : "";
+  const isPick = s.step === "first" || s.step === "eleven" || s.step === "bench";
+  const pool = isPick ? poolAsc(s) : null;
+  const rows = isPick ? pickRows(s) : [];
+  const F = focusPlan(s, rows, pool);
+  const head = tutProgressHtml(s, F);
+  const back = stepIndex(s.step) > 0 ? btn(T(s, "tutBack"), "BACK", "tut-back") : "";
   let body = "";
 
   if (s.step === "welcome") {
     body = '<h2 class="tut-h tut-h--big">' + T(s, "tutW1Ttl") + "</h2>"
       + '<p class="tut-p">' + T(s, "tutW1Body") + "</p>"
       + '<p class="tut-note">' + T(s, "tutW1Note") + "</p>"
-      + btn(T(s, "tutW1Cta"), "NEXT", "tut-cta", null, " data-tut-focus");
+      + btn(T(s, "tutW1Cta"), "NEXT", "tut-cta", null, focusAttr(F, "cta"));
   }
 
-  else if (s.step === "fav") {
-    const pool = tutFavouritePool(s.clubs, 12);
-    body = '<h2 class="tut-h">' + T(s, "tutFavTtl") + "</h2>"
-      + '<p class="tut-p">' + T(s, "tutFavBody") + "</p>"
-      + '<div class="tut-grid">' + pool.map((c, k) =>
-          '<button type="button" class="tut-fav' + (s.fav === c.id ? " on" : "") + '"'
-          + ' data-tut-act="FAV" data-tut-arg="' + esc(c.id) + '"'
-          + (k === 0 ? " data-tut-focus" : "")
-          + ' aria-label="' + esc(tutT("tutFavAria", s.lang).split("{club}").join(clubName(s, c))) + '">'
-          + tutKit(c, "k34") + '<span class="tut-nm">' + esc(clubName(s, c)) + "</span></button>"
-        ).join("") + "</div>"
-      + btn(T(s, "tutFavNone"), "FAV_NONE", "tut-sec");
+  else if (s.step === "first") {
+    const last = s.squad.length ? clubOf(s, s.squad[s.squad.length - 1]) : null;
+    body = pickingStep(s, "tutP1Ttl", "tutP1Body",
+      last ? '<span class="tut-ok">' + T(s, "tutP1Ok", { club: clubName(s, last) }) + "</span>"
+           : T(s, "tutP1Live"),
+      "tutP1Cta", F, rows, pool, tutBudget(s, pool));
   }
 
-  else if (s.step === "squad") {
-    const fc = clubOf(s, s.fav);
-    body = '<h2 class="tut-h">' + T(s, "tutSqTtl") + "</h2>"
-      + '<p class="tut-p">' + T(s, "tutSqBody") + "</p>"
-      + (fc ? '<p class="tut-ok">' + T(s, "tutSqFav", { club: clubName(s, fc) }) + "</p>" : "")
-      + pills(s)
-      + pitch(s, -1, -1)
-      + btn(T(s, "tutSqCta"), "NEXT", "tut-cta", null, " data-tut-focus")
-      + (s.rerolls < 5 ? btn(T(s, "tutSqReroll"), "REROLL", "tut-sec") : "");
+  else if (s.step === "budget") {
+    const b = tutBudget(s);
+    body = '<h2 class="tut-h">' + T(s, "tutBgTtl") + "</h2>"
+      + '<p class="tut-p">' + T(s, "tutBgBody") + "</p>"
+      + budgetStrip(s, b)
+      + '<div class="tut-pills">'
+      + '<span class="tut-pill">' + T(s, "tutBgP1") + "</span>"
+      + '<span class="tut-pill">' + T(s, "tutBgP4") + "</span>"
+      + '<span class="tut-pill">' + T(s, "tutBgP2") + "</span>"
+      + '<span class="tut-pill">' + T(s, "tutBgP3") + "</span>"
+      + "</div>"
+      + '<p class="tut-note">' + T(s, "tutBgBig") + "</p>"
+      + btn(T(s, "tutBgCta"), "NEXT", "tut-cta", null, focusAttr(F, "cta"));
   }
 
-  else if (s.step === "swap") {
-    const d = drillPair(s);
-    const armed = s.swapFrom;
-    const nextIdx = s.swapDone ? -1
-      : armed === null ? d.bench
-      : (armed === d.bench ? d.starter : d.bench);
-    const a = clubOf(s, s.squad[d.bench]);
-    const nextClub = nextIdx < 0 ? null : clubOf(s, s.squad[nextIdx]);
-    const msg = s.swapDone
-      ? '<span class="tut-ok">' + T(s, "tutSwOk") + "</span>"
-      : (armed === null
-          ? T(s, "tutSwDo1", { a: clubName(s, a) })
-          : T(s, "tutSwDo2", { b: nextClub ? clubName(s, nextClub) : "" }));
-    body = '<h2 class="tut-h">' + T(s, "tutSwTtl") + "</h2>"
-      + '<p class="tut-p">' + T(s, "tutSwBody") + "</p>"
-      + live(msg)
-      + pitch(s, nextIdx, -1)
-      + (s.swapDone
-          ? btn(T(s, "tutSwCta"), "NEXT", "tut-cta", null, " data-tut-focus")
-          : btn(T(s, "tutSwPass"), "NEXT", "tut-sec"));
+  else if (s.step === "eleven") {
+    const left = Math.max(0, s.startSize - s.squad.length);
+    body = pickingStep(s, "tutXiTtl", "tutXiBody",
+      left ? T(s, "tutXiLive", { n: s.squad.length, m: left })
+           : '<span class="tut-ok">' + T(s, "tutXiFull") + "</span>",
+      "tutXiCta", F, rows, pool, tutBudget(s, pool));
+  }
+
+  else if (s.step === "bench") {
+    body = '<h2 class="tut-h">' + T(s, "tutBnTtl") + "</h2>"
+      + '<p class="tut-p">' + T(s, "tutBnBody") + "</p>"
+      + '<p class="tut-note">' + T(s, "tutBnFact") + "</p>"
+      + budgetStrip(s, tutBudget(s, pool))
+      + board(s, true)
+      + live(s.squad.length < s.size
+          ? T(s, "tutBnLive", { n: s.squad.length, m: s.size - s.squad.length })
+          : '<span class="tut-ok">' + T(s, "tutBnFull") + "</span>")
+      + picker(s, rows, pool, F)
+      + (tutGateMet(s) ? btn(T(s, "tutBnCta"), "NEXT", "tut-cta", null, focusAttr(F, "cta")) : "");
   }
 
   else if (s.step === "captain") {
     const cc = clubOf(s, s.captain);
     body = '<h2 class="tut-h">' + T(s, "tutCapTtl") + "</h2>"
       + '<p class="tut-p">' + T(s, "tutCapBody") + "</p>"
-      + (cc ? live(T(s, "tutCapPre", { club: clubName(s, cc) })) : "")
+      + live(cc ? '<span class="tut-ok">' + T(s, "tutCapOk", { club: clubName(s, cc) }) + "</span>"
+                : T(s, "tutCapLive"))
       + '<div class="tut-caps">' + s.squad.slice(0, s.startSize).map(id => {
           const c = clubOf(s, id); if (!c) return "";
           return '<button type="button" class="tut-cap' + (s.captain === id ? " on" : "") + '"'
             + ' data-tut-act="CAP" data-tut-arg="' + esc(id) + '"'
             + ' aria-pressed="' + (s.captain === id ? "true" : "false") + '"'
+            + focusAttr(F, "cap", id)
             + ' aria-label="' + esc(tutT("tutCapAria", s.lang).split("{club}").join(clubName(s, c))) + '">'
-            + tutKit(c, "k34") + '<span class="tut-nm">' + esc(clubName(s, c)) + "</span>"
+            + tutKit(c, "k34") + '<span class="tut-nm">' + esc(clubNameCard(s, c)) + "</span>"
             + '<span class="tut-arm" aria-hidden="true">C</span></button>';
         }).join("") + "</div>"
-      + btn(T(s, "tutCapCta"), "NEXT", "tut-cta", null, " data-tut-focus");
+      + (tutGateMet(s) ? btn(T(s, "tutCapCta"), "NEXT", "tut-cta", null, focusAttr(F, "cta")) : "");
   }
 
-  else if (s.step === "round") {
+  else if (s.step === "chips") {
+    body = '<h2 class="tut-h">' + T(s, "tutChTtl") + "</h2>"
+      + '<p class="tut-p">' + T(s, "tutChBody") + "</p>"
+      + live(s.chipsSeen.length ? '<span class="tut-ok">' + T(s, "tutChSeen") + "</span>" : T(s, "tutChTap"))
+      + '<div class="tut-chips">' + TUT_CHIPS.map(k => {
+          const open = s.chipOpen === k.id;
+          return '<div class="tut-chipcard' + (open ? " open" : "") + '">'
+            + '<button type="button" class="tut-chiph" data-tut-act="CHIP" data-tut-arg="' + esc(k.id) + '"'
+            + ' aria-expanded="' + (open ? "true" : "false") + '"'
+            + focusAttr(F, "chip", k.id)
+            + ' aria-label="' + esc(tutT("tutChAria", s.lang).split("{chip}").join(tutT(k.name, s.lang))) + '">'
+            + '<span class="tut-chipg"' + (k.ltr ? ' dir="ltr"' : "") + ">" + esc(k.glyph) + "</span>"
+            + '<span class="tut-chipn">' + T(s, k.name) + "</span>"
+            + '<span class="tut-chipx">' + T(s, "tutChPer") + "</span>"
+            + "</button>"
+            + (open ? '<div class="tut-chipb"><p class="tut-p">' + T(s, k.eff) + "</p>"
+                      + '<p class="tut-when">' + T(s, k.when) + "</p></div>" : "")
+            + "</div>";
+        }).join("") + "</div>"
+      + '<p class="tut-note">' + T(s, "tutChWhere") + "</p>"
+      + (tutGateMet(s) ? btn(T(s, "tutChCta"), "NEXT", "tut-cta", null, focusAttr(F, "cta")) : "");
+  }
+
+  else { /* done */
     const g = s.gw || {};
     const lineHtml = g.lineHtml ? String(g.lineHtml)
       : (g.from && g.to
           ? T(s, "tutGwLine", { from: pair(s, g.from), to: pair(s, g.to) })
           : T(s, "tutGwLineNd"));
-    body = '<h2 class="tut-h">' + T(s, "tutGwTtl", { n: g.no != null ? g.no : 1 }) + "</h2>"
+    body = '<h2 class="tut-h">' + T(s, "tutDnTtl") + "</h2>"
       + '<p class="tut-p tut-p--gw">' + lineHtml + "</p>"
-      + (g.lock ? '<p class="tut-lock">' + T(s, "tutGwLock", { when: pair(s, g.lock) }) + "</p>" : "")
-      + '<p class="tut-note">' + T(s, "tutGwBody") + "</p>"
-      + btn(T(s, "tutGwCta"), "NEXT", "tut-cta", null, " data-tut-focus");
-  }
-
-  else { /* hook */
-    const cc = clubOf(s, s.captain), g = s.gw || {};
-    body = '<h2 class="tut-h">' + T(s, "tutHkTtl") + "</h2>"
-      + '<div class="tut-hook">'
-      + tutKit(cc, "k60")
-      + '<p class="tut-hkline">'
-        + (g.fixture
-            ? T(s, "tutHkLine", { club: clubName(s, cc), when: pair(s, g.fixture) })
-            : T(s, "tutHkLineNt", { club: clubName(s, cc) }))
-      + "</p>"
-      + '<p class="tut-x2"><span dir="ltr">&#215;2</span> ' + T(s, "tutHkX2") + "</p>"
-      + "</div>"
-      + '<p class="tut-p">' + T(s, "tutHkWhy") + "</p>"
-      + btn(T(s, "tutHkCta"), "DONE", "tut-cta", null, " data-tut-focus");
+      + (g.lock ? '<p class="tut-lock">' + T(s, "tutDnLock", { n: g.no != null ? g.no : 1, when: pair(s, g.lock) }) + "</p>" : "")
+      + '<p class="tut-p">' + T(s, "tutDnBody") + "</p>"
+      + (g.seasonFrom && g.seasonTo
+          ? '<p class="tut-note">' + T(s, "tutDnSeason", { a: pair(s, g.seasonFrom), b: pair(s, g.seasonTo) }) + "</p>"
+          : "")
+      + '<p class="tut-note">' + T(s, "tutDnNoPts") + "</p>"
+      + btn(T(s, "tutDnCta"), "DONE", "tut-cta", null, focusAttr(F, "cta"));
   }
 
   return '<div class="tut" data-tut-step="' + esc(s.step) + '">' + head + body + back + "</div>";
 }
 
-const TUT = Object.freeze({
-  TUT_STR, TUT_STEPS, tutSteps, tutInit, tutReduce, tutHtml, tutProgressHtml,
-  tutT, tutFill, tutBuildSquad, tutIsLegal, tutFavouritePool, tutKit
-});
-
-return {
-  TUT_STR, TUT_STEPS, tutSteps, tutInit, tutReduce, tutHtml, tutProgressHtml,
-  tutT, tutFill, tutBuildSquad, tutIsLegal, tutFavouritePool, tutKit, TUT
+const api = {
+  TUT_STR, TUT_STEPS, TUT_CHIPS, tutSteps, tutInit, tutReduce, tutHtml, tutProgressHtml,
+  tutT, tutFill, tutIsLegal, tutBudget, tutBlockReason, tutGateMet, tutKit
 };
+const TUT = Object.freeze(Object.assign({}, api));
+
+return Object.assign({ TUT: TUT }, api);
 });
 
 

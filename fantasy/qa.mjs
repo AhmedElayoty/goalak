@@ -1111,18 +1111,33 @@ async function tutorialSuite() {
     finishedIn > 0 ? finishedIn + " taps: " + trail.map(t => t.split(" -> ")[0]).join(" > ")
       : "never closed within 40 taps");
   if (finishedIn > 0) {
-    const after = await evaluate(`JSON.stringify({squad: squad.length, cap: !!captain,
-      onboarded: (function(){try{return localStorage.getItem("fx_onboarded")}catch(e){return null}})(),
-      cards: document.querySelectorAll("#viewTeam .cc").length,
-      empty: document.querySelectorAll("#viewTeam .cc--empty").length})`).then(JSON.parse);
-    /* THIS ASSERTION IS DELIBERATELY INVERTED. The tutorial used to commit the squad it built
-       during the lesson, so a player finished onboarding owning eleven clubs he had never
-       chosen. It teaches now and picks nothing: the pitch is empty and choosing the team is
-       the first thing the player does himself. */
-    ok("tutorial: it hands over an EMPTY pitch, having chosen nothing for the player",
-      after.squad === 0 && !after.cap && after.empty === 15,   /* 11 on the pitch + 4 on the bench */
-      "squad " + after.squad + ", captain " + after.cap + ", " + after.cards + " cards on the pitch, "
+    const after = await evaluate(`JSON.stringify((function(){
+      const lg = {}; let spend = 0;
+      for(const id of squad){ const c = CLUBS.find(x => x.id === id);
+        if(c) lg[c.lg] = (lg[c.lg]||0)+1; spend += priceOf(id); }
+      return {squad: squad.length, uniq: new Set(squad).size, cap: !!captain,
+        capIsStarter: !!captain && squad.slice(0, START_SIZE).includes(captain),
+        spend: +spend.toFixed(1), worstLeague: Math.max(0, ...Object.values(lg)),
+        onboarded: (function(){try{return localStorage.getItem("fx_onboarded")}catch(e){return null}})(),
+        cards: document.querySelectorAll("#viewTeam .cc").length,
+        empty: document.querySelectorAll("#viewTeam .cc--empty").length};
+    })())`).then(JSON.parse);
+    /* THIS ASSERTION HAS BEEN INVERTED TWICE, AND THIS IS THE VERSION THAT MATCHES THE
+       INSTRUCTION. v1 committed a squad the tutorial had GENERATED — eleven clubs the player
+       had never chosen. The correction after that committed nothing at all, which was honest
+       but left the lesson attached to no team. v2 starts with an empty pitch and has the
+       player fill it himself, so what arrives here is fifteen clubs he tapped one at a time:
+       a full pitch, no empty slots, a captain among the eleven, and legal by the app's own
+       rules. Following the highlighted control alone has to produce all of that. */
+    ok("tutorial: it hands over the team the PLAYER built, complete and captained",
+      after.squad === 15 && after.uniq === 15 && after.cap && after.capIsStarter
+      && after.cards === 15 && after.empty === 0,
+      "squad " + after.squad + " (" + after.uniq + " distinct), captain " + after.cap
+      + " starter=" + after.capIsStarter + ", " + after.cards + " cards on the pitch, "
       + after.empty + " empty slots");
+    ok("tutorial: the squad it hands over is legal — 120M cap, max 3 per league",
+      after.spend <= 120.0 && after.worstLeague <= 3,
+      "spent " + after.spend + "M of 120.0M, worst league holds " + after.worstLeague);
     ok("tutorial: it is not shown again after it is finished", after.onboarded === "1",
       "fx_onboarded = " + after.onboarded);
   }

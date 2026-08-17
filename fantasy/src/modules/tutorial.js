@@ -1,9 +1,46 @@
 /* ============================================================================
-   GOALLAK FANTASY — THE FIRST-RUN TUTORIAL
-   Design rationale: design/fantasy-tutorial.md
+   GOALLAK FANTASY — THE FIRST-RUN TUTORIAL  (v2: teach by doing)
+   Design rationale: design/fantasy-tutorial-v2.md
    Sources honoured: fantasy-usability.md (the beginner study), fantasy-ui.md
    §C.1/§C.2/§C.3, fantasy-gameweek-explained.md §D, fantasy-engagement.md §E,
-   fantasy-artdirection.md §G.
+   fantasy-artdirection.md §G, fantasy-design.md §1.7/§12.2 (the chips).
+
+   ----------------------------------------------------------------------------
+   WHAT CHANGED IN v2, AND WHY
+   ----------------------------------------------------------------------------
+   v1 generated a complete fifteen-club squad with tutBuildSquad(), showed it to
+   the player, taught ONE swap gesture on it, and never mentioned the chips. The
+   host then threw that squad away and handed over an empty pitch, so the lesson
+   had no connection to the team the player actually ended up with — he watched
+   a team being handed to him, then found himself alone in front of 126 clubs.
+
+   The owner's instruction, twice, verbatim:
+     "the tutorial should start with the pitch empty! and then accurately guide
+      the player on how to put the team and how to choose wild cards — step by
+      step, when he makes it he goes to the next step!"
+
+   So v2 is a BUILDER, not a slideshow. The pitch starts empty, the player fills
+   it himself with the real picker, and the fifteen clubs he chooses here are the
+   fifteen he owns when the sheet closes. Nothing is generated. tutBuildSquad(),
+   tutFavouritePool() and the whole seeded-LCG apparatus are GONE — a squad this
+   module invents is exactly the thing being removed, and keeping a dead builder
+   "just in case" is how the throwaway team came back the first time.
+
+   THE GATE RULE — the spine of the design
+     A step that teaches an ACTION renders no way forward until the action has
+     been performed. There is no "Next" that skips a lesson. Concretely:
+       · the forward CTA is only emitted when the step's gate is satisfied;
+       · NEXT on an unsatisfied gate returns the state UNCHANGED (no throw, no
+         nag, no error state — the button simply is not there to press);
+       · the moment a picking gate flips from unmet to met, the reducer moves to
+         the next step by itself ("when he makes it he goes to the next step").
+     Skip is exempt and always present: one tap, from any step, at any time.
+
+     Auto-advance is used where the task is a COUNT (1 club, 11 clubs, 15 clubs)
+     and deliberately NOT used where the task is a CHOICE the player may want to
+     revise before committing (the captain, the chips). Choices reveal the CTA
+     instead. Auto-advancing a captain tap would punish a player who tapped a
+     card to read it.
 
    ----------------------------------------------------------------------------
    INTEGRATION NOTE — read this before dropping it in
@@ -23,17 +60,21 @@
      module.exports instead, which is how tutorial.test.mjs reaches it.
 
        TUT_STR                                   bilingual [ar, en] pairs, STR-shaped
-       TUT_STEPS                                 frozen array of the 7 step ids, in order
+       TUT_STEPS                                 frozen array of the 8 step ids, in order
+       TUT_CHIPS                                 frozen catalogue of the 4 chip families
 
-       tutInit(opts)                  -> state   pure factory; builds nothing yet
+       tutInit(opts)                  -> state   pure factory. The squad starts EMPTY unless
+                                                 the host hands one over (opts.squad), which
+                                                 only the settings-sheet REPLAY does — see §5
        tutReduce(state, action)       -> state   the state machine; returns a NEW state
        tutHtml(state)                 -> string  the whole sheet body for the current step
-       tutProgressHtml(state)         -> string  just the dots + skip row (if mounted apart)
+       tutProgressHtml(state, focus)  -> string  just the dots + skip row
        tutT(key, lang)                -> string  raw, unescaped — for aria-label/title
        tutFill(key, lang, vars)       -> string  escaped HTML, numbers wrapped dir="ltr"
-       tutBuildSquad(input)           -> {squad, ok, spend, reason}
-       tutIsLegal(squad, input)       -> {ok, errors[]}
-       tutFavouritePool(clubs, n)     -> array of club objects, fame-ranked, league-spread
+       tutIsLegal(squad, input)       -> {ok, errors[], spend}
+       tutBudget(state)               -> {spend, remaining, slotsLeft, reserve, maxNext}
+       tutBlockReason(state, club)    -> TUT_STR key, or null when the club is pickable
+       tutGateMet(state)              -> bool    is this step's lesson done?
        tutKit(club, size)             -> string  identical markup to the app's kitHtml()
        TUT                            -> frozen namespace holding all of the above
 
@@ -46,58 +87,64 @@
 
    WHICH STR KEYS TO MERGE
      Object.assign(STR, TUT_STR);
-     Every key is tut-prefixed. Nothing in TUT_STR collides with the demo's
-     current STR, and nothing collides with gameweek.js's GW_STR. After the
-     merge the app's own t() reaches all of them; tutT() is only needed for a
-     lookup that must not read the LANG global.
+     Every key is tut-prefixed. Nothing in TUT_STR collides with the app's STR,
+     with GW_STR, or with CHIP_STR.
 
-     RETIREMENTS this module asks for — the seven wizard keys it replaces:
-       wiz1h wiz1p wiz2h wiz2p wiz3h wiz3hEn wiz3p wiz4h wiz4p  are all retired.
+     RETIREMENTS this module asks for — the wizard keys it replaces:
+       wiz1h wiz1p wiz2h wiz2p wiz3h wiz3hEn wiz3p wiz4h wiz4p are all retired.
        `skip` is retired: "تخطى" is past-tense third-person and reads as a
        grammatical error (usability §F.1). tutSkip = "بعدين".
      REUSED UNCHANGED, not redefined:
        benchLab, capNote, autoPick, gotIt, done — the app already owns these and
        this module deliberately does not shadow them.
 
-     ONE DELIBERATE DUPLICATE: tutGwLine is fxWizGw from
-     fantasy-gameweek-explained.md §D.2 (G2), reproduced VERBATIM including its
-     {from}/{to} placeholders, so the tutorial has no hard dependency on
-     gameweek.js. Both were converted to Egyptian together and must stay
-     byte-identical — see design/fantasy-arabic.md. If gameweek.js is present, prefer it: pass
-     opts.gw.lineHtml = gwFill("fxWizGw", LANG, {from, to}) and this module will
-     render that instead and never touch its own copy.
+     TWO DELIBERATE DUPLICATE SETS, both of which must stay byte-identical to
+     their owners, and both of which the test suite compares character by
+     character against the original so they cannot drift:
+       · tutGwLine is fxWizGw from fantasy-gameweek-explained.md §D.2 (G2). If
+         gameweek.js is present, prefer it: pass opts.gw.lineHtml.
+       · tutChip*        are fxChipWildcard / fxChipFreehit / fxChipTripcap /
+         tutChip*Eff       fxChipFullsquad and their Eff/When lines from
+         tutChip*When      chips.js. The tutorial must be able to teach the chips
+                           with chips.js absent (it is a separate bundle entry
+                           and the tutorial is the FIRST thing a user sees), so
+                           it carries its own copy rather than a hard dependency.
+                           tutorial.test.mjs asserts equality with CHIP_STR.
 
-   WHAT THE HOST MUST CALL ON EACH STEP TRANSITION
+   WHAT THE HOST MUST CALL ON EACH ACTION
      Every interactive element carries data-tut-act (and sometimes data-tut-arg).
      Bind ONE delegated listener; there are no inline handlers, because these
      functions are pure.
 
        host.onclick = e => {
          const el = e.target.closest("[data-tut-act]");  if(!el) return;
+         const wasStep = TS.step, wasTop = host.scrollTop;
          TS = tutReduce(TS, {type: el.dataset.tutAct, arg: el.dataset.tutArg});
-         if(TS.done){                                   // 1. COMMIT
+         if(TS.done){                                   // 1. COMMIT — his own team
            squad = TS.squad.slice(); captain = TS.captain; save();
            closeWizard(); return;
          }
          tutMount();                                    // 2. RE-RENDER
-         const f = host.querySelector("[data-tut-focus]");         // 3. FOCUS
-         if(f) f.focus({preventScroll:true});
-         host.scrollTop = 0;                                       // 4. SCROLL
+         // 3. A LIVE PICKER MUST NOT JUMP. Only reset the scroll and move focus
+         //    when the STEP changed; a pick inside a 126-row list is a re-render
+         //    of the same step and must leave the list exactly where it was.
        };
 
      On the language toggle:  TS = tutReduce(TS, {type:"LANG", arg: LANG}); tutMount();
      The [data-tut-live] node is an aria-live="polite" region; re-rendering it is
      the whole announcement contract. Nothing else is required.
 
-     Actions the host may dispatch: NEXT BACK SKIP FAV FAV_NONE REROLL TAP CAP
-     DONE LANG. Any unknown action returns the state unchanged.
+     Actions the host may dispatch:
+       NEXT BACK SKIP PICK DROP FILTER CAP CHIP DONE LANG
+     Any unknown action returns the state unchanged, and so does any action the
+     current step does not accept (PICK on the captain step changes nothing).
 
    PURITY CONTRACT
      Every function takes state and returns a value. No DOM access, no global
      reads, no Date.now(), no Math.random(), no network, no localStorage, no
      mutation of anything passed in. `lang` always lives in state — the module
-     never reads LANG. Randomness is a seeded LCG so a given seed always yields
-     the same squad, which is what makes the legality test meaningful.
+     never reads LANG. There is no randomness left in the module at all, which is
+     a v2 simplification: with nothing generated there is nothing to seed.
 
    ESCAPING
      Nothing reaches the output un-escaped. tutFill() escapes the template FIRST
@@ -109,14 +156,26 @@
      Arabic-first, RTL default. Western digits only (num()). Every Latin or
      numeric run is individually dir="ltr" wrapped. No images, no SVG, no
      external assets. Logical CSS only — this file emits no inline style that
-     names a physical direction.
+     names a physical direction (the only inline style it emits at all is an
+     `inline-size` percentage on the budget bar fill).
+
+   WHAT THIS MODULE DELIBERATELY DOES NOT DO
+     · No auto-fill / "pick for me" button. It is one line of code and it undoes
+       the entire instruction; the player who wants a fast team has Skip, which
+       is honest about handing him an empty pitch he owns.
+     · No fixture check on a club (the app's blockReason() refuses a club with no
+       match this round). That needs live fixture data the module has no access
+       to and must never invent; the app re-checks on its own picker afterwards.
+     · No formation control. The formation in the build is cosmetic (engagement
+       §A.5, usability #17) and a tutorial must never teach a decision that does
+       not exist.
+     · No points, anywhere. The season starts 21 Aug 2026 and has not started,
+       so every number in here is a RULE or a PRICE, never a score.
 
    COACH-MARK BUDGET
      This module requests ZERO coach marks. The budget stays at nine
-     (fantasy-ui.md §C.3) and gameweek.js already spends its rewrites of CM-4
-     and CM-8 inside it. CM-1 still fires on the first view of My Team AFTER
-     the tutorial closes — the tutorial's round step states the deadline as a
-     fact and deliberately does not pre-empt CM-1's sentence.
+     (fantasy-ui.md §C.3). CM-1 still fires on the first view of My Team AFTER
+     the tutorial closes.
    ============================================================================ */
 
 (function (root, factory) {
@@ -138,20 +197,12 @@ const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({
 const num = n => String(n);
 const ltr = s => '<span dir="ltr">' + esc(s) + "</span>";
 
-/* deterministic LCG. Same seed, same squad — which is what lets the test assert
-   legality across all 126 possible favourites instead of hoping. */
-function rng(seed) {
-  let s = (seed >>> 0) || 1;
-  return function () { s = (s * 1103515245 + 12345) >>> 0; return s / 4294967296; };
-}
-
 /* ---------------------------------------------------------------------------
    1. STRINGS
    Arabic is Egyptian-inflected throughout. The usability study's §F audit is the
-   spec: مفيش not مافي, جهزنالك not جهزنا لك, خليه not اجعله, بعدين not تخطى,
-   مالوش ماتش not لا يلعب. Western digits inside the strings, never Arabic-Indic.
-   No string contains markup — emphasis is a separate element, so tutFill() can
-   escape templates whole.
+   spec: مفيش not مافي, خليه not اجعله, بعدين not تخطى, مالوش ماتش not لا يلعب.
+   Western digits inside the strings, never Arabic-Indic. No string contains
+   markup — emphasis is a separate element, so tutFill() can escape whole.
    --------------------------------------------------------------------------- */
 const TUT_STR = {
 
@@ -163,82 +214,153 @@ const TUT_STR = {
 
   /* ---- step 1 · الترحيب ----
      The study called «مش هتختار لاعيبة — هتختار أندية» the single best sentence
-     in the product. It was the third line of a paragraph. It is now the
-     headline. That is the "beat it" — same words, ten times the prominence. */
+     in the product. It was the third line of a paragraph. It is the headline.
+     The scoring numbers are the measured ones: win +6, each goal +2, clean sheet
+     +3 (fantasy-scoring-5season.md). No total is quoted, because no total
+     exists yet — the season starts 21 Aug 2026. */
   tutW1Ttl:  ["مش هتختار لاعيبة — هتختار أندية", "You don't pick players — you pick clubs"],
-  tutW1Body: ["كل نادي في فريقك بيجيب لك نقط من نتايجه الحقيقية. مفيش لاعيبة، ومفيش إصابات.",
-              "Every club in your team earns you points from its real results. No players, no injuries."],
-  /* was "3 minutes" against the landing page's "about 40 seconds" — one number, one promise */
-  tutW1Note: ["دقيقتين وفريقك جاهز", "Two minutes and your team is ready"],
+  tutW1Body: ["كل نادي في فريقك بيجيب لك نقط من نتايجه الحقيقية: الفوز 6، وكل جول 2، والشباك النضيفة 3. مفيش لاعيبة، ومفيش إصابات.",
+              "Every club in your team earns you points from its real results: a win is 6, each goal 2, a clean sheet 3. No players, no injuries."],
+  tutW1Note: ["الملعب فاضي دلوقتي، وإنت اللي هتملاه — نادي نادي.",
+              "The pitch is empty right now, and you are the one who fills it — club by club."],
   tutW1Cta:  ["يلا نبدأ", "Let's go"],
 
-  /* ---- step 2 · نادي قلبك ----
-     Restores fantasy-ui.md §C.1.3 + §C.1.4. Fixes the study's 0:24 deflation
-     ("the app built him a team and did not put his club in it") at the source. */
-  tutFavTtl:  ["إنت بتشجع مين؟", "Who do you support?"],
-  tutFavBody: ["هنبني فريقك حواليه، وهيلعب أساسي.", "We'll build your team around them, and they'll start."],
-  tutFavNone: ["مش بشجع حد", "No favourite"],
-  tutFavAria: ["اختار {club}", "Choose {club}"],
+  /* ---- step 2 · أول نادي ----
+     Restores fantasy-ui.md §C.1.3 + §C.1.4 without restoring the machine that
+     came with them. The study's 0:24 deflation was "the app built him a team and
+     did not put his club in it"; the fix is not a better generator, it is
+     letting him type the first name himself. */
+  tutP1Ttl:  ["ابدأ بنادي بتحبه", "Start with a club you love"],
+  tutP1Body: ["الملعب قدامك فاضي. دوس على أي نادي من اللستة وهتلاقيه نزل الملعب على طول.",
+              "The pitch in front of you is empty. Tap any club in the list and you will see it land on the pitch."],
+  tutP1Live: ["مستني أول نادي.", "Waiting for your first club."],
+  tutP1Ok:   ["{club} بقى في فريقك.", "{club} is in your team now."],
+  tutP1Cta:  ["كمّل", "Keep going"],
 
-  /* ---- step 3 · الفريق ---- */
-  tutSqTtl:   ["جهزنالك فريق", "We built you a team"],
-  tutSqBody:  ["دي بداية كاملة ومظبوطة. سيبها زي ما هي، أو غيّرها.",
-               "A complete, correct starting squad. Keep it, or change it."],
-  tutSqFav:   ["{club} أساسي عندك", "{club} starts for you"],
-  tutSqReroll:["فريق تاني", "Another team"],
-  tutSqCta:   ["الفريق ده يعجبني", "I like this team"],
-  tutPillN:   ["{n} نادي", "{n} clubs"],
-  tutPillM:   ["{n} مليون", "{n}M"],
-  tutPillXi:  ["11 في الملعب و4 على الدكة", "11 on the pitch, 4 subs"],
-  tutPillLg:  ["3 من كل دوري بالكتير", "Max 3 per league"],
+  /* ---- step 3 · الميزانية ----
+     Taught at the moment the number first matters: he has just spent money, so
+     "المتبقي" on the bar above is now a number that moved. The four-superclub
+     line is MEASURED, not rhetoric — the three dearest clubs plus the cheapest
+     legal completion is 112.0M, the four dearest is 125.5M against a 120.0M
+     budget. See design/fantasy-tutorial-v2.md. */
+  tutBgTtl:  ["120 مليون، و15 نادي", "120M, and 15 clubs"],
+  tutBgBody: ["الميزانية 120 مليون تشتري بيها 15 نادي: 11 في الملعب و4 على الدكة. مش فلوس حقيقية — دي بس اللي بتوزن بيها اختياراتك.",
+              "Your budget is 120M and it buys 15 clubs: 11 on the pitch and 4 on the bench. It is not real money — it is what balances your choices."],
+  tutBgBig:  ["الأندية الكبيرة الأربعة متسعّرة بحيث الأربعة مايدخلوش مع بعض أبداً. تلاتة أكتر حاجة تقدر تملكها.",
+              "The four superclubs are priced so that all four can never fit together. Three is the most you can own."],
+  tutBgP1:   ["126 نادي من 7 دوريات", "126 clubs from 7 leagues"],
+  tutBgP2:   ["3 أندية بالكتير من الدوري الواحد", "Max 3 from any one league"],
+  tutBgP3:   ["أرخص نادي 4.5 مليون", "The cheapest club is 4.5M"],
+  tutBgP4:   ["11 في الملعب و4 على الدكة", "11 on the pitch, 4 subs"],
+  tutBgCta:  ["فهمت", "Got it"],
 
-  /* ---- step 4 · البدل ----
-     The study's headline failure, taught by the thumb instead of by a hint. */
-  tutSwTtl:   ["الملعب ده قرارك إنت", "The pitch is your call"],
-  tutSwBody:  ["رتبناهم بالسعر — بس إنت اللي بتعرف مين هيكسب الجولة دي.",
-               "We ordered them by price — but you're the one who knows who's winning this round."],
-  tutSwDo1:   ["دوس على {a} اللي على الدكة", "Tap {a} on the bench"],
-  tutSwDo2:   ["تمام. دلوقتي دوس على {b} اللي في الملعب", "Good. Now tap {b} on the pitch"],
-  tutSwOk:    ["كده بالظبط. أي نادي تقدر تبدله في أي وقت.",
-               "Exactly that. You can swap any club, any time."],
-  tutSwPitch: ["الملعب", "The pitch"],
-  tutSwBench: ["الدكة · بيدخلوا لوحدهم لو ناديك مالوش ماتش",
-               "The bench · they come on automatically when a starter has no match"],
-  tutSwCta:   ["فهمت", "Got it"],
-  tutSwPass:  ["كمل من غير ما أجرب", "Continue without trying"],
-  tutSwSlot:  ["{club} · {price} مليون", "{club} · {price}M"],
+  /* ---- step 4 · الـ11 ---- */
+  tutXiTtl:  ["كمّل الـ11", "Fill your eleven"],
+  tutXiBody: ["الـ11 دول هم اللي بيجمعوا لك نقط كل جولة. اختار اللي إنت شايف إنهم هيكسبوا.",
+              "These eleven are the clubs that score for you every round. Pick the ones you think will win."],
+  tutXiLive: ["{n} من 11 · باقي {m}", "{n} of 11 · {m} to go"],
+  /* «باقي 0» is not a count, it is a bug with a number in it. The finished state
+     gets its own sentence in both places the counter can reach zero. */
+  tutXiFull: ["تمام — الـ11 كملوا.", "That is your eleven."],
+  tutXiCta:  ["الـ11 كملوا", "My eleven is complete"],
 
-  /* ---- step 5 · الكابتن ----
-     The rule as arithmetic, per fantasy-ui.md §C.1.6 fxWiz5Sub. */
+  /* ---- step 5 · الدكة ----
+     The two numbers are measured over the 36-round backtest in
+     fantasy-scoring-backtest.md: a club with no fixture returns 0 where the
+     average club returns 6.85, and a season played with no usable bench forfeits
+     183 points. This is the one place a beginner underestimates the rules, so it
+     gets the arithmetic rather than an adjective. */
+  tutBnTtl:  ["الدكة · 4 أندية كمان", "The bench · four more clubs"],
+  tutBnBody: ["لو نادي من الـ11 مالوش ماتش في الجولة، بياخد صفر. ساعتها بديل من الدكة بيدخل مكانه لوحده من غير ما تعمل حاجة.",
+              "If a club in your eleven has no match in a round, it scores zero. A substitute then comes on in its place automatically, with no action from you."],
+  tutBnFact: ["النادي اللي مالوش ماتش بيكلفك 6.85 نقطة في المتوسط، وموسم كامل من غير دكة شغالة بيضيع 183 نقطة.",
+              "A club with no match costs you 6.85 points on average, and a whole season with no working bench forfeits 183 points."],
+  tutBnLive: ["{n} من 15 · باقي {m} للدكة", "{n} of 15 · {m} more for the bench"],
+  tutBnFull: ["الفريق كمل — 15 نادي.", "Your squad is complete — 15 clubs."],
+  tutBnCta:  ["الفريق كمل", "My squad is complete"],
+
+  /* ---- step 6 · الكابتن ----
+     The rule as arithmetic, per fantasy-ui.md §C.1.6 fxWiz5Sub. And the rule the
+     shipped captain sheet was missing: a benched captain pays exactly nothing,
+     measured at 302 points against 348 for the best legal one. */
   tutCapTtl:  ["الكابتن بياخد ضعف النقط", "Your captain scores double"],
-  tutCapBody: ["لو جاب 12، تاخد 24. دوس على النادي اللي واثق فيه.",
-               "If they score 12, you get 24. Tap the club you trust."],
-  tutCapPre:  ["خليناه {club} — غيّره لو عايز.", "We've set {club} — change it if you like."],
+  tutCapBody: ["نادي واحد بس، ولازم يكون من الـ11 اللي في الملعب. لو جاب 12، تاخد 24. دوس على النادي اللي واثق فيه.",
+               "One club only, and it has to be one of the eleven on the pitch. If it scores 12, you get 24. Tap the club you trust."],
+  tutCapLive: ["لسه ما اخترتش كابتن.", "You have not chosen a captain yet."],
+  tutCapOk:   ["{club} هو الكابتن بتاعك.", "{club} is your captain."],
   tutCapCta:  ["تمام", "Done"],
   tutCapAria: ["خلي {club} الكابتن", "Make {club} captain"],
 
-  /* ---- step 6 · الجولة ----
+  /* ---- step 7 · الجوكرات ----
+     The owner asked for this by name twice and v1 taught it nowhere. Eight
+     chips, two of each family, one per half (fantasy-design.md §1.7, §12.2 —
+     there is NO fifth family). The four name/effect/when lines below are
+     byte-identical copies of chips.js; see the header note. */
+  tutChTtl:  ["الجوكرات", "Chips"],
+  tutChBody: ["8 جوكرات في الموسم: اتنين من كل نوع، واحد في كل نص. وجوكر واحد بس في الجولة الواحدة.",
+              "Eight chips a season: two of each kind, one in each half. And only one chip in any single round."],
+  tutChTap:  ["دوس على أي جوكر عشان تعرف بيعمل إيه.", "Tap any chip to see what it does."],
+  tutChSeen: ["كده عرفت. تقدر تفتح الباقي، أو تكمل.", "Now you know. Open the rest, or carry on."],
+  tutChWhere:["هتلاقيهم في «الجوكرات» تحت في أي وقت — مش لازم تستخدم حاجة دلوقتي.",
+              "You will find them under Chips at the bottom whenever you want — you do not have to use one now."],
+  tutChCta:  ["تمام", "Done"],
+  tutChAria: ["{chip}. دوس عشان تشوف بيعمل إيه.", "{chip}. Tap to see what it does."],
+  tutChPer:  ["مرتين في الموسم", "Twice a season"],
+
+  /* the four families — VERBATIM from chips.js CHIP_STR, asserted equal by the
+     test suite. Do not improve one copy without improving the other. */
+  tutChipWc:      ["تغيير شامل", "Wildcard"],
+  tutChipWcEff:   ["كل انتقالاتك في الجولة دي ببلاش — غيّر اللي إنت عايزه من غير خصم −4.",
+                   "Every transfer you make this round is free — change whatever you like with no −4."],
+  tutChipWcWhen:  ["استخدمه لما تحب تغيّر نص فريقك مرة واحدة.",
+                   "Use it when you want to rebuild half your squad at once."],
+  tutChipFh:      ["فريق مؤقت", "Free Hit"],
+  tutChipFhEff:   ["انتقالات مفتوحة لجولة واحدة بس. وفي الإقفال الجاي فريقك بيرجع زي ما كان بالظبط.",
+                   "Unlimited transfers for one round only. At the next deadline your squad goes back exactly as it was."],
+  tutChipFhWhen:  ["استخدمه في الجولة اللي أغلب أنديتك مالهاش ماتش فيها.",
+                   "Use it in a round where most of your clubs have no match."],
+  tutChipTc:      ["الكابتن الثلاثي", "Triple Captain"],
+  tutChipTcEff:   ["نقاط الكابتن ×3 بدل ×2 في الجولة دي.",
+                   "Your captain scores ×3 instead of ×2 this round."],
+  tutChipTcWhen:  ["استخدمه لما كابتنك يلعب ماتشين في جولة واحدة.",
+                   "Use it when your captain plays twice in one round."],
+  tutChipFs:      ["الفريق الكامل", "Full Squad"],
+  tutChipFsEff:   ["البدلاء الأربعة كلهم بيجيبوا نقط في الجولة دي، مش بس اللي بيدخل بدل نادي مالوش ماتش.",
+                   "All four of your substitutes score this round, not just the one covering a club with no match."],
+  tutChipFsWhen:  ["استخدمه في الجولة اللي الخمستاشر نادي كلهم لاعبين فيها.",
+                   "Use it in a round where all fifteen of your clubs have a match."],
+
+  /* ---- step 8 · خلصنا ----
      tutGwLine is fxWizGw, verbatim. See the header note. */
-  tutGwTtl:    ["الجولة {n}", "Round {n}"],
+  tutDnTtl:    ["فريقك جاهز", "Your team is ready"],
   tutGwLine:   ["الجولة الأولى: من {from} لـ {to}. كل ماتش تلعبه أنديتك فيها بيتحسب لك.",
                 "Round 1: {from} to {to}. Every match your clubs play in it counts for you."],
   tutGwLineNd: ["كل ماتش تلعبه أنديتك في الجولة دي بيتحسب لك.",
                 "Every match your clubs play in this round counts for you."],
-  tutGwLock:   ["بيقفل {when}", "Locks {when}"],
-  tutGwBody:   ["ده آخر ميعاد تقدر تغيّر فيه فريقك.", "This is the last moment you can change your team."],
-  tutGwCta:    ["يلا نشوف الملعب", "Take me to the pitch"],
+  tutDnLock:   ["الجولة {n} بتقفل {when}", "Round {n} locks {when}"],
+  tutDnBody:   ["أول ما الجولة تبدأ بتتقفل، ومش هتقدر تغيّر فيها فريقك ولا الكابتن. قبل كده غيّر زي ما إنت عايز.",
+                "A round locks the moment it starts, and after that you cannot change your team or your captain in it. Before that, change whatever you like."],
+  tutDnSeason: ["الموسم 36 جولة، من {a} لحد {b}.", "The season is 36 rounds, {a} to {b}."],
+  tutDnNoPts:  ["الموسم لسه ما بدأش، فمفيش نقط لحد دلوقتي — ولا ليك ولا لغيرك.",
+                "The season has not started, so there are no points yet — not yours and not anyone else's."],
+  tutDnCta:    ["يلا نشوف الملعب", "Take me to the pitch"],
 
-  /* ---- step 7 · الهوك · fantasy-engagement.md §E.2 ---- */
-  tutHkTtl:    ["ميعاد الكابتن", "Your captain's appointment"],
-  tutHkLine:   ["{club} بيلعب {when}.", "{club} play {when}."],
-  tutHkLineNt: ["{club} هو الكابتن بتاعك.", "{club} is your captain."],
-  tutHkX2:     ["نقطه بتتضاعف", "Their points double"],
-  tutHkWhy:    ["إنت اخترته. ارجع وشوف لو كنت على حق.", "You chose them. Come back and see if you were right."],
-  tutHkCta:    ["يلا", "Let's go"],
-
-  /* ---- the read-nothing / skip exit ---- */
-  tutSkipDone: ["جهزنالك فريق كامل. تقدر تغيّره في أي وقت.",
-                "We built you a complete team. You can change it any time."]
+  /* ---- the picker, the board and the money ---- */
+  tutPkAll:    ["الكل", "All"],
+  tutPkFilter: ["صفّي بالدوري", "Filter by league"],
+  tutPkAdd:    ["ضيف {club} بـ {price} مليون", "Add {club} for {price}M"],
+  tutPkDrop:   ["شيل {club} من فريقك", "Remove {club} from your team"],
+  tutPkNone:   ["مفيش نادي تقدر تضيفه من الدوري ده دلوقتي.", "No club from this league can be added right now."],
+  tutBudLeft:  ["المتبقي", "Remaining"],
+  tutBudSlots: ["أماكن فاضية", "Slots left"],
+  tutBudNext:  ["أغلى نادي تقدر تشتريه", "Max for your next club"],
+  tutWhyFull:  ["فريقك كمل", "Your squad is full"],
+  tutWhyLeague:["عندك 3 أندية من الدوري ده", "3 clubs from this league already"],
+  tutWhyMoney: ["أغلى من اللي فاضل معاك", "Over your remaining budget"],
+  tutLabPitch: ["الملعب", "The pitch"],
+  tutLabBench: ["الدكة · بيدخلوا لوحدهم لو ناديك مالوش ماتش",
+                "The bench · they come on automatically when a starter has no match"],
+  tutSlotAria: ["{club} · {price} مليون", "{club} · {price}M"]
 };
 
 /* ---------------------------------------------------------------------------
@@ -264,40 +386,40 @@ function tutFill(key, lang, vars) {
 
 /* ---------------------------------------------------------------------------
    3. THE STEPS
-   Seven, and every one of them has exactly ONE thing the user physically does.
-   welcome  — tap to begin              (the mental model)
-   fav      — tap your club             (ownership; seeds everything after)
-   squad    — tap to accept, or re-roll (15 / 120M / 11+4 / 3-per-league)
-   swap     — tap a sub, tap a starter  (the verb the product was missing)
-   captain  — tap a club                (double points)
-   round    — tap to continue           (a round is a period; it has a deadline)
-   hook     — tap to the pitch          (the appointment they made themselves)
+   Eight. Six of them are gated on something the player physically does.
+
+     welcome  — read one sentence            (the mental model)
+     first    — pick a club                  GATE: squad >= 1
+     budget   — read the four rules          (taught when the number first moved)
+     eleven   — pick until eleven            GATE: squad >= 11
+     bench    — pick four more               GATE: squad >= 15
+     captain  — appoint one of the eleven    GATE: a starting captain exists
+     chips    — open a chip and read it      GATE: at least one chip opened
+     done     — the deadline, then the pitch (commits what HE picked)
    --------------------------------------------------------------------------- */
-const TUT_STEPS = Object.freeze(["welcome", "fav", "squad", "swap", "captain", "round", "hook"]);
+const TUT_STEPS = Object.freeze(["welcome", "first", "budget", "eleven", "bench", "captain", "chips", "done"]);
 function tutSteps() { return TUT_STEPS.slice(); }
 const stepIndex = id => TUT_STEPS.indexOf(id);
 
-/* ---------------------------------------------------------------------------
-   4. THE SQUAD BUILDER — pure, seeded, and legal by construction
-   fantasy-ui.md §C.1.4 asks for band coverage "so the shape of the price ladder
-   is visible". The shipped autoFill() is a greedy price-descending walk that
-   produces 18.5/17.5/16.5/15.5/7.0 and then ten clubs at exactly 4.5 — a
-   barbell that HIDES the ladder and loads the default team with the obscure
-   cheap clubs (usability §K.11). These five bands are the fix.
-
-   The quotas 1/2/3/5/4 and the mins below sum to a soft target of 110.5M
-   against a 120.0M budget. That 9.5M of slack is what the dear end spends, and
-   it is deliberately small: give the top of the ladder more room and the tail
-   collapses onto the 4.5M floor, which is the exact failure being fixed.
-   --------------------------------------------------------------------------- */
-const BANDS = Object.freeze([
-  { min: 15.0, max: Infinity, n: 1 },
-  { min: 11.0, max: 14.99,    n: 2 },
-  { min: 8.5,  max: 10.99,    n: 3 },
-  { min: 6.0,  max: 8.49,     n: 5 },
-  { min: 4.5,  max: 5.99,     n: 4 }
+/* The chip catalogue. Four families, two instances each, eight chips — the
+   rules page lists exactly four and bootstrap-static.chips holds exactly eight
+   entries across four names. Any design with a fifth is working from an older
+   season. glyph is a typographic mark, never an image and never an emoji; two
+   of them ARE the rule (×3, +4), which fantasy-ui.md §J row 11 asks for
+   explicitly: do not name the chip, show the arithmetic. */
+const TUT_CHIPS = Object.freeze([
+  Object.freeze({ id: "wildcard",  glyph: "⇄",  ltr: false, name: "tutChipWc", eff: "tutChipWcEff", when: "tutChipWcWhen" }),
+  Object.freeze({ id: "freehit",   glyph: "⟲",  ltr: false, name: "tutChipFh", eff: "tutChipFhEff", when: "tutChipFhWhen" }),
+  Object.freeze({ id: "tripcap",   glyph: "×3", ltr: true,  name: "tutChipTc", eff: "tutChipTcEff", when: "tutChipTcWhen" }),
+  Object.freeze({ id: "fullsquad", glyph: "+4", ltr: true,  name: "tutChipFs", eff: "tutChipFsEff", when: "tutChipFsWhen" })
 ]);
 
+/* ---------------------------------------------------------------------------
+   4. THE RULES ENGINE
+   The same four rules the app's own picker enforces, computed from state so the
+   tutorial can never let a player build something the app would then reject.
+   There is no builder here any more — only a referee.
+   --------------------------------------------------------------------------- */
 function ctxOf(input) {
   return {
     clubs:        input.clubs || [],
@@ -310,126 +432,8 @@ function ctxOf(input) {
   };
 }
 
-/* what the still-unfilled slots must be left with. Two floors, and the guard
-   takes the LARGER: the hard floor (nothing may strand the user with slots he
-   cannot fill) and the soft floor (the band mins, which is what keeps the
-   ladder visible instead of collapsing to the barbell). */
-function floorFor(quota, picked, c) {
-  const slotsLeft = c.size - picked - 1;
-  if (slotsLeft <= 0) return 0;
-  let soft = 0, left = slotsLeft;
-  for (let i = 0; i < BANDS.length && left > 0; i++) {
-    const take = Math.min(quota[i], left);
-    soft += take * BANDS[i].min; left -= take;
-  }
-  return Math.max(slotsLeft * c.minPrice, soft);
-}
-
-function bandOf(p) {
-  for (let i = 0; i < BANDS.length; i++) if (p >= BANDS[i].min && p <= BANDS[i].max) return i;
-  return BANDS.length - 1;                     /* anything under the floor bands with it */
-}
-
-/* tutBuildSquad({clubs, price, fav, seed, ...}) -> {squad, ok, spend, reason}
-   squad[0] is the favourite when one was given, then the rest by price
-   descending — so indices 0..10 are the eleven and 11..14 are the bench, and
-   the user's own club is guaranteed a STARTING place (fantasy-ui.md §C.1.3,
-   usability fix #3). */
-function tutBuildSquad(input) {
-  const c = ctxOf(input);
-  const rnd = rng(input.seed != null ? input.seed : 1);
-  const priceOf = id => c.price(id);
-  const quota = BANDS.map(b => b.n);
-  const picked = [], lgN = {};
-  let spend = 0;
-
-  const take = id => {
-    const club = c.clubs.find(x => x.id === id); if (!club) return false;
-    picked.push(id); lgN[club.lg] = (lgN[club.lg] || 0) + 1; spend += priceOf(id);
-    const b = bandOf(priceOf(id)); if (quota[b] > 0) quota[b]--;
-    return true;
-  };
-
-  /* the favourite goes in first and unconditionally — it is the one club the
-     user asked for by name, and it is the whole point of asking. */
-  if (input.fav && c.clubs.some(x => x.id === input.fav)) take(input.fav);
-
-  const eligible = (club) => {
-    if (picked.includes(club.id)) return false;
-    if ((lgN[club.lg] || 0) >= c.maxPerLeague) return false;
-    return true;
-  };
-
-  /* THE RESERVE HAS TO RESPECT THE LEAGUE CAP. `(slots) * minPrice` assumes the floor price is
-     always available, and with a maximum of three clubs per league it often is not: after the
-     five-season reprice only eleven clubs sit at 4.5 and they span four leagues, so the twelfth
-     cheap slot costs 5.0 or more. The optimistic version stranded this builder on 13 clubs for
-     several favourites - it reported a legal squad it could not actually finish. */
-  const cheapestRest = (n, extraId) => {
-    if (n <= 0) return 0;
-    const held = extraId ? picked.concat([extraId]) : picked;
-    const cnt = {};
-    for (const id of held) { const cl = c.clubs.find(x => x.id === id); if (cl) cnt[cl.lg] = (cnt[cl.lg] || 0) + 1; }
-    const pool = c.clubs.filter(x => held.indexOf(x.id) < 0)
-                        .sort((a, b2) => priceOf(a.id) - priceOf(b2.id));
-    let tot = 0, got = 0;
-    for (const x of pool) {
-      if (got >= n) break;
-      if ((cnt[x.lg] || 0) >= c.maxPerLeague) continue;
-      cnt[x.lg] = (cnt[x.lg] || 0) + 1; tot += priceOf(x.id); got++;
-    }
-    return got < n ? Infinity : tot;
-  };
-  for (let b = 0; b < BANDS.length; b++) {
-    while (quota[b] > 0 && picked.length < c.size) {
-      /* fame ranks the candidates so recognisable clubs surface first — the
-         `fame` field is on 121 of 126 clubs and the shipped build uses it
-         nowhere (usability fix #8). The seeded jitter is what makes `فريق تاني`
-         a different team rather than a reshuffle of the same one. */
-      const cands = c.clubs.filter(x =>
-        eligible(x) && priceOf(x.id) >= BANDS[b].min && priceOf(x.id) <= BANDS[b].max);
-      let best = null, bestScore = -Infinity;
-      for (const x of cands) {
-        const p = priceOf(x.id);
-        /* floorFor assumes the band minimum is always purchasable; the league cap means it is
-           not. Test the real cheapest completion with this club already owned, exactly as the
-           backfill does, or the bands overspend and strand the squad. */
-        if (spend + p + cheapestRest(c.size - picked.length - 1, x.id) > c.budget) continue;
-        const score = (x.fame || 0) + rnd() * 0.35 + (x.ar ? 0.10 : 0) + p / 400;
-        if (score > bestScore) { bestScore = score; best = x; }
-      }
-      if (!best) { quota[b] = 0; break; }
-      take(best.id);
-    }
-  }
-
-  /* backfill: whatever the bands could not place, take the cheapest legal club
-     that still leaves the remaining slots fillable. */
-  let guard = 0;
-  while (picked.length < c.size && guard++ < 400) {
-    const cands = c.clubs.filter(x => eligible(x) &&
-      spend + priceOf(x.id) + cheapestRest(c.size - picked.length - 1, x.id) <= c.budget);
-    if (!cands.length) break;
-    cands.sort((a, b2) => priceOf(a.id) - priceOf(b2.id) || (b2.fame || 0) - (a.fame || 0));
-    take(cands[0].id);
-  }
-
-  /* order: favourite first, then price descending. That is what puts the
-     eleven and the bench in the right slots without a second concept. */
-  const fav = input.fav && picked.includes(input.fav) ? input.fav : null;
-  const rest = picked.filter(id => id !== fav).sort((a, b) => priceOf(b) - priceOf(a));
-  const squad = fav ? [fav].concat(rest) : rest;
-
-  return {
-    squad: squad,
-    ok: squad.length === c.size,
-    spend: +spend.toFixed(1),
-    reason: squad.length === c.size ? null : "pool exhausted"
-  };
-}
-
 /* tutIsLegal — the same rules the picker enforces, checkable from the outside.
-   The test asserts this; so can the host, before it commits. */
+   The test asserts this; so does the host, before it commits. */
 function tutIsLegal(squad, input) {
   const c = ctxOf(input), errors = [];
   if (!Array.isArray(squad)) return { ok: false, errors: ["not an array"] };
@@ -449,21 +453,64 @@ function tutIsLegal(squad, input) {
   return { ok: errors.length === 0, errors: errors, spend: spend };
 }
 
-/* tutFavouritePool — one club per league first, then filled by fame.
-   The one-per-league pass is deliberate: Mahmoud cannot name a Scottish club,
-   and a grid that quietly contains سيلتيك alongside ليفربول teaches the league
-   spread without a sentence. Clubs with no Arabic name are excluded — the study
-   found three Latin names in everyone's default squad and this is the one
-   screen where that must not happen. */
-function tutFavouritePool(clubs, n) {
-  const size = n || 12;
-  const ok = (clubs || []).filter(c => c.ar);
-  const byFame = ok.slice().sort((a, b) =>
-    (b.fame || 0) - (a.fame || 0) || String(a.id).localeCompare(String(b.id)));
-  const out = [], seen = {};
-  for (const c of byFame) if (!seen[c.lg]) { seen[c.lg] = 1; out.push(c); }
-  for (const c of byFame) { if (out.length >= size) break; if (!out.includes(c)) out.push(c); }
-  return out.slice(0, size).sort((a, b) => (b.fame || 0) - (a.fame || 0));
+const clubOf = (s, id) => s.clubs.find(x => x.id === id) || null;
+const priceOf = (s, id) => { const p = s.price(id); return typeof p === "number" && isFinite(p) ? p : 0; };
+const spendOf = s => +s.squad.reduce((a, id) => a + priceOf(s, id), 0).toFixed(1);
+const leagueCount = (s, lg) => s.squad.filter(id => { const c = clubOf(s, id); return c && c.lg === lg; }).length;
+
+/* the price-ascending pool of everything not owned, computed ONCE per render and
+   handed down. Without it every one of 126 rows re-sorts 126 clubs to answer
+   "can this still be finished", which is 126 sorts for one repaint of one list. */
+function poolAsc(s) {
+  return s.clubs.filter(x => s.squad.indexOf(x.id) < 0)
+                .slice().sort((a, b) => priceOf(s, a.id) - priceOf(s, b.id));
+}
+
+/* THE RESERVE HAS TO RESPECT THE LEAGUE CAP. `slots * minPrice` assumes the floor price is
+   always available, and with a maximum of three clubs per league it often is not: after the
+   five-season reprice only eleven clubs sit at 4.5 and they span four leagues, so the twelfth
+   cheap slot costs 5.0 or more. The optimistic version lets a pick look affordable and then
+   strands the squad a club short with money left over — which is the single most expensive
+   bug this screen can ship, because it happens 14 taps in. */
+function cheapestFill(s, n, extraId, pool) {
+  if (n <= 0) return 0;
+  const p = pool || poolAsc(s);
+  const cnt = {};
+  for (const id of s.squad) { const c = clubOf(s, id); if (c) cnt[c.lg] = (cnt[c.lg] || 0) + 1; }
+  if (extraId) { const c = clubOf(s, extraId); if (c) cnt[c.lg] = (cnt[c.lg] || 0) + 1; }
+  let tot = 0, got = 0;
+  for (const x of p) {
+    if (got >= n) break;
+    if (extraId && x.id === extraId) continue;
+    if ((cnt[x.lg] || 0) >= s.maxPerLeague) continue;
+    cnt[x.lg] = (cnt[x.lg] || 0) + 1; tot += priceOf(s, x.id); got++;
+  }
+  return got < n ? Infinity : +tot.toFixed(1);
+}
+
+/* everything the money strip needs, in one pass, so the strip and the row guards
+   can never disagree about what is affordable. */
+function tutBudget(s, pool) {
+  const p = pool || poolAsc(s);
+  const spend = spendOf(s);
+  const slotsLeft = Math.max(0, s.size - s.squad.length);
+  const reserve = cheapestFill(s, Math.max(0, slotsLeft - 1), null, p);
+  const remaining = +(s.budget - spend).toFixed(1);
+  const maxNext = slotsLeft <= 0 || !isFinite(reserve) ? 0 : +(remaining - reserve).toFixed(1);
+  return { spend: spend, remaining: remaining, slotsLeft: slotsLeft, reserve: reserve, maxNext: maxNext };
+}
+
+/* why a club cannot be picked — printed ON the row, so there is no error state
+   and no tap that does nothing without saying why. Returns a TUT_STR key. */
+function tutBlockReason(s, club, pool) {
+  if (!club) return null;
+  if (s.squad.indexOf(club.id) >= 0) return null;              /* owned: removable, not blocked */
+  if (s.squad.length >= s.size) return "tutWhyFull";
+  if (leagueCount(s, club.lg) >= s.maxPerLeague) return "tutWhyLeague";
+  const p = pool || poolAsc(s);
+  const rest = cheapestFill(s, s.size - s.squad.length - 1, club.id, p);
+  if (spendOf(s) + priceOf(s, club.id) + rest > s.budget + 1e-9) return "tutWhyMoney";
+  return null;
 }
 
 /* ---------------------------------------------------------------------------
@@ -471,25 +518,41 @@ function tutFavouritePool(clubs, n) {
    --------------------------------------------------------------------------- */
 function tutInit(opts) {
   const o = opts || {};
+  const clubs = o.clubs || [];
+  const size = o.size != null ? o.size : 15;
+  const startSize = o.startSize != null ? o.startSize : 11;
+  /* THE PITCH STARTS EMPTY — that is the owner's instruction and it is the whole
+     of v2. But `opts.squad` exists for ONE case: replaying the lesson from the
+     settings sheet when the player already has a team. index.html says it in a
+     comment older than this module — "replaying the lesson must not cost you your
+     team" — and since v2 commits what the tutorial holds, an empty start there
+     would delete fifteen clubs for the crime of wanting to read the walkthrough
+     again. Handed a squad, the tutorial adopts it: every gate is already
+     satisfied, so he taps through and reads, and can still drop and re-pick.
+     A first run passes nothing and the pitch is empty. Unknown ids are dropped
+     and the list is clamped, because this is the one input that arrives from
+     localStorage and may be stale. */
+  const seed = Array.isArray(o.squad)
+    ? o.squad.map(String).filter((id, i, a) => a.indexOf(id) === i && clubs.some(c => c.id === id)).slice(0, size)
+    : [];
+  const cap = o.captain != null && seed.slice(0, startSize).indexOf(String(o.captain)) >= 0 ? String(o.captain) : null;
   return Object.freeze({
     step: "welcome",
     lang: o.lang === "en" ? "en" : "ar",
-    clubs: o.clubs || [],
+    clubs: clubs,
+    leagues: o.leagues || [],
     price: o.price || (() => 8),
-    leagueName: o.leagueName || (id => id),
-    size: o.size != null ? o.size : 15,
-    startSize: o.startSize != null ? o.startSize : 11,
+    size: size,
+    startSize: startSize,
     budget: o.budget != null ? o.budget : 120.0,
     maxPerLeague: o.maxPerLeague != null ? o.maxPerLeague : 3,
     minPrice: o.minPrice != null ? o.minPrice : 4.5,
-    gw: o.gw || null,          /* {no, from:[ar,en], to:[ar,en], lock:[ar,en], fixture:[ar,en], lineHtml} */
-    seed: o.seed != null ? o.seed : 7,
-    fav: null,
-    squad: [],
-    captain: null,
-    swapFrom: null,
-    swapDone: false,
-    rerolls: 0,
+    gw: o.gw || null,   /* {no, from:[ar,en], to:[ar,en], lock:[ar,en], seasonFrom, seasonTo, rounds, lineHtml} */
+    squad: seed,
+    captain: cap,
+    filter: "all",
+    chipOpen: null,      /* which chip card is expanded right now (accordion) */
+    chipsSeen: [],       /* which chips have EVER been opened — this is the gate */
     skipped: false,
     done: false
   });
@@ -497,46 +560,72 @@ function tutInit(opts) {
 
 const next = (s, patch) => Object.freeze(Object.assign({}, s, patch));
 
-/* the captain is auto-assigned, stated, and offered as an edit — visible,
-   honest, pre-solved (fantasy-ui.md §C.1.6). The favourite gets the armband
-   when there is one, because the study's whole captain beat failed on being
-   handed a club the user had no feeling for. */
-function defaultCaptain(s, squad) {
-  const xi = squad.slice(0, s.startSize);
-  if (s.fav && xi.includes(s.fav)) return s.fav;
-  let best = null, bp = -Infinity;
-  for (const id of xi) { const p = s.price(id); if (p > bp) { bp = p; best = id; } }
-  return best;
+/* WHICH STEP ACCEPTS WHICH ACTION.
+   A reducer that accepts every action from every step is a reducer whose state
+   machine is a suggestion. PICK on the captain step would quietly buy a
+   sixteenth club that no screen had shown; CAP on the bench step would appoint an
+   armband before the captain lesson had happened. Both are reachable by a host
+   bug or a stale re-render, and neither is reachable by a user, which is exactly
+   the kind of divergence that gets shipped. NEXT / BACK / SKIP / DONE / LANG are
+   accepted everywhere, because they are chrome, not lesson. */
+const ACCEPTS = Object.freeze({
+  PICK:   Object.freeze({ first: 1, eleven: 1, bench: 1 }),
+  DROP:   Object.freeze({ first: 1, eleven: 1, bench: 1 }),
+  FILTER: Object.freeze({ first: 1, eleven: 1, bench: 1 }),
+  CAP:    Object.freeze({ captain: 1 }),
+  CHIP:   Object.freeze({ chips: 1 })
+});
+function stepAccepts(step, type) {
+  const m = ACCEPTS[type];
+  return !m || !!m[step];
 }
 
-function ensureSquad(s) {
-  if (s.squad.length === s.size) return s;
-  const built = tutBuildSquad({
-    clubs: s.clubs, price: s.price, fav: s.fav, seed: s.seed,
-    size: s.size, startSize: s.startSize, budget: s.budget,
-    maxPerLeague: s.maxPerLeague, minPrice: s.minPrice
-  });
-  const withSquad = next(s, { squad: built.squad });
-  return next(withSquad, { captain: s.captain || defaultCaptain(withSquad, built.squad) });
+/* Does the current step's lesson count as done? This is the whole gate rule in
+   one function, so a new step cannot be added without declaring what it demands.
+   Steps that teach no action answer true. */
+function tutGateMet(s) {
+  switch (s.step) {
+    case "first":   return s.squad.length >= 1;
+    case "eleven":  return s.squad.length >= s.startSize;
+    case "bench":   return s.squad.length >= s.size;
+    case "captain": return !!s.captain && s.squad.slice(0, s.startSize).indexOf(s.captain) >= 0;
+    case "chips":   return s.chipsSeen.length >= 1;
+    default:        return true;                    /* welcome, budget, done */
+  }
 }
 
 function goto(s, id) {
   const i = stepIndex(id);
   if (i < 0) return s;
-  /* the squad must exist before any step that shows it, including when the user
-     jumped there without touching the favourite grid. */
-  let t = (i >= stepIndex("squad")) ? ensureSquad(s) : s;
-  if (i >= stepIndex("captain") && !t.captain) t = next(t, { captain: defaultCaptain(t, t.squad) });
-  return next(t, { step: id, swapFrom: null });
+  let t = next(s, { step: id });
+  /* an armband that is no longer on a starter is not an armband. The shipped
+     build kept drawing it on a benched club that pays exactly nothing —
+     measured 302 points against 348 for the best legal captain. */
+  if (t.captain && t.squad.slice(0, t.startSize).indexOf(t.captain) < 0) t = next(t, { captain: null });
+  return t;
+}
+
+/* a squad the app itself would accept, at the moment the sheet closes. Skip can
+   hand over a PARTIAL squad (that is honest — he skipped), but never an illegal
+   one and never a captain sitting on the bench. */
+function settle(s) {
+  const cap = s.captain && s.squad.slice(0, s.startSize).indexOf(s.captain) >= 0 ? s.captain : null;
+  return next(s, { captain: cap });
 }
 
 function tutReduce(state, action) {
   const s = state, a = action || {};
+  if (!stepAccepts(s.step, a.type)) return s;
   switch (a.type) {
 
+    /* NEXT IS NOT A WAY OUT OF A LESSON. On a gated step with the gate unmet it
+       returns the state untouched — and tutHtml does not render a CTA there in
+       the first place, so this is belt and braces against a host that dispatches
+       its own NEXT. */
     case "NEXT": {
+      if (!tutGateMet(s)) return s;
       const i = stepIndex(s.step);
-      if (i >= TUT_STEPS.length - 1) return next(ensureSquad(s), { done: true });
+      if (i >= TUT_STEPS.length - 1) return next(settle(s), { done: true });
       return goto(s, TUT_STEPS[i + 1]);
     }
 
@@ -546,62 +635,71 @@ function tutReduce(state, action) {
     }
 
     /* One tap, from every step, always. A returning viewer — and the owner
-       opening the link for the fifth time today — gets the pitch immediately,
-       and still gets a complete legal team with a captain, because skipping the
-       reading must never mean skipping the team (usability friction #27). */
-    case "SKIP": {
-      const t = ensureSquad(s);
-      return next(t, { done: true, skipped: true, captain: t.captain || defaultCaptain(t, t.squad) });
-    }
+       opening the link for the fifth time today — gets the pitch immediately.
+       v1 handed him a generated team on the way out; v2 hands him exactly what
+       he had picked when he pressed it, which for step 1 is nothing at all. An
+       empty pitch is a state the app already handles (`pickFirst`), and it is
+       the truth. */
+    case "SKIP":
+      return next(settle(s), { done: true, skipped: true });
 
-    case "FAV": {
-      if (!a.arg) return s;
-      const t = next(s, { fav: String(a.arg), squad: [], captain: null });
-      return goto(t, "squad");
-    }
-
-    case "FAV_NONE":
-      return goto(next(s, { fav: null, squad: [], captain: null }), "squad");
-
-    /* capped at 5 — five is enough to feel agency, more is a slot machine
-       (fantasy-ui.md §C.1.4). */
-    case "REROLL": {
-      if (s.rerolls >= 5) return s;
-      const t = next(s, { rerolls: s.rerolls + 1, seed: s.seed + 101, squad: [], captain: null });
-      return ensureSquad(t);
-    }
-
-    /* THE SWAP. Tap one, then tap the other. Tapping the armed club again
-       cancels. A crossing swap (pitch <-> bench) is what marks the drill
-       learned; a same-side reorder is legal and silent, exactly as in the app.
-       The two highlighted slots are a SUGGESTION, not a gate — any pair works,
-       because a tutorial that rejects a correct gesture teaches nothing except
-       that the app is fussy. */
-    case "TAP": {
-      const i = parseInt(a.arg, 10);
-      if (!(i >= 0 && i < s.squad.length)) return s;
-      if (s.swapFrom === null) return next(s, { swapFrom: i });
-      if (s.swapFrom === i) return next(s, { swapFrom: null });
-      const j = s.swapFrom;
-      const sq = s.squad.slice();
-      const tmp = sq[i]; sq[i] = sq[j]; sq[j] = tmp;
-      const crossed = (i < s.startSize) !== (j < s.startSize);
-      let t = next(s, { squad: sq, swapFrom: null, swapDone: s.swapDone || crossed });
-      /* a captain that has just been benched loses the armband silently in the
-         shipped build. Here it is re-seated, never dropped. */
-      if (t.captain && !sq.slice(0, s.startSize).includes(t.captain))
-        t = next(t, { captain: defaultCaptain(t, sq) });
+    /* THE PICK. This is the whole tutorial. */
+    case "PICK": {
+      const id = a.arg == null ? "" : String(a.arg);
+      const club = clubOf(s, id);
+      if (!club) return s;
+      if (s.squad.indexOf(id) >= 0) return s;
+      if (tutBlockReason(s, club)) return s;          /* the guard, not the UI, is the rule */
+      const squad = s.squad.concat([id]);
+      const t = next(s, { squad: squad });
+      /* "when he makes it he goes to the next step" — the count IS the gate, so
+         the moment it lands the step is over. Only from the step that owns the
+         gate: picking a twelfth club on the bench step must not re-fire the
+         eleven step's transition. */
+      if (s.step === "first"  && squad.length >= 1)           return goto(t, "budget");
+      if (s.step === "eleven" && squad.length >= s.startSize) return goto(t, "bench");
+      if (s.step === "bench"  && squad.length >= s.size)      return goto(t, "captain");
       return t;
     }
 
+    /* A MISTAKE MUST NEVER BE FATAL. Fourteen taps in, a player who picked the
+       wrong club and cannot undo it will close the tab. Tapping a club he owns —
+       on the board or in the list — takes it back and refunds the money. */
+    case "DROP": {
+      const id = a.arg == null ? "" : String(a.arg);
+      const i = s.squad.indexOf(id);
+      if (i < 0) return s;
+      const squad = s.squad.slice(); squad.splice(i, 1);
+      let t = next(s, { squad: squad });
+      if (t.captain && squad.slice(0, t.startSize).indexOf(t.captain) < 0) t = next(t, { captain: null });
+      return t;
+    }
+
+    case "FILTER": {
+      const id = a.arg == null ? "all" : String(a.arg);
+      if (id !== "all" && !s.leagues.some(l => l.id === id)) return s;
+      return next(s, { filter: id });
+    }
+
+    /* only a club in the ELEVEN can take the armband. A bench captain scored 302
+       against 348 for the best legal one — the armband was drawn on the card and
+       paid nothing. */
     case "CAP": {
-      if (!a.arg) return s;
-      const id = String(a.arg);
-      return s.squad.includes(id) ? next(s, { captain: id }) : s;
+      const id = a.arg == null ? "" : String(a.arg);
+      return s.squad.slice(0, s.startSize).indexOf(id) >= 0 ? next(s, { captain: id }) : s;
+    }
+
+    /* opening a chip is the chips lesson. Tapping the open one closes it; it
+       stays in chipsSeen, because he did read it. */
+    case "CHIP": {
+      const id = a.arg == null ? "" : String(a.arg);
+      if (!TUT_CHIPS.some(c => c.id === id)) return s;
+      const seen = s.chipsSeen.indexOf(id) >= 0 ? s.chipsSeen : s.chipsSeen.concat([id]);
+      return next(s, { chipOpen: s.chipOpen === id ? null : id, chipsSeen: seen });
     }
 
     case "DONE":
-      return next(ensureSquad(s), { done: true });
+      return next(settle(s), { done: true });
 
     case "LANG":
       return next(s, { lang: a.arg === "en" ? "en" : "ar" });
@@ -616,11 +714,19 @@ function tutReduce(state, action) {
    Every function here returns a string. tutHtml() is the only entry point the
    host needs.
    --------------------------------------------------------------------------- */
-const clubOf = (s, id) => s.clubs.find(x => x.id === id) || null;
 const clubName = (s, c) => !c ? "" : (s.lang === "ar" && c.ar ? c.ar : (c.short || c.name || c.code || ""));
-const priceStr = (s, id) => s.price(id).toFixed(1);
+/* THE CARD FORM, and it is the app's own clubNameShort() rule, not a truncation.
+   A board slot is at most 82px wide and twelve Arabic club names do not fit at
+   any legible size — «باريس سان جيرمان» needs 81px of 66 — so those twelve carry
+   an `arShort` that a commentator would actually say. Measured live in the
+   tutorial before this existed: PSG ellipsed on the board. The picker LIST keeps
+   the full name, because there it fits. */
+const clubNameCard = (s, c) => !c ? ""
+  : (s.lang === "ar" ? (c.arShort || c.ar || c.short || c.name || c.code || "") : (c.short || c.name || c.code || ""));
+const priceStr = (s, id) => priceOf(s, id).toFixed(1);
 const T = (s, k, v) => tutFill(k, s.lang, v);
 const pair = (s, p) => !p ? "" : (Array.isArray(p) ? (s.lang === "en" ? p[1] : p[0]) : String(p));
+const lgName = (s, id) => { const l = s.leagues.find(x => x.id === id); return l ? (s.lang === "en" ? l.en : l.ar) : id; };
 
 /* identical markup to the app's own kitHtml(), so the tutorial inherits the
    existing .fxkit styling and introduces no second club-identity language. */
@@ -639,11 +745,45 @@ function btn(label, act, cls, arg, extra) {
     + (extra || "") + ">" + label + "</button>";
 }
 
+/* THE FOCUS PLAN.
+   Exactly one element per render carries data-tut-focus, and it is always the
+   element that moves the lesson forward. The host focuses it on a step change;
+   qa.mjs walks the entire tutorial by clicking nothing else, which is what makes
+   "there is always a way forward" a measured fact rather than a hope.
+
+   The fallback chain matters more than it looks. If a league filter leaves no
+   pickable club on screen, the way forward is not a club — it is the "All" chip.
+   Without that link the filtered picker is a dead end inside mandatory
+   onboarding, which is the exact class of bug that trapped every first-run user
+   in v1 (two glowing cards, one sentence, no exit but Skip). */
+function focusPlan(s, rows, pool) {
+  const gate = tutGateMet(s);
+  if (s.step === "first" || s.step === "eleven" || s.step === "bench") {
+    for (const c of rows) if (!tutBlockReason(s, c, pool) && s.squad.indexOf(c.id) < 0)
+      return { kind: "row", id: c.id };
+    if (s.filter !== "all") return { kind: "filter", id: "all" };
+    if (gate) return { kind: "cta" };
+    return { kind: "skip" };            /* never a dead end, even in a state we did not foresee */
+  }
+  if (s.step === "captain") {
+    if (gate) return { kind: "cta" };
+    const xi = s.squad.slice(0, s.startSize);
+    return xi.length ? { kind: "cap", id: xi[0] } : { kind: "skip" };
+  }
+  if (s.step === "chips") {
+    if (gate) return { kind: "cta" };
+    return { kind: "chip", id: TUT_CHIPS[0].id };
+  }
+  return { kind: "cta" };               /* welcome, budget, done */
+}
+const focusAttr = (F, kind, id) => (F.kind === kind && (id == null || F.id === id)) ? " data-tut-focus" : "";
+
 /* the dots + the always-present skip. The skip is a small ghost control in the
    top row, NOT a second full-width button under the CTA: the shipped wizard
    gives 345x48 to "التالي" and 345x50.5 to "تخطى الشرح", so the escape hatch is
    fractionally LARGER than the thing it wants you to do. */
-function tutProgressHtml(s) {
+function tutProgressHtml(s, F) {
+  const f = F || { kind: "" };
   const i = stepIndex(s.step), n = TUT_STEPS.length;
   const dots = TUT_STEPS.map((_, k) =>
     '<span class="tut-dot' + (k === i ? " on" : (k < i ? " past" : "")) + '"></span>').join("");
@@ -652,162 +792,240 @@ function tutProgressHtml(s) {
     + ' aria-valuenow="' + num(i + 1) + '" aria-label="' + esc(tutT("tutStepAria", s.lang)
         .split("{n}").join(num(i + 1)).split("{total}").join(num(n))) + '">' + dots + "</div>"
     + btn(T(s, "tutSkip"), "SKIP", "tut-skip", null,
-          ' aria-label="' + esc(tutT("tutSkipAria", s.lang)) + '"')
+          ' aria-label="' + esc(tutT("tutSkipAria", s.lang)) + '"' + focusAttr(f, "skip"))
     + "</div>";
 }
 
-function pills(s) {
-  const spend = s.squad.reduce((a, id) => a + s.price(id), 0).toFixed(1);
-  return '<div class="tut-pills">'
-    + '<span class="tut-pill">' + T(s, "tutPillN", { n: s.size }) + "</span>"
-    + '<span class="tut-pill">' + T(s, "tutPillM", { n: spend }) + "</span>"
-    + '<span class="tut-pill">' + T(s, "tutPillXi") + "</span>"
-    + '<span class="tut-pill">' + T(s, "tutPillLg") + "</span>"
-    + "</div>";
+function live(html) { return '<p class="tut-live" data-tut-live aria-live="polite">' + html + "</p>"; }
+
+/* THE MONEY, ALWAYS ON SCREEN WHILE HE IS SPENDING IT.
+   Three numbers, and the third is the one the study found nobody could compute:
+   "أغلى نادي تقدر تشتريه" is remaining minus the reserve the empty slots must
+   keep. Without it a player learns the budget rule by being refused. */
+function budgetStrip(s, b) {
+  const pct = Math.max(0, Math.min(100, (b.spend / s.budget) * 100));
+  const rpct = Math.max(0, Math.min(100 - pct, ((isFinite(b.reserve) ? b.reserve : 0) / s.budget) * 100));
+  return '<div class="tut-bud">'
+    + '<div class="tut-bud__top"><span class="tut-bud__lab">' + T(s, "tutBudLeft") + "</span>"
+    + '<span class="tut-bud__big" dir="ltr">' + esc(b.remaining.toFixed(1)) + "M</span></div>"
+    + '<div class="tut-bud__track">'
+    + '<div class="tut-bud__fill" style="inline-size:' + pct.toFixed(2) + '%"></div>'
+    + (rpct > 0 ? '<div class="tut-bud__resv" style="inline-size:' + rpct.toFixed(2) + '%"></div>' : "")
+    + "</div>"
+    + '<div class="tut-bud__foot">'
+    + "<span>" + T(s, "tutBudSlots") + ' <b dir="ltr">' + esc(num(b.slotsLeft)) + "</b></span>"
+    + "<span>" + T(s, "tutBudNext") + ' <b dir="ltr">' + esc(b.maxNext.toFixed(1)) + "M</b></span>"
+    + "</div></div>";
 }
 
-function slot(s, i, opts) {
-  const id = s.squad[i], c = clubOf(s, id); if (!c) return "";
-  const o = opts || {};
-  const cls = "tut-slot"
-    + (s.swapFrom === i ? " arm" : "")
-    + (o.hint ? " hint" : "")
-    + (id === s.fav ? " fav" : "");
-  return '<button type="button" class="' + cls + '" data-tut-act="TAP" data-tut-arg="' + num(i) + '"'
-    + (s.swapFrom === i ? ' aria-pressed="true"' : ' aria-pressed="false"')
-    + (o.focus ? " data-tut-focus" : "")
-    + ' aria-label="' + esc(tutT("tutSwSlot", s.lang)
-        .split("{club}").join(clubName(s, c)).split("{price}").join(priceStr(s, id))) + '">'
+/* one slot on the board. A filled slot is a BUTTON that takes the club back out;
+   an empty slot is a span, never a button, so the board can never present a tap
+   target that does nothing. */
+function slot(s, i, nextEmpty) {
+  const id = s.squad[i], c = clubOf(s, id);
+  if (!c) {
+    return '<span class="tut-slot tut-slot--e' + (i === nextEmpty ? " tut-slot--next" : "") + '" aria-hidden="true">'
+      + '<span class="tut-slot__ph"></span></span>';
+  }
+  return '<button type="button" class="tut-slot tut-slot--on' + (id === s.captain ? " cap" : "") + '"'
+    + ' data-tut-act="DROP" data-tut-arg="' + esc(id) + '"'
+    + ' aria-label="' + esc(tutT("tutPkDrop", s.lang).split("{club}").join(clubName(s, c))) + '">'
     + tutKit(c, "k34")
-    + '<span class="tut-nm">' + esc(clubName(s, c)) + "</span>"
+    + '<span class="tut-nm">' + esc(clubNameCard(s, c)) + "</span>"
     + '<span class="tut-pr" dir="ltr">' + esc(priceStr(s, id)) + "</span>"
+    + (id === s.captain ? '<span class="tut-arm" aria-hidden="true">C</span>' : "")
     + "</button>";
 }
 
 /* the eleven as three plain rows, and the bench as a fourth under a labelled
    divider. Deliberately NOT a formation: the formation control is inert
    (engagement §A.5, usability #17) and teaching a decision that does not exist
-   is the most expensive kind of wrong. */
-function pitch(s, hintA, hintB) {
+   is the most expensive kind of wrong.
+   The bench block appears at the bench STEP and not before — its arrival is the
+   lesson. It also appears early if the player somehow already owns twelve clubs
+   (he can, by coming BACK), because a board that hides three of his own clubs
+   is worse than an early reveal. */
+function board(s, showBench) {
   const rows = [4, 4, 3], out = []; let k = 0;
+  const nextEmpty = s.squad.length < s.size ? s.squad.length : -1;
   for (const r of rows) {
     const cells = [];
-    for (let x = 0; x < r && k < s.startSize; x++, k++)
-      cells.push(slot(s, k, { hint: k === hintA || k === hintB, focus: k === hintA }));
+    for (let x = 0; x < r && k < s.startSize; x++, k++) cells.push(slot(s, k, nextEmpty));
     out.push('<div class="tut-line">' + cells.join("") + "</div>");
   }
-  const bench = [];
-  for (let i = s.startSize; i < s.squad.length; i++)
-    bench.push(slot(s, i, { hint: i === hintA || i === hintB, focus: i === hintA }));
+  let bench = "";
+  if (showBench) {
+    const cells = [];
+    for (let i = s.startSize; i < s.size; i++) cells.push(slot(s, i, nextEmpty));
+    bench = '<div class="tut-lab tut-lab--b">' + T(s, "tutLabBench") + "</div>"
+      + '<div class="tut-line tut-line--b">' + cells.join("") + "</div>";
+  }
   return '<div class="tut-board">'
-    + '<div class="tut-lab">' + T(s, "tutSwPitch") + "</div>"
-    + out.join("")
-    + '<div class="tut-lab tut-lab--b">' + T(s, "tutSwBench") + "</div>"
-    + '<div class="tut-line tut-line--b">' + bench.join("") + "</div>"
+    + '<div class="tut-lab">' + T(s, "tutLabPitch") + "</div>"
+    + out.join("") + bench + "</div>";
+}
+
+/* the visible rows: the league filter applied, then price descending — the app's
+   own picker order, so the surface he learns here is the surface he keeps. */
+function pickRows(s) {
+  return s.clubs.filter(c => s.filter === "all" || c.lg === s.filter)
+                .slice().sort((a, b) => priceOf(s, b.id) - priceOf(s, a.id));
+}
+
+function picker(s, rows, pool, F) {
+  const chips = [{ id: "all", nm: tutT("tutPkAll", s.lang) }]
+    .concat(s.leagues.map(l => ({ id: l.id, nm: s.lang === "en" ? l.en : l.ar })));
+  const strip = '<div class="tut-filters" role="group" aria-label="' + esc(tutT("tutPkFilter", s.lang)) + '">'
+    + chips.map(l => '<button type="button" class="tut-fchip' + (s.filter === l.id ? " on" : "") + '"'
+        + ' data-tut-act="FILTER" data-tut-arg="' + esc(l.id) + '"'
+        + ' aria-pressed="' + (s.filter === l.id ? "true" : "false") + '"'
+        + focusAttr(F, "filter", l.id) + ">" + esc(l.nm) + "</button>").join("")
+    + "</div>";
+
+  const list = rows.map(c => {
+    const owned = s.squad.indexOf(c.id) >= 0;
+    const why = owned ? null : tutBlockReason(s, c, pool);
+    const aria = owned
+      ? tutT("tutPkDrop", s.lang).split("{club}").join(clubName(s, c))
+      : tutT("tutPkAdd", s.lang).split("{club}").join(clubName(s, c)).split("{price}").join(priceStr(s, c.id));
+    /* a blocked row must NOT show "+": it promises an action that cannot happen,
+       which is what made the tester tap Liverpool repeatedly and conclude the app
+       was broken. It keeps data-tut-act anyway — the reducer refuses the pick on
+       its own, so the guard does not depend on the attribute being absent. */
+    return '<button type="button" class="tut-row' + (owned ? " on" : (why ? " no" : "")) + '"'
+      + ' data-tut-act="' + (owned ? "DROP" : "PICK") + '" data-tut-arg="' + esc(c.id) + '"'
+      + (why ? " disabled" : "")
+      + focusAttr(F, "row", c.id)
+      + ' aria-label="' + esc(aria) + '">'
+      + tutKit(c, "k34")
+      + '<span class="tut-rnm"><span class="tut-rn">' + esc(clubName(s, c)) + "</span>"
+      + '<span class="' + (why ? "tut-rwhy" : "tut-rl") + '">' + (why ? T(s, why) : esc(lgName(s, c.lg))) + "</span></span>"
+      + '<span class="tut-rp" dir="ltr">' + esc(priceStr(s, c.id)) + "</span>"
+      + '<span class="tut-rx" aria-hidden="true">' + (owned ? "✓" : why ? "✕" : "+") + "</span>"
+      + "</button>";
+  }).join("");
+
+  return strip + '<div class="tut-list">'
+    + (rows.length ? list : '<p class="tut-note">' + T(s, "tutPkNone") + "</p>")
     + "</div>";
 }
 
-/* which two slots the drill points at: the dearest club on the bench, and the
-   cheapest starter that is not the user's own club. Never ask a man to bench
-   Liverpool thirty seconds after promising it a starting place. */
-function drillPair(s) {
-  const benchIdx = s.startSize;
-  let starterIdx = -1, lo = Infinity;
-  for (let i = 0; i < s.startSize; i++) {
-    if (s.squad[i] === s.fav) continue;
-    const p = s.price(s.squad[i]);
-    if (p < lo) { lo = p; starterIdx = i; }
-  }
-  return { bench: benchIdx, starter: starterIdx < 0 ? 0 : starterIdx };
+/* the shared body of the three picking steps. One surface, three lessons — the
+   player learns the picker once and then uses it for the whole season. */
+function pickingStep(s, ttlKey, bodyKey, liveHtml, ctaKey, F, rows, pool, b) {
+  return '<h2 class="tut-h">' + T(s, ttlKey) + "</h2>"
+    + '<p class="tut-p">' + T(s, bodyKey) + "</p>"
+    + budgetStrip(s, b)
+    + board(s, s.squad.length > s.startSize || stepIndex(s.step) >= stepIndex("bench"))
+    + live(liveHtml)
+    + picker(s, rows, pool, F)
+    + (tutGateMet(s) ? btn(T(s, ctaKey), "NEXT", "tut-cta", null, focusAttr(F, "cta")) : "");
 }
-
-function live(html) { return '<p class="tut-live" data-tut-live aria-live="polite">' + html + "</p>"; }
 
 function tutHtml(state) {
   const s = state;
-  const head = tutProgressHtml(s);
-  const back = stepIndex(s.step) > 0
-    ? btn(T(s, "tutBack"), "BACK", "tut-back") : "";
+  const isPick = s.step === "first" || s.step === "eleven" || s.step === "bench";
+  const pool = isPick ? poolAsc(s) : null;
+  const rows = isPick ? pickRows(s) : [];
+  const F = focusPlan(s, rows, pool);
+  const head = tutProgressHtml(s, F);
+  const back = stepIndex(s.step) > 0 ? btn(T(s, "tutBack"), "BACK", "tut-back") : "";
   let body = "";
 
   if (s.step === "welcome") {
     body = '<h2 class="tut-h tut-h--big">' + T(s, "tutW1Ttl") + "</h2>"
       + '<p class="tut-p">' + T(s, "tutW1Body") + "</p>"
       + '<p class="tut-note">' + T(s, "tutW1Note") + "</p>"
-      + btn(T(s, "tutW1Cta"), "NEXT", "tut-cta", null, " data-tut-focus");
+      + btn(T(s, "tutW1Cta"), "NEXT", "tut-cta", null, focusAttr(F, "cta"));
   }
 
-  else if (s.step === "fav") {
-    const pool = tutFavouritePool(s.clubs, 12);
-    body = '<h2 class="tut-h">' + T(s, "tutFavTtl") + "</h2>"
-      + '<p class="tut-p">' + T(s, "tutFavBody") + "</p>"
-      + '<div class="tut-grid">' + pool.map((c, k) =>
-          '<button type="button" class="tut-fav' + (s.fav === c.id ? " on" : "") + '"'
-          + ' data-tut-act="FAV" data-tut-arg="' + esc(c.id) + '"'
-          + (k === 0 ? " data-tut-focus" : "")
-          + ' aria-label="' + esc(tutT("tutFavAria", s.lang).split("{club}").join(clubName(s, c))) + '">'
-          + tutKit(c, "k34") + '<span class="tut-nm">' + esc(clubName(s, c)) + "</span></button>"
-        ).join("") + "</div>"
-      + btn(T(s, "tutFavNone"), "FAV_NONE", "tut-sec");
+  else if (s.step === "first") {
+    const last = s.squad.length ? clubOf(s, s.squad[s.squad.length - 1]) : null;
+    body = pickingStep(s, "tutP1Ttl", "tutP1Body",
+      last ? '<span class="tut-ok">' + T(s, "tutP1Ok", { club: clubName(s, last) }) + "</span>"
+           : T(s, "tutP1Live"),
+      "tutP1Cta", F, rows, pool, tutBudget(s, pool));
   }
 
-  else if (s.step === "squad") {
-    const fc = clubOf(s, s.fav);
-    body = '<h2 class="tut-h">' + T(s, "tutSqTtl") + "</h2>"
-      + '<p class="tut-p">' + T(s, "tutSqBody") + "</p>"
-      + (fc ? '<p class="tut-ok">' + T(s, "tutSqFav", { club: clubName(s, fc) }) + "</p>" : "")
-      + pills(s)
-      + pitch(s, -1, -1)
-      + btn(T(s, "tutSqCta"), "NEXT", "tut-cta", null, " data-tut-focus")
-      + (s.rerolls < 5 ? btn(T(s, "tutSqReroll"), "REROLL", "tut-sec") : "");
+  else if (s.step === "budget") {
+    const b = tutBudget(s);
+    body = '<h2 class="tut-h">' + T(s, "tutBgTtl") + "</h2>"
+      + '<p class="tut-p">' + T(s, "tutBgBody") + "</p>"
+      + budgetStrip(s, b)
+      + '<div class="tut-pills">'
+      + '<span class="tut-pill">' + T(s, "tutBgP1") + "</span>"
+      + '<span class="tut-pill">' + T(s, "tutBgP4") + "</span>"
+      + '<span class="tut-pill">' + T(s, "tutBgP2") + "</span>"
+      + '<span class="tut-pill">' + T(s, "tutBgP3") + "</span>"
+      + "</div>"
+      + '<p class="tut-note">' + T(s, "tutBgBig") + "</p>"
+      + btn(T(s, "tutBgCta"), "NEXT", "tut-cta", null, focusAttr(F, "cta"));
   }
 
-  else if (s.step === "swap") {
-    const d = drillPair(s);
-    /* ONE TARGET AT A TIME. Both slots used to glow while the sentence named one of them, so
-       a user following the glow armed the wrong card — and the next sentence then named the
-       card they had just tapped, which disarmed it and reset the step. That is a closed loop
-       with no exit but Skip, inside mandatory onboarding, and it was reproducible every run.
-       The hint now points at whichever slot is actually next, and the sentence names the
-       club still to be tapped rather than assuming the drill was followed in order. */
-    const armed = s.swapFrom;
-    const nextIdx = s.swapDone ? -1
-      : armed === null ? d.bench
-      : (armed === d.bench ? d.starter : d.bench);
-    const a = clubOf(s, s.squad[d.bench]);
-    const nextClub = nextIdx < 0 ? null : clubOf(s, s.squad[nextIdx]);
-    const msg = s.swapDone
-      ? '<span class="tut-ok">' + T(s, "tutSwOk") + "</span>"
-      : (armed === null
-          ? T(s, "tutSwDo1", { a: clubName(s, a) })
-          : T(s, "tutSwDo2", { b: nextClub ? clubName(s, nextClub) : "" }));
-    body = '<h2 class="tut-h">' + T(s, "tutSwTtl") + "</h2>"
-      + '<p class="tut-p">' + T(s, "tutSwBody") + "</p>"
-      + live(msg)
-      + pitch(s, nextIdx, -1)
-      + (s.swapDone
-          ? btn(T(s, "tutSwCta"), "NEXT", "tut-cta", null, " data-tut-focus")
-          : btn(T(s, "tutSwPass"), "NEXT", "tut-sec"));
+  else if (s.step === "eleven") {
+    const left = Math.max(0, s.startSize - s.squad.length);
+    body = pickingStep(s, "tutXiTtl", "tutXiBody",
+      left ? T(s, "tutXiLive", { n: s.squad.length, m: left })
+           : '<span class="tut-ok">' + T(s, "tutXiFull") + "</span>",
+      "tutXiCta", F, rows, pool, tutBudget(s, pool));
+  }
+
+  else if (s.step === "bench") {
+    body = '<h2 class="tut-h">' + T(s, "tutBnTtl") + "</h2>"
+      + '<p class="tut-p">' + T(s, "tutBnBody") + "</p>"
+      + '<p class="tut-note">' + T(s, "tutBnFact") + "</p>"
+      + budgetStrip(s, tutBudget(s, pool))
+      + board(s, true)
+      + live(s.squad.length < s.size
+          ? T(s, "tutBnLive", { n: s.squad.length, m: s.size - s.squad.length })
+          : '<span class="tut-ok">' + T(s, "tutBnFull") + "</span>")
+      + picker(s, rows, pool, F)
+      + (tutGateMet(s) ? btn(T(s, "tutBnCta"), "NEXT", "tut-cta", null, focusAttr(F, "cta")) : "");
   }
 
   else if (s.step === "captain") {
     const cc = clubOf(s, s.captain);
     body = '<h2 class="tut-h">' + T(s, "tutCapTtl") + "</h2>"
       + '<p class="tut-p">' + T(s, "tutCapBody") + "</p>"
-      + (cc ? live(T(s, "tutCapPre", { club: clubName(s, cc) })) : "")
+      + live(cc ? '<span class="tut-ok">' + T(s, "tutCapOk", { club: clubName(s, cc) }) + "</span>"
+                : T(s, "tutCapLive"))
       + '<div class="tut-caps">' + s.squad.slice(0, s.startSize).map(id => {
           const c = clubOf(s, id); if (!c) return "";
           return '<button type="button" class="tut-cap' + (s.captain === id ? " on" : "") + '"'
             + ' data-tut-act="CAP" data-tut-arg="' + esc(id) + '"'
             + ' aria-pressed="' + (s.captain === id ? "true" : "false") + '"'
+            + focusAttr(F, "cap", id)
             + ' aria-label="' + esc(tutT("tutCapAria", s.lang).split("{club}").join(clubName(s, c))) + '">'
-            + tutKit(c, "k34") + '<span class="tut-nm">' + esc(clubName(s, c)) + "</span>"
+            + tutKit(c, "k34") + '<span class="tut-nm">' + esc(clubNameCard(s, c)) + "</span>"
             + '<span class="tut-arm" aria-hidden="true">C</span></button>';
         }).join("") + "</div>"
-      + btn(T(s, "tutCapCta"), "NEXT", "tut-cta", null, " data-tut-focus");
+      + (tutGateMet(s) ? btn(T(s, "tutCapCta"), "NEXT", "tut-cta", null, focusAttr(F, "cta")) : "");
   }
 
-  else if (s.step === "round") {
+  else if (s.step === "chips") {
+    body = '<h2 class="tut-h">' + T(s, "tutChTtl") + "</h2>"
+      + '<p class="tut-p">' + T(s, "tutChBody") + "</p>"
+      + live(s.chipsSeen.length ? '<span class="tut-ok">' + T(s, "tutChSeen") + "</span>" : T(s, "tutChTap"))
+      + '<div class="tut-chips">' + TUT_CHIPS.map(k => {
+          const open = s.chipOpen === k.id;
+          return '<div class="tut-chipcard' + (open ? " open" : "") + '">'
+            + '<button type="button" class="tut-chiph" data-tut-act="CHIP" data-tut-arg="' + esc(k.id) + '"'
+            + ' aria-expanded="' + (open ? "true" : "false") + '"'
+            + focusAttr(F, "chip", k.id)
+            + ' aria-label="' + esc(tutT("tutChAria", s.lang).split("{chip}").join(tutT(k.name, s.lang))) + '">'
+            + '<span class="tut-chipg"' + (k.ltr ? ' dir="ltr"' : "") + ">" + esc(k.glyph) + "</span>"
+            + '<span class="tut-chipn">' + T(s, k.name) + "</span>"
+            + '<span class="tut-chipx">' + T(s, "tutChPer") + "</span>"
+            + "</button>"
+            + (open ? '<div class="tut-chipb"><p class="tut-p">' + T(s, k.eff) + "</p>"
+                      + '<p class="tut-when">' + T(s, k.when) + "</p></div>" : "")
+            + "</div>";
+        }).join("") + "</div>"
+      + '<p class="tut-note">' + T(s, "tutChWhere") + "</p>"
+      + (tutGateMet(s) ? btn(T(s, "tutChCta"), "NEXT", "tut-cta", null, focusAttr(F, "cta")) : "");
+  }
+
+  else { /* done */
     const g = s.gw || {};
     /* prefer gameweek.js's own rendering when the host supplies it — this module
        does not own the round, it only makes room for it. */
@@ -815,39 +1033,25 @@ function tutHtml(state) {
       : (g.from && g.to
           ? T(s, "tutGwLine", { from: pair(s, g.from), to: pair(s, g.to) })
           : T(s, "tutGwLineNd"));
-    body = '<h2 class="tut-h">' + T(s, "tutGwTtl", { n: g.no != null ? g.no : 1 }) + "</h2>"
+    body = '<h2 class="tut-h">' + T(s, "tutDnTtl") + "</h2>"
       + '<p class="tut-p tut-p--gw">' + lineHtml + "</p>"
-      + (g.lock ? '<p class="tut-lock">' + T(s, "tutGwLock", { when: pair(s, g.lock) }) + "</p>" : "")
-      + '<p class="tut-note">' + T(s, "tutGwBody") + "</p>"
-      + btn(T(s, "tutGwCta"), "NEXT", "tut-cta", null, " data-tut-focus");
-  }
-
-  else { /* hook */
-    const cc = clubOf(s, s.captain), g = s.gw || {};
-    body = '<h2 class="tut-h">' + T(s, "tutHkTtl") + "</h2>"
-      + '<div class="tut-hook">'
-      + tutKit(cc, "k60")
-      + '<p class="tut-hkline">'
-        + (g.fixture
-            ? T(s, "tutHkLine", { club: clubName(s, cc), when: pair(s, g.fixture) })
-            : T(s, "tutHkLineNt", { club: clubName(s, cc) }))
-      + "</p>"
-      + '<p class="tut-x2"><span dir="ltr">&#215;2</span> ' + T(s, "tutHkX2") + "</p>"
-      + "</div>"
-      + '<p class="tut-p">' + T(s, "tutHkWhy") + "</p>"
-      + btn(T(s, "tutHkCta"), "DONE", "tut-cta", null, " data-tut-focus");
+      + (g.lock ? '<p class="tut-lock">' + T(s, "tutDnLock", { n: g.no != null ? g.no : 1, when: pair(s, g.lock) }) + "</p>" : "")
+      + '<p class="tut-p">' + T(s, "tutDnBody") + "</p>"
+      + (g.seasonFrom && g.seasonTo
+          ? '<p class="tut-note">' + T(s, "tutDnSeason", { a: pair(s, g.seasonFrom), b: pair(s, g.seasonTo) }) + "</p>"
+          : "")
+      + '<p class="tut-note">' + T(s, "tutDnNoPts") + "</p>"
+      + btn(T(s, "tutDnCta"), "DONE", "tut-cta", null, focusAttr(F, "cta"));
   }
 
   return '<div class="tut" data-tut-step="' + esc(s.step) + '">' + head + body + back + "</div>";
 }
 
-const TUT = Object.freeze({
-  TUT_STR, TUT_STEPS, tutSteps, tutInit, tutReduce, tutHtml, tutProgressHtml,
-  tutT, tutFill, tutBuildSquad, tutIsLegal, tutFavouritePool, tutKit
-});
-
-return {
-  TUT_STR, TUT_STEPS, tutSteps, tutInit, tutReduce, tutHtml, tutProgressHtml,
-  tutT, tutFill, tutBuildSquad, tutIsLegal, tutFavouritePool, tutKit, TUT
+const api = {
+  TUT_STR, TUT_STEPS, TUT_CHIPS, tutSteps, tutInit, tutReduce, tutHtml, tutProgressHtml,
+  tutT, tutFill, tutIsLegal, tutBudget, tutBlockReason, tutGateMet, tutKit
 };
+const TUT = Object.freeze(Object.assign({}, api));
+
+return Object.assign({ TUT: TUT }, api);
 });
