@@ -1018,6 +1018,7 @@ const STR = {
  locksOn:["يقفل {d}","Locks {d}"],
  noFixtureThisRound:["مالوش ماتش في الجولة دي","No fixture this round"],
  playsThisRound:["بيلعب","Plays"],
+ playsTwice:["بيلعب {n} ماتشات","Plays {n}"],
  lockedNow:["مقفول","Locked"],
  lockedTtl:["الجولة اتقفلت","This round is locked"],
  lockedBody:["مش هتقدر تغيّر فريقك ولا الكابتن بعد ما الجولة تبدأ — زي أي فانتازي محترم. أي تغيير هيتحسب من الجولة الجاية.",
@@ -1240,9 +1241,14 @@ let CRESTS = {};
 let FIXT = {};              /* gw -> Set of club ids with a real league fixture */
 let fixtLoading = {};
 function fixtureSetFor(gw){ return FIXT[gw] || null; }
+/* how many league matches this club has in the round: 0, 1 or 2. null while unknown. */
+function clubMatchCount(id, gw){
+ const m = fixtureSetFor(gw);
+ return m ? (m.get(String(id)) || 0) : null;
+}
 function clubHasFixture(id, gw){
- const set = fixtureSetFor(gw);
- return set ? set.has(String(id)) : null;      /* null = not known yet */
+ const m = fixtureSetFor(gw);
+ return m ? m.has(String(id)) : null;          /* null = not known yet */
 }
 function ymd(d){ return d.replace(/-/g, ""); }
 async function loadFixtures(gw){
@@ -1252,7 +1258,7 @@ async function loadFixtures(gw){
  const key = "fx_fixt_" + gw;
  try{
   const cached = JSON.parse(localStorage.getItem(key) || "null");
-  if(cached && cached.ids){ FIXT[gw] = new Set(cached.ids); render(); return; }
+  if(cached && cached.ids){ FIXT[gw] = new Map(cached.ids); render(); return; }
  }catch(_){}
  const base = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
  const range = ymd(r[0]) + "-" + ymd(r[1]);
@@ -1260,14 +1266,24 @@ async function loadFixtures(gw){
   const lists = await Promise.all((LEAGUES || []).map(l =>
    fetch(base + l.slug + "/scoreboard?dates=" + range + "&limit=300")
     .then(x => x.json()).catch(() => null)));
-  const ids = new Set();
+  /* COUNT the matches, do not just record that there is one. A round is a slice of time, not a
+     matchday, and the seven leagues start four weeks apart - Scotland 31 Jul, Turkey 14 Aug,
+     Spain 15 Aug, England and France 21 Aug, Italy 22 Aug, Germany 28 Aug. So an early window
+     can hold two matchdays for a league that started first: measured on round 1, La Liga has
+     15 matches with ELEVEN clubs playing twice, and Rayo idle for eight days purely because
+     its fixtures fall either side of the window. From round 3 on it is exactly 10 matches,
+     nobody idle, nobody doubled. Two matches is worth roughly double, so the number matters
+     and the card must be able to say it. */
+  const ids = new Map();
   lists.forEach(j => ((j && j.events) || []).forEach(e =>
-   (e.competitions || []).forEach(c => (c.competitors || []).forEach(t => ids.add(String(t.id))))));
+   (e.competitions || []).forEach(c => (c.competitors || []).forEach(t => {
+     const k = String(t.id); ids.set(k, (ids.get(k) || 0) + 1);
+   }))));
   /* An empty answer is not proof that nobody plays - it is far more likely the feed
      failed. Only a non-empty result is allowed to become the truth for a round. */
   if(ids.size){
    FIXT[gw] = ids;
-   try{ localStorage.setItem(key, JSON.stringify({ids: [...ids], at: Date.now()})); }catch(_){}
+   try{ localStorage.setItem(key, JSON.stringify({ids: [...ids.entries()], at: Date.now()})); }catch(_){}
    render();
   }
  }catch(_){}
@@ -1609,8 +1625,8 @@ function cardHtml(c, withPoints, gw, slotIndex){
   /* The opponent shown here is drawn from the same hash as the simulated result, so before
      the season starts it is a guess with a club's name on it. Until real fixtures feed this
      line it says only whether the club plays, which IS known. */
-  const plays = clubHasFixture(c.id, gw == null ? CURRENT_GW : gw);
-  l2 = plays === false ? t("noMatch") : plays === true ? t("playsThisRound") : "";
+  const n = clubMatchCount(c.id, gw == null ? CURRENT_GW : gw);
+  l2 = n === null ? "" : n === 0 ? t("noMatch") : n > 1 ? t("playsTwice", {n: n}) : t("playsThisRound");
   ven = "";
  }
  const act = withPoints ? "openBreakdown('" + esc(c.id) + "'," + g + ")"
