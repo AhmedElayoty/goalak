@@ -586,6 +586,12 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 .fantsoon .fbig{font-size:54px;line-height:1}
 .fantsoon .fttl{font-family:'Alexandria','Cairo',system-ui,sans-serif;font-weight:800;font-size:22px;letter-spacing:1.5px;margin:14px 0 6px;color:var(--gold)}
 .fantsoon .fsoon{font-size:16px;color:var(--dim);font-weight:700}
+/* the fantasy tab was a "coming soon" placeholder; it opens the game now */
+.fantcta{display:inline-block;margin-top:22px;padding:14px 30px;border-radius:14px;
+ background:linear-gradient(180deg,#FF9563,#FF7A45 46%,#E45E2C);color:#0B1020;
+ font-weight:900;font-size:16px;text-decoration:none;
+ box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 6px 14px -6px rgba(255,122,69,.55)}
+.fantcta:active{transform:translateY(1px)}
 @media(max-width:520px){
  .gkhead{gap:6px}
  .gklogo{width:40px;height:40px;flex-basis:40px}
@@ -730,7 +736,8 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    <div class="fantsoon">
     <div class="fbig">⭐</div>
     <div class="fttl" id="fantBrand">فانتازي جولك</div>
-    <div class="fsoon" id="fantSoon">قريبًا…</div>
+    <div class="fsoon" id="fantSoon">اختار 15 نادي · 120 مليون · 36 جولة</div>
+    <a class="fantcta" id="fantCta" href="fantasy/">إبدأ فريقك</a>
    </div>
   </section>
 
@@ -1110,6 +1117,8 @@ const STR = {
  pushKeepOne:["اختر بطولة واحدة على الأقل أو أوقف التنبيهات","Keep at least one league or turn alerts off"],
  alreadyPicked:["سبق أن توقعت هذه المباراة من جهاز آخر","You already predicted this match on another device"],
  fantasyNav:["فانتازي","Fantasy"],
+ fantasyTag:["اختار 15 نادي · 120 مليون · 36 جولة","Pick 15 clubs · 120M · 36 rounds"],
+ fantasyCta:["إبدأ فريقك","Build your team"],
  soon:["قريبًا…","Soon…"],
  details:["التفاصيل","Details"],
  account:["الحساب","Account"],
@@ -1323,6 +1332,8 @@ function refreshBrandUI(){
  $("shVer").textContent = t("brand") + " · v" + APP_VERSION + " · " + t("motto");
  $("appVer").textContent = "v" + APP_VERSION;   /* never hand-typed: the marker the owner reads must follow APP_VERSION */
  $("fantBrand").textContent = t("fantasyBrand");
+ $("fantSoon").textContent = t("fantasyTag");
+ $("fantCta").textContent = t("fantasyCta");
  document.title = t("brand") + " · " + t("motto");
 }
 function setLang(x){
