@@ -64,6 +64,7 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
 .hname{font-size:17px;font-weight:900;letter-spacing:.2px}
 .hname b{color:var(--fx-gold)}
 .hsub{font-size:10.5px;color:var(--fx-ink-mute)}
+a.hbtn{text-decoration:none;display:flex;align-items:center;justify-content:center}
 .hbtn{width:38px;height:38px;border-radius:11px;background:var(--fx-surface-2);border:1px solid var(--fx-line);
  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex:0 0 auto}
 /* was gold-on-navy at 12.4:1 - the brightest thing on the screen was a debug label */
@@ -848,6 +849,7 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
   <div class="hname" id="hname">جولك <b>فانتازي</b></div>
   <div class="hsub" id="hsub"></div>
  </div>
+ <a class="hbtn hide" id="backBtn" href="../" aria-label="رجوع">↩</a>
  <button class="hbtn" id="toolsBtn" onclick="openTools()" aria-label="الإعدادات">⚙</button>
  <button class="hbtn" id="langBtn" onclick="toggleLang()" aria-label="اللغة">EN</button>
 </header>
@@ -987,6 +989,11 @@ const STR = {
           "Only {pct}% of clubs play this round — that is why some have no match"],
  whyZero:["ليه في أندية ماجابتش نقط؟","Why did some clubs score nothing?"],
  preTtl:["الموسم لسه ما بدأش","The season has not started"],
+ locksOn:["يقفل {d}","Locks {d}"],
+ lockedNow:["مقفول","Locked"],
+ lockedTtl:["الجولة اتقفلت","This round is locked"],
+ lockedBody:["مش هتقدر تغيّر فريقك ولا الكابتن بعد ما الجولة تبدأ — زي أي فانتازي محترم. أي تغيير هيتحسب من الجولة الجاية.",
+             "You cannot change your team or your captain once the round has begun — the same rule every serious fantasy uses. Changes you make now count from the next round."],
  boardAlone:["لسه مفيش مدربين تانيين. اللي هيلعبوا معاك هيظهروا هنا.",
              "No other managers yet. Whoever plays against you will appear here."],
  preBody:["أول جولة بتبدأ {d}. جهّز فريقك دلوقتي، والنقط هتيجي من الماتشات الحقيقية.",
@@ -1158,6 +1165,22 @@ const MONTHS = {
  ar:["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"],
  en:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
 };
+/* THE DEADLINE. A fantasy round has to lock, or the game is not a game: without a cut-off
+   you could watch a result and then buy the club that produced it. Every serious fantasy
+   works this way - the Premier League's own locks 90 minutes before the first kick-off of
+   the round, and after that the eleven, the armband and every transfer are frozen until the
+   round ends; changes made later apply to the NEXT round.
+   We hold dates, not kick-off times, so the lock is the moment the round's window opens.
+   That is stricter than a 90-minute cushion and never later than the first match, which is
+   the safe direction to be wrong in. */
+function gwLockMs(gw){
+ const r = gwRound(gw);
+ return r ? Date.parse(r[0] + "T00:00:00Z") : NaN;
+}
+function roundLocked(gw){
+ const ms = gwLockMs(gw);
+ return isFinite(ms) && Date.now() >= ms;
+}
 function gwDates(gw){
  const r = gwRound(gw); if(!r) return "";
  const d = str => { const p = str.split("-");
@@ -1849,7 +1872,11 @@ function roundBarHtml(){
   + '<span class="rndb__n"><b dir="ltr">' + num(gw) + "</b><span>" + esc(t("gwWord")) + "</span></span>"
   + '<span class="rndb__w">'
   +  '<span class="rndb__d" dir="ltr">' + esc(r ? gwDates(gw) : "—") + "</span>"
-  +  '<div class="rndb__s">' + esc(t("gwOf", {n: gw, of: 36})) + "</div>"
+  +  '<div class="rndb__s">' + esc(t("gwOf", {n: gw, of: 36}))
+  +    (isFinite(gwLockMs(gw))
+        ? ' · <b style="color:var(--fx-gold)">'
+          + esc(roundLocked(gw) ? t("lockedNow") : t("locksOn", {d: gwDates(gw).split(" – ")[0]}))
+          + "</b>" : "") + "</div>"
   +  '<div class="rndb__bar"><div class="rndb__fill" style="inline-size:' + pct + '%"></div></div>'
   + "</span></div>";
 }
@@ -1897,6 +1924,7 @@ let _capDropped = false;
 let swapFrom = null;                        /* index in `squad` currently armed for a swap */
 function isStarter(i){ return i < START_SIZE; }
 function swapArm(i){
+ if(editBlocked()) return;
  if(i == null || i < 0 || i >= squad.length || !squad[i]) return;   /* empty slots are not swappable */
  if(swapFrom === i){ swapFrom = null; render(); return; }      /* tap again to cancel */
  if(swapFrom === null){ swapFrom = i; render(); return; }
@@ -1941,7 +1969,17 @@ function openSheet(html){
 function closeSheet(){ clearArm(); $("sheet").classList.add("hide"); document.body.classList.remove("gk-lock"); render(); }
 $("sheet").addEventListener("click", e => { if(e.target === $("sheet")) closeSheet(); });
 
+/* One gate for every action that changes the team, so a new one cannot be added without
+   passing through it. Returns true when the round is shut. */
+function editBlocked(){
+ if(!roundLocked(CURRENT_GW)) return false;
+ openSheet("<h2>" + esc(t("lockedTtl")) + "</h2>"
+  + '<div class="muted" style="line-height:1.8">' + esc(t("lockedBody")) + "</div>"
+  + '<button type="button" class="btn" onclick="closeSheet()">' + esc(t("done")) + "</button>");
+ return true;
+}
 function openPicker(){
+ if(editBlocked()) return;
  swapFrom = null;
  pickFilter = "all";
  paintPicker();
@@ -2029,6 +2067,7 @@ function openClub(id){
 
 function openCaptain(){
  if(squad.length !== SQUAD_SIZE) return;
+ if(editBlocked()) return;
  /* ONLY THE ELEVEN. The sheet listed all fifteen with nothing marking the substitutes, so
     appointing one was a single tap — and it paid exactly nothing, because resolveSquad only
     ever doubles a STARTER. Measured: a bench captain scored 302, identical to having no
