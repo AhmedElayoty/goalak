@@ -987,7 +987,7 @@ const STR = {
  teamDefault:["فريقي","My team"],
  mgrDefault:["المدير","Manager"],
  renameTeam:["اسم الفريق","Team name"],
- replayTut:["شوف الشرح من الأول","Replay the tutorial"],
+ replayTut:["ابدأ الشرح من الأول","Start the tutorial again"],
  roundsTitle:["مواعيد الجولات","Round dates"],
  scoreTitle:["النادي بياخد نقط إزاي؟","How a club scores"],
  scoreLead:["كل نادي في الـ11 بيجمع نقط من نتيجة ماتشه في دوريه.",
@@ -1043,7 +1043,7 @@ const STR = {
  glossTitle:["قاموس الفانتازي","Fantasy glossary"],
  startWiz:["ابدأ فريقك","Build your team"],
  changeTeam:["عدّل فريقك","Edit your team"],
- resetDemo:["ابدأ من الأول","Start over"],
+ resetDemo:["امسح فريقي وابدأ من جديد","Delete my team and start again"],
  benchLab:["دكة البدلاء · بيدخلوا لوحدهم لو ناديك مالوش ماتش","The bench · they come on automatically when a starter has no match"],
  cameOn:["دخل","Came on"],
  swapWith:["بدّل","Swap"],
@@ -1401,7 +1401,23 @@ function scoreGw(gw){
 function gwTotal(gw){ return SEASON_STARTED ? scoreGw(gw).total : 0; }
 /* A scrubber, so the whole season can be walked in ten seconds rather than nine months.
    It is a VIEWING control: it never credits the ground ledger and never moves a deadline. */
-let CURRENT_GW = 6;
+/* WHICH ROUND IS IT? Ask the calendar, do not hard-code a number.
+   This was pinned to 6 - a leftover from when the season was something to scrub through - so
+   the app announced "Round 6" in August, four days before round 1 has even opened. The round
+   is the window that contains today; before the season starts it is round 1, after it ends
+   it is the last one. */
+function currentRoundFromCalendar(){
+ if(!CAL || !CAL.gws) return 1;
+ const now = Date.now();
+ for(let i = 0; i < CAL.gws.length; i++){
+  const from = Date.parse(CAL.gws[i][0] + "T00:00:00Z");
+  const to   = Date.parse(CAL.gws[i][1] + "T00:00:00Z");
+  if(now < from) return i + 1;          /* before this window opens: this is the next round */
+  if(now < to)   return i + 1;          /* inside it */
+ }
+ return CAL.gws.length;
+}
+let CURRENT_GW = 1;
 let _gwRaf = 0;
 function setGw(g){
  clearArm();
@@ -2483,7 +2499,13 @@ function toggleLang(){
   ]);
   CLUBS = cj.clubs; LEAGUES = cj.leagues;
   for(const p of pj.clubs) PRICES[p.id] = p;
-  if(kj && kj.gws) CAL = kj;
+  if(kj && kj.gws){
+   CAL = kj;
+   /* the calendar is the authority; only a round the user explicitly scrubbed to survives it */
+   let pinned = 0;
+   try{ pinned = +localStorage.getItem("fx_gw") || 0; }catch(_){}
+   CURRENT_GW = (pinned >= 1 && pinned <= 36) ? pinned : currentRoundFromCalendar();
+  }
   if(xj && xj.crests) CRESTS = xj.crests;
  }catch(e){
   document.querySelector(".wrap").innerHTML = '<div class="card">Could not load club data.</div>';
