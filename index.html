@@ -586,12 +586,6 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 .fantsoon .fbig{font-size:54px;line-height:1}
 .fantsoon .fttl{font-family:'Alexandria','Cairo',system-ui,sans-serif;font-weight:800;font-size:22px;letter-spacing:1.5px;margin:14px 0 6px;color:var(--gold)}
 .fantsoon .fsoon{font-size:16px;color:var(--dim);font-weight:700}
-/* the fantasy tab was a "coming soon" placeholder; it opens the game now */
-.fantcta{display:inline-block;margin-top:22px;padding:14px 30px;border-radius:14px;
- background:linear-gradient(180deg,#FF9563,#FF7A45 46%,#E45E2C);color:#0B1020;
- font-weight:900;font-size:16px;text-decoration:none;
- box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 6px 14px -6px rgba(255,122,69,.55)}
-.fantcta:active{transform:translateY(1px)}
 @media(max-width:520px){
  .gkhead{gap:6px}
  .gklogo{width:40px;height:40px;flex-basis:40px}
@@ -737,7 +731,6 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
     <div class="fbig">⭐</div>
     <div class="fttl" id="fantBrand">فانتازي جولك</div>
     <div class="fsoon" id="fantSoon">قريبًا…</div>
-    <a class="fantcta hide" id="fantCta" href="fantasy/">إبدأ فريقك</a>
    </div>
   </section>
 
@@ -809,6 +802,12 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
  <button type="button" id="bnSet" onclick="showMain('set')"><span class="bnic"><svg viewBox="0 0 24 24" aria-hidden="true"><use class="gki" href="#gk3d-set-i"/><use class="gka" href="#gk3d-set-a"/></svg></span><span id="bnSetL">الإعدادات</span></button>
 </nav>
 
+<!-- Top-5 clubs of each league (LAST season's final table) + the ESPN competition-id -> name map.
+     Kept as its own committed file so the club list is auditable and diffable without reading four
+     thousand lines of app, and so no network call is needed to know who the big clubs are. It is
+     DATA ONLY, no behaviour. If this file ever fails to load, every consumer below is guarded and
+     the app falls back to exactly the league-only match list it had before. -->
+<script src="./top-clubs.js"></script>
 <script>
 "use strict";
 /* ============ GOALLAK · الجول جولك ============ */
@@ -838,6 +837,11 @@ const LEAGUES = [
 /* Scores in these groups appear in All only. They are intentionally excluded from
    league navigation, chips, predictions, standings and notification preferences. */
 const ALL_ONLY_GROUPS = [
+ /* Cups, super cups, club world cups and everything else the big clubs play that is NOT one of the
+    nine league feeds above. Listed FIRST because a Community Shield or a Super Cup outranks a
+    friendly. Fed by fetchTopClubsInto/buildTopClubsBucket, not by EXTRA_SCORE_SOURCES — it has no
+    fixed slug list by design, which is the whole point. */
+ {id:"topclubs", allOnly:true, en:"Top Clubs · Other Competitions", ar:"كبار الأندية · مسابقات أخرى", shortEn:"Top Clubs", shortAr:"كبار الأندية", ico:"⭐"},
  {id:"clubfriendlies", allOnly:true, en:"Club Friendlies", ar:"مباريات ودية للأندية", shortEn:"Friendlies", shortAr:"وديات الأندية", ico:"🤝"},
  {id:"national", allOnly:true, en:"National Teams", ar:"مباريات المنتخبات", shortEn:"National", shortAr:"المنتخبات", ico:"🌍"}
 ];
@@ -946,7 +950,12 @@ const AR_TEAMS = {
  "sassuolo":"ساسولو","torino":"تورينو","udinese":"أودينيزي","venezia":"فينيتسيا","salernitana":"ساليرنيتانا",
  "hull":"هال","hull city":"هال سيتي","deportivo":"ديبورتيفو","deportivo la coruña":"ديبورتيفو لاكورونيا",
  "málaga":"ملقا","malaga":"ملقا","elversberg":"إلفرسبرغ","paderborn":"بادربورن","sc paderborn":"بادربورن",
- "schalke":"شالكه","schalke 04":"شالكه","le havre ac":"لوهافر","le havre":"لوهافر","le mans":"لومان","troyes":"تروا"
+ "schalke":"شالكه","schalke 04":"شالكه","le havre ac":"لوهافر","le havre":"لوهافر","le mans":"لومان","troyes":"تروا",
+ /* Cup opponents. The top-clubs feed brings in sides from OUTSIDE the nine leagues — lower divisions
+    and foreign clubs — so this register now has a second job. Only names with one settled Arabic
+    spelling are added here; the rest render in Latin, which is honest, and the QA list of who they
+    currently are is in design/top-clubs-coverage.md for the owner to fill in. */
+ "al ahly":"الأهلي","al ahly sc":"الأهلي"
 };
 /* National teams. AR_TEAMS holds CLUBS only and contains generic short names ("racing",
    "sporting", "milan"), so a country must never be looked up there. Ported verbatim from the
@@ -1117,9 +1126,6 @@ const STR = {
  pushKeepOne:["اختر بطولة واحدة على الأقل أو أوقف التنبيهات","Keep at least one league or turn alerts off"],
  alreadyPicked:["سبق أن توقعت هذه المباراة من جهاز آخر","You already predicted this match on another device"],
  fantasyNav:["فانتازي","Fantasy"],
- fantasyTag:["اختار 15 نادي · 120 مليون · 36 جولة","Pick 15 clubs · 120M · 36 rounds"],
- fantasySoon:["قريبًا…","Coming soon…"],
- fantasyCta:["إبدأ فريقك","Build your team"],
  soon:["قريبًا…","Soon…"],
  details:["التفاصيل","Details"],
  account:["الحساب","Account"],
@@ -1216,6 +1222,9 @@ const STR = {
  motmOnTarget:["على المرمى","on target"],
  motmCleanSheet:["شباك نظيفة","clean sheet"],
  motmTackles:["تدخلات","tackles"],
+ /* last-resort label for a cup match whose competition id is not in GK_COMPETITIONS. A cup match
+    with NO competition on the row would just be a new kind of confusion, so there is always a word. */
+ otherComp:["مسابقة أخرى","Other competition"],
 };
 function t(k, vars){ const e = STR[k]; let s = e ? e[LANG === "ar" ? 0 : 1] : k; if(vars) for(const n in vars) s = s.split("{" + n + "}").join(vars[n]); return s; }
 function lgName(lg){ return LANG === "ar" ? lg.ar : lg.en; }
@@ -1333,8 +1342,6 @@ function refreshBrandUI(){
  $("shVer").textContent = t("brand") + " · v" + APP_VERSION + " · " + t("motto");
  $("appVer").textContent = "v" + APP_VERSION;   /* never hand-typed: the marker the owner reads must follow APP_VERSION */
  $("fantBrand").textContent = t("fantasyBrand");
- $("fantCta").textContent = t("fantasyCta");
- paintFantasyGate();
  document.title = t("brand") + " · " + t("motto");
 }
 function setLang(x){
@@ -1664,6 +1671,189 @@ async function fetchExtrasInto(day, force){
  }
  return anyFail;
 }
+
+/* ============ top clubs, in EVERY competition ============================================
+   THE BUG. Everything above fetches a FIXED list of LEAGUE scoreboards, so a big club playing a
+   cup simply did not exist in this app. The owner's example, Wed 19 Aug 2026: Barcelona v Al Ahly
+   — not in esp.1, and not under friendlies either, because ESPN files it as the Trofeo Joan Gamper
+   (competition id 17929). Same for the Community Shield, the DFB-Pokal, the UEFA Super Cup, the
+   Trophée des Champions, the Scottish League Cup and the Conference League qualifiers.
+
+   THE FEED. ESPN publishes a cross-competition scoreboard at .../soccer/all/scoreboard?dates=…
+   Measured 2026-08-17: 20260818 -> 43 events / 14 competitions, 20260819 -> 90 / 24 (Al Ahly at
+   Barcelona among them), 20260821 -> 69 / 34. It carries NO competition name, only the l: value
+   inside each uid (s:600~l:17929~e:401900551) — which is why top-clubs.js exists.
+
+   THE 100-EVENT CAP IS REAL HERE TOO. all/scoreboard for 20260818-20260820 returns exactly 100
+   events without &limit and 300 with it — the same silent truncation that hid a knockout round in
+   WC v3.31. Every call below therefore goes through sbUrl(). Never build these URLs by hand.
+
+   ROUTES DELIBERATELY NOT TAKEN. .../soccer/{slug}/teams/{id}/schedule returns 0 events for
+   Barcelona, so per-team schedules are not a usable route and were not attempted. The 570 KB
+   leagues/dropdown directory is read once offline and baked into top-clubs.js rather than fetched.
+
+   WHY TWO TIERS. Discovery answers "which competitions matter on this date", which does not change
+   minute to minute, so it is throttled hard. Live scores come from each discovered competition's
+   OWN scoreboard, which is tiny (esp.1 over a 3-day range is 3.3 KB gzipped against 48 KB for one
+   all/ date) and can therefore refresh at the app's normal live cadence. Refreshing discovery at
+   live rate instead would cost roughly 20 MB an hour on a phone. */
+const TOPCLUB_GROUP_ID = "topclubs";
+/* MEASURED COST, gzipped, Sat 22 Aug 2026 — a deliberately busy day.
+     what the app already did   32 requests    48 KB   (all nine leagues + every extra source)
+     discovery, 3 dates          3 requests   299 KB   (38 + 145 + 116 KB for the 21st/22nd/23rd)
+     the two cups it found       2 requests    14 KB   (ger.dfb_pokal 11 KB, ger.super_cup 2 KB)
+   So ONE cold day-open costs about 7x what it used to. Steady state is far kinder, because the
+   league fetches re-run every 25 s while a match is live and discovery does not: roughly 6.9 MB/h
+   before, roughly +3.8 MB/h after on that same busy day. A quiet day is a third of it (19 Aug is
+   48 KB for the whole date). Two TTLs keep it there. */
+const TOP_DISCOVER_TTL = 600000;        /* today and its neighbours: new fixtures can still appear */
+const TOP_DISCOVER_TTL_COLD = 3600000;  /* any other date: which competitions play on 3 Sept is settled */
+const topSbCache = {};     // dateKey -> {at, events[]}  raw all/scoreboard, pre-filtered to top clubs
+const topCompCache = {};   // `${ESPN slug}|${dayKey}` -> {at, events[]}  the live-accurate copy
+let _topIds = null, _coveredSlugs = null;
+/* The club set comes from top-clubs.js (last season's FINAL standings). Missing or malformed file
+   => empty set => the whole feature turns itself off and the app behaves exactly as before. */
+function topClubIdSet(){
+ if(_topIds) return _topIds;
+ const ids = new Set();
+ try{
+  const lgs = (window.GK_TOP_CLUBS || {}).leagues || {};
+  for(const k in lgs) for(const c of (lgs[k].top5 || [])) if(c && c.id) ids.add(String(c.id));
+ }catch(_){}
+ if(ids.size) _topIds = ids;
+ return ids;
+}
+/* DERIVED, never a second hand-written list: add a league to LEAGUES or a slug to
+   EXTRA_SCORE_SOURCES and it stops being treated as "extra" here automatically. This is the first
+   of the two things that stop a fixture being counted twice. */
+function coveredSlugSet(){
+ if(_coveredSlugs) return _coveredSlugs;
+ const s = new Set();
+ for(const lg of LEAGUES){ if(lg.slug) s.add(lg.slug); if(lg.qual) s.add(lg.qual); }
+ for(const src of EXTRA_SCORE_SOURCES) if(src.slug) s.add(src.slug);
+ _coveredSlugs = s;
+ return s;
+}
+function compIdOf(e){ const m = /~l:(\d+)~/.exec(String((e && e.uid) || "")); return m ? m[1] : ""; }
+/* Generic round labels are NOT competition names. "regular-season" on a row would read as if the
+   competition were called Regular Season, so those are rejected and the generic word is used. */
+const GENERIC_SEASON_SLUG = /^(regular|post|pre) ?season$|^(group|knockout|league) stage$|^round of \d+$|^(quarter|semi)?finals?$|^playoffs?$|^playoff round$|^(clausura|apertura)$|^matchday/i;
+function prettyCompName(e){
+ const raw = String((e && e.season && e.season.slug) || "").replace(/^\d{4}(-\d{2,4})?-/, "").replace(/[-_]+/g, " ").trim();
+ if(!raw || GENERIC_SEASON_SLUG.test(raw)) return "";
+ return raw.replace(/\b[a-z]/g, c => c.toUpperCase());
+}
+/* Returns {slug, en, ar}. `ar` is left EMPTY when no Arabic name exists — eventCompetitionName()
+   already falls back en<-ar and ar<-en, so an English-only competition degrades gracefully instead
+   of showing a transliteration nobody asked for. */
+function compMetaOf(e, slugHint){
+ let row = null;
+ try{ row = (window.GK_COMPETITIONS || {})[compIdOf(e)] || null; }catch(_){}
+ if(row) return {slug:row[0] || slugHint || "", en:row[1] || "", ar:row[2] || ""};
+ const pretty = prettyCompName(e);
+ return {slug:slugHint || "", en:pretty || STR.otherComp[1], ar:pretty || STR.otherComp[0]};
+}
+function hasTopClub(e, ids){
+ const cs = (e && e.competitions && e.competitions[0] && e.competitions[0].competitors) || [];
+ return cs.some(c => c && c.team && ids.has(String(c.team.id)));
+}
+function isTopClubExtra(e){
+ const ids = topClubIdSet();
+ if(!ids.size || !hasTopClub(e, ids)) return false;
+ const meta = compMetaOf(e);
+ return !(meta.slug && coveredSlugSet().has(meta.slug));
+}
+async function fetchTopClubsInto(day, force){
+ if(!topClubIdSet().size) return false;
+ let anyFail = false;
+ /* Same +/-1 window every other fetch here uses, because dkey() is TIMEZONE-local: a 23:00Z kick-off
+    is tomorrow in Dubai and yesterday in Los Angeles. Cached per SINGLE DATE rather than per range,
+    so stepping to the next day in the strip reuses two of the three dates it already holds.
+    Measured gzipped 2026-08-17: one date 48 KB; the same 3 days as one ranged call 127 KB — the
+    ranged call is one request fewer but caches nothing and re-downloads on every step. */
+ const dates = [addDaysKey(day, -1), day, addDaysKey(day, 1)];
+ const tkNow = todayKey();
+ const hot = {}; hot[addDaysKey(tkNow, -1)] = 1; hot[tkNow] = 1; hot[addDaysKey(tkNow, 1)] = 1;
+ await Promise.all(dates.map(async d => {
+  const c = topSbCache[d];
+  /* the strip reaches +/-10 days; scrubbing it must not re-download a fixture list that cannot
+     have changed, so only the live end of the calendar gets the short TTL */
+  if(!force && c && Date.now() - c.at < (hot[d] ? TOP_DISCOVER_TTL : TOP_DISCOVER_TTL_COLD)) return;
+  try{
+   const j = await jget(sbUrl("all", String(d)));
+   topSbCache[d] = {at:Date.now(), events:(j && Array.isArray(j.events) ? j.events : []).filter(isTopClubExtra)};
+  }catch(_){ anyFail = true; /* keep this date's last-good list; never cache a negative */ }
+ }));
+ /* Tier 2: re-read each discovered competition from its own scoreboard, at the normal live TTL, so
+    a cup score is as fresh as a league score. On a typical day this is 0-3 small requests. */
+ const slugs = {};
+ for(const d of dates) for(const e of ((topSbCache[d] || {}).events || [])){
+  const meta = compMetaOf(e);
+  if(meta.slug) slugs[meta.slug] = 1;
+ }
+ const tk = todayKey();
+ const nearToday = day === tk || day === addDaysKey(tk, -1);
+ await Promise.all(Object.keys(slugs).map(async slug => {
+  const ck = slug + "|" + day;
+  const c = topCompCache[ck];
+  const hasLive = c && c.events.some(e => evState(e) === "in");
+  const ttl = hasLive ? 22000 : nearToday ? 120000 : 600000;
+  if(!force && c && Date.now() - c.at < ttl) return;
+  try{
+   const j = await jget(sbUrl(slug, rangeParam(day, 1, 1)));
+   const ids = topClubIdSet();
+   topCompCache[ck] = {at:Date.now(), events:(j && Array.isArray(j.events) ? j.events : []).filter(e => hasTopClub(e, ids))};
+  }catch(_){ anyFail = true; /* the discovery copy still renders; only its clock is older */ }
+ }));
+ return anyFail;
+}
+/* MUST run AFTER fetchDayInto and fetchExtrasInto have settled for this day — the entire job here
+   is to subtract what they already produced. loadDay() awaits all of them before calling this. */
+function buildTopClubsBucket(day){
+ /* Everything the league and extra fetches already own for this day. Two indexes, because ONE IS
+    NOT ENOUGH: ESPN publishes the same fixture under two event ids with different kick-off times
+    (see the comment above dedupeFixtures; reproduced in the all/ feed on 2026-08-16, Como at
+    Liverpool as a 10:30Z entry with no venue beside the real 17:00Z one at Anfield). An id check
+    alone would let the twin through into a SECOND section, where dedupeFixtures — which only ever
+    looks inside one group — could never catch it. */
+ const ownedIds = {}, byFixture = {};
+ for(const g of SCORE_GROUPS){
+  if(g.id === TOPCLUB_GROUP_ID) continue;
+  const c = dayCache[g.id + "|" + day];
+  if(!c) continue;
+  for(const e of c.events){
+   if(!e || !e.id) continue;
+   ownedIds[e.id] = 1;
+   const k = fixtureKey(e);
+   if(k) (byFixture[k] = byFixture[k] || []).push(e);
+  }
+ }
+ const out = [], seen = {};
+ function take(e, slugHint){
+  if(!e || !e.id || seen[e.id] || ownedIds[e.id]) return;
+  const k = fixtureKey(e);
+  if(k && (byFixture[k] || []).some(x => sameFixture(x, e))) return;
+  seen[e.id] = 1;
+  /* Tagged at CACHE time, one writer, exactly like _gkLeagueId — the live strip, the LIVE list and
+     the match sheet all read these fields for events mrow() never drew. See LESSONS_AUDIT F-01.
+     Cloned rather than mutated so the shared discovery cache stays a clean copy of ESPN's reply
+     and a later re-tag can never poison it. _gkCompetition also feeds slugForEvent(), which is how
+     the match sheet knows to open .../{cup slug}/summary instead of a league slug. */
+  out.push(Object.assign({}, e, {_gkLeagueId:TOPCLUB_GROUP_ID, _gkCompetition:compMetaOf(e, slugHint)}));
+ }
+ /* Tier 2 first: where both tiers hold the same event, the competition's own feed is the fresher
+    record and must win. Anything only discovery saw is then filled in behind it. */
+ const suffix = "|" + day;
+ for(const ck in topCompCache){
+  if(ck.slice(-suffix.length) !== suffix) continue;
+  for(const e of (topCompCache[ck].events || [])) take(e, ck.slice(0, ck.length - suffix.length));
+ }
+ for(const d of [addDaysKey(day, -1), day, addDaysKey(day, 1)]) for(const e of ((topSbCache[d] || {}).events || [])) take(e);
+ /* ALWAYS written, even empty. paintHome() treats a MISSING cache as "unknown" and, on a day with
+    no matches at all, an unknown group flips the empty state into the red "load failed" box. A
+    silent group must therefore say "nothing here", not say nothing. */
+ dayCache[TOPCLUB_GROUP_ID + "|" + day] = {at:Date.now(), events:out};
+}
 let _dayInflight = null, _dayInflightDay = 0;
 const _dayLoading = {};   /* dayKey -> true while a fetch for that day is in flight */
 async function loadDay(force){
@@ -1675,9 +1865,18 @@ async function loadDay(force){
  const p = (async () => {
   let anyFail = true;
   try{
-   const loaded = await Promise.all([fetchDayInto(day, force), fetchBroadcastInto(day, force), fetchExtrasInto(day, force)]);
+   const loaded = await Promise.all([fetchDayInto(day, force), fetchBroadcastInto(day, force), fetchExtrasInto(day, force), fetchTopClubsInto(day, force)]);
+   /* loaded[3] is deliberately NOT folded into anyFail. If the cross-competition feed goes down the
+      app must look EXACTLY as it did before this feature existed — and the stale bar is a visible
+      change. The league list is what the warning is about; it is unaffected either way. */
    anyFail = loaded[0] || loaded[2];
-  } finally { delete _dayLoading[day]; }
+  } finally {
+   /* in the finally, and after the others rather than beside them: it reads their caches to avoid
+      double-counting, and it must write its bucket on EVERY path or a silent group reads as an
+      unknown one (see the note at the end of buildTopClubsBucket) */
+   try{ buildTopClubsBucket(day); }catch(_){}
+   delete _dayLoading[day];
+  }
   if(seq !== dayLoadSeq || view !== "home" || selDay !== day) return;
   dayFailed = anyFail;
   paintHome();
@@ -3076,7 +3275,6 @@ async function doAuth(){
 async function finishAuth(a, password){
  gkUser = {uid:a.uid, username:a.username};
  try{ localStorage.setItem("gk_user", JSON.stringify(gkUser)); }catch(_){}
- try{ paintFantasyGate(); }catch(_){}
  const chatReady = await createChatSession(a.username, password);
  myPreds = {};
  try{ localStorage.removeItem("gk_preds"); }catch(_){}
@@ -3104,7 +3302,6 @@ function signOut(){
  clearChatSession();
  closeChatSocket();
  try{ localStorage.removeItem("gk_user"); localStorage.removeItem("gk_preds"); }catch(_){}
- try{ paintFantasyGate(); }catch(_){}
  refreshHdrAuth();
  refreshChatBar();
  if(mainView === "chat") renderChat();
@@ -3556,33 +3753,6 @@ function paintClubHero(){
   '<div class="chtm"><span class="tm tmh"><i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + '</span><span class="mtime" dir="ltr">' + esc(fmtTime(e.date)) + '</span><span class="tm tma">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span></div>" +
   '<div class="chsub">' + esc(fmtDayFull(dkey(new Date(e.date)))) + "</div></button>";
 }
-
-/* ---------- fantasy: owner preview ----------
-   Fantasy is NOT open. The tab says "coming soon" to everyone, and the way in appears only
-   for the owner's own signed-in account so he can work in it before it starts.
-   This is a RELEASE GATE, not a security control: the list is in client JavaScript, anyone
-   can read it, and /fantasy/ is still a public URL that a determined person could type. It
-   stops the tab advertising an unfinished game to the app's users, which is what it is for.
-   Real protection needs the worker, the same way chat is protected. */
-const FX_OWNERS = ["ahmedelayoty", "ahmedayoty", "ahmed", "ayoty", "elayoty"];
-function fxKey(v){ return String(v || "").toLowerCase().replace(/[^a-z]/g, ""); }
-function fxAllowed(){
- try{ if(localStorage.getItem("gk_fx_owner") === "1") return true; }catch(_){}
- return !!(gkUser && FX_OWNERS.indexOf(fxKey(gkUser.username)) >= 0);
-}
-function paintFantasyGate(){
- const cta = $("fantCta"), soon = $("fantSoon");
- if(!cta || !soon) return;
- const ok = fxAllowed();
- cta.classList.toggle("hide", !ok);
- soon.textContent = ok ? t("fantasyTag") : t("fantasySoon");
-}
-/* the owner can unlock any device he signs in on: goallak.com/?fxowner=1 */
-try{
- if(/[?&]fxowner=1/.test(location.search)){ localStorage.setItem("gk_fx_owner", "1"); }
- if(/[?&]fxowner=0/.test(location.search)){ localStorage.removeItem("gk_fx_owner"); }
-}catch(_){}
-
 function hdrAuthTap(){ if(gkUser) showMain("pred"); else openAuth("L"); }
 function refreshHdrAuth(){
  const b = $("hdrAuth");
@@ -4099,7 +4269,11 @@ setInterval(function(){
      goes blank right after midnight while a match is still being played */
   const others = [tk, yd].filter(d => d !== selDay);
   /* broadcasts too, or a match that crossed midnight loses its TV channel in the sheet */
-  if(others.length) Promise.all(others.map(d => Promise.all([fetchDayInto(d, false), fetchBroadcastInto(d, false)])))
+  /* the cup feed is kept warm here too, or a Super Cup that kicked off at 22:00 local drops out of
+     the live strip the moment the date rolls over — the v2.66 lesson, applied to the new group.
+     buildTopClubsBucket is chained per day so it still runs AFTER that day's league fetch. */
+  if(others.length) Promise.all(others.map(d => Promise.all([fetchDayInto(d, false), fetchBroadcastInto(d, false), fetchTopClubsInto(d, false)])
+    .then(function(){ try{ buildTopClubsBucket(d); }catch(_){} })))
    .then(function(){ if(view === "home" && mainView === "scores"){ renderLiveStrip(); paintHome(); } });
  }
  else if(view === "lg" && lgTab === "M") renderLgMatches();
