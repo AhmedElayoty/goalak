@@ -1101,7 +1101,14 @@ const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp
 /* Western digits everywhere, per the app's own rule */
 const num = n => String(n);
 
+/* On the pitch a card is 76px wide and twelve Arabic club names do not fit at any legible
+   size - «باريس سان جيرمان» needs 81px of 66. Those twelve carry an arShort: the form a
+   commentator actually uses, never a truncation. Every other surface keeps the full name. */
 function clubName(c){ return LANG === "ar" && c.ar ? c.ar : (c.short || c.name); }
+function clubNameShort(c){
+ if(LANG === "ar") return c.arShort || c.ar || c.short || c.name;
+ return c.short || c.name;
+}
 function leagueName(id){ const l = LEAGUES.find(x => x.id === id); return l ? (LANG === "ar" ? l.ar : l.en) : id; }
 /* 0, not 8: a default price hid a corrupted squad by making a phantom club look affordable */
 function priceOf(id){ return id && PRICES[id] ? PRICES[id].price : 0; }
@@ -1121,7 +1128,32 @@ function kitHtml(c, size){
 function spent(){ return squad.reduce((a, id) => a + priceOf(id), 0); }
 function remaining(){ return +(BUDGET - spent()).toFixed(1); }
 function slotsLeft(){ return SQUAD_SIZE - squad.length; }
-function reserve(){ return Math.max(0, (slotsLeft() - 1)) * MIN_CLUB_PRICE; }
+/* THE RESERVE MUST RESPECT THE LEAGUE CAP, NOT JUST THE FLOOR PRICE.
+   It used to assume every remaining slot could be filled at MIN_CLUB_PRICE. That is only true
+   if enough floor-priced clubs are actually AVAILABLE - and with a maximum of three per
+   league they often are not. After the five-season reprice just eleven clubs sit at 4.5, and
+   they span four leagues, so at most eleven of them can ever be owned together; the twelfth
+   slot costs 5.0 or more. The optimistic reserve let a squad be built that could not then be
+   completed, which is how a builder ended up stranded on fourteen clubs with money left.
+   This walks the real pool, cheapest first, honouring the cap and what is already owned. */
+function cheapestFill(n, alsoOwned){
+ if(n <= 0) return 0;
+ const held = alsoOwned ? squad.concat([alsoOwned.id]) : squad;
+ const byLg = {};
+ for(const id of held){ const c = CLUBS.find(x => x.id === id); if(c) byLg[c.lg] = (byLg[c.lg] || 0) + 1; }
+ const pool = CLUBS.filter(c => held.indexOf(c.id) < 0)
+                   .sort((a, b) => priceOf(a.id) - priceOf(b.id));
+ let total = 0, taken = 0;
+ for(const c of pool){
+  if(taken >= n) break;
+  if((byLg[c.lg] || 0) >= MAX_PER_LEAGUE) continue;
+  byLg[c.lg] = (byLg[c.lg] || 0) + 1;
+  total += priceOf(c.id); taken++;
+ }
+ /* not enough legal clubs left is a real state; price it as unaffordable rather than cheap */
+ return taken < n ? Infinity : total;
+}
+function reserve(){ return cheapestFill(Math.max(0, slotsLeft() - 1)); }
 function maxNextPrice(){ return slotsLeft() <= 0 ? 0 : +(remaining() - reserve()).toFixed(1); }
 function leagueCount(lg){ return squad.filter(id => (CLUBS.find(c => c.id === id) || {}).lg === lg).length; }
 
@@ -1134,7 +1166,11 @@ function blockReason(c){
     KNOWN absence - clubHasFixture returns null while the answer is still loading, and null is
     not false. An unknown fixture must never look like a confirmed one. */
  if(clubHasFixture(c.id, CURRENT_GW) === false) return t("noFixtureThisRound");
- if(priceOf(c.id) > maxNextPrice()) return t("tooExpensive");
+ /* Affordability is not "is this club under the cap" - it is "can the squad still be FINISHED
+    after buying it". Those differ once the league cap limits which cheap clubs remain: the
+    reserve has to be recomputed as if this club were already owned, or a pick can look legal
+    and strand the squad a club short with money left over. */
+ if(spent() + priceOf(c.id) + cheapestFill(slotsLeft() - 1, c) > BUDGET + 1e-9) return t("tooExpensive");
  return null;
 }
 
@@ -1307,9 +1343,22 @@ function simMatch(clubId, gw){
     Goal +1 -> +2 and clean sheet +4 -> +3 restores monotonicity and lifts that correlation to
     +0.71, chosen from a 540-combination grid as the best set that keeps the clean sheet
     meaningful (12.9% of all points rather than 20.9%).
-    The opponent bonus was near-inert at 7.0% of points, its +1 band spread thinly over 575
-    wins; 6/3/0/0 concentrates it and lifts the worst league's rank correlation 0.935 -> 0.955.
-    Win 6, draw 2 and -1 per two conceded all tested clean and are untouched. */
+    CONFIRMED OVER FIVE SEASONS (2021-22 to 2025-26): 11,569 matches, 23,138 club performances,
+    34 of 35 league-seasons reconciling against ESPN's own standings with zero discrepancies.
+    The old rules dipped 1.29 points at the second goal in EVERY season, range 0.09 - it was
+    never noise. The live rules are monotone in all five.
+
+    ONE CLAIM I MADE HERE WAS WRONG. I justified the 6/3/0/0 opponent bonus by saying it lifted
+    the worst league's correlation from 0.935 to 0.955. That was measured on 2025-26 alone and
+    DOES NOT REPLICATE: over five seasons the original 3/2/1/0 has the better mean correlation.
+    The bonus is kept anyway, on an honest reason - it carries 11.3% of the between-club spread
+    against 8.4% - and the cost is 0.004 of Spearman. Keeping it is a design choice, not a
+    measured improvement, and it should not be defended as one.
+
+    Win 6, draw 2 and -1 per two conceded tested clean in all five seasons and are untouched.
+    Residual, accepted: a 2-1 still pays 10 against a 1-0's 11, in 1,814 real matches. The one
+    clean fix is clean sheet 3 -> 2, which was recommended against - it shrinks the clean sheet
+    to a token. */
  const res = win ? 6 : draw ? 2 : 0;
  const clean = ga === 0 ? 3 : 0;
  const goals = gf * 2;
@@ -1570,7 +1619,7 @@ function cardHtml(c, withPoints, gw, slotIndex){
   + '<span class="cc__lgc" style="--lgc:var(--lg-' + esc(c.lg) + ')" dir="ltr">'
   +   esc(LG_ABBR[c.lg] || String(c.lg).toUpperCase().slice(0, 3)) + "</span>"
   + (isCap ? '<span class="cc__arm" aria-label="' + esc(t("capLab")) + '"></span>' : "")
-  + '<span class="cc__nm">' + esc(clubName(c)) + "</span>"
+  + '<span class="cc__nm">' + esc(clubNameShort(c)) + "</span>"
   + '<span class="cc__plate">'
   +  '<span class="cc__l1"><span class="cc__code" dir="ltr">' + esc(c.code) + "</span>"
   +   '<span class="cc__ven" dir="ltr">' + esc(ven) + "</span></span>"
