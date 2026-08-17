@@ -1261,7 +1261,14 @@ async function loadFixtures(gw){
   if(cached && cached.ids){ FIXT[gw] = new Map(cached.ids); render(); return; }
  }catch(_){}
  const base = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
- const range = ymd(r[0]) + "-" + ymd(r[1]);
+ /* ESPN's date range is INCLUSIVE at both ends, and consecutive rounds share an endpoint -
+    round N runs [from, to] and round N+1 starts on that same `to`. So every fixture played on
+    a boundary date was counted in BOTH rounds. Measured: it inflated the double rate from
+    4.28% to 5.05%, and it is the whole difference between what round 1 appeared to show
+    (15 matches, 11 clubs doubled) and what is actually there (13 and 8). The window is
+    half-open everywhere else in this app; the request now matches it. */
+ const lastDay = new Date(Date.parse(r[1] + "T00:00:00Z") - 864e5).toISOString().slice(0, 10);
+ const range = ymd(r[0]) + "-" + ymd(lastDay);
  try{
   const lists = await Promise.all((LEAGUES || []).map(l =>
    fetch(base + l.slug + "/scoreboard?dates=" + range + "&limit=300")
