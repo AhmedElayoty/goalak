@@ -1,0 +1,358 @@
+/* ============================================================================
+   GOALLAK FANTASY — THE COLD-TRAFFIC LANDING (screen 0)
+   Implements design/fantasy-conversion.md §B, §C, §D, §H.
+
+   WHAT THIS IS
+   The one screen a visitor with no context sees before anything else. It is
+   NOT the tutorial. The tutorial (modules/tutorial.*) owns every screen after
+   the CTA is tapped; this file owns the screen before it. The two must never
+   both be on screen at once — see §B.4 of the spec for the handoff contract.
+
+   HOUSE RULES OBSERVED
+   • Arabic-first. RTL is the DEFAULT, LTR is the override. Logical properties
+     only — inset-inline-*, margin-inline-*, padding-inline-*, border-*-start.
+     There is no `left` or `right` in this file. (fantasy-ui.md §23-26.)
+   • No images, no external assets, no web font, no <canvas>, no filter.
+     The hero is five divs and a background-image gradient stack.
+   • Sizes in rem off a 16px root, so Android OS text scaling works. This file
+     deliberately does NOT repeat the demo's px-only mistake
+     (fantasy-usability.md friction #30).
+   • Phone first: laid out for 360px, tuned 375-430px. Everything that answers
+     "what is this / why care / what now" fits above 640px so it survives a
+     360x640 device with no scroll.
+   • Tap targets >= 48px per fantasy-ui.md §2456-2476. No exceptions in here.
+   • No colour is invented. Every value is an --fx-* token that index.html's
+     :root already defines. Measured contrast is in a comment on every text
+     pair; ratios are from fantasy-color.md §1552-1567 (WCAG 2.1 relative
+     luminance) or computed the same way and marked [COMPUTED].
+
+   GROUND ASSUMPTION
+   This screen sits directly on --fx-bg #070B1A with no card fill, like the
+   Fantasy header (fantasy-color.md §1402). Ratios below are against that.
+   ============================================================================ */
+
+/* ---------------------------------------------------------------------------
+   0. THE SHELL
+   Full-bleed and opaque. This is the single most important rule in the file:
+   the current build shows the welcome as a bottom sheet at y=430 behind an
+   82%-opaque scrim over a dimmed, unusable app (measured on the live DOM,
+   2026-08-16). That costs 53% of the first screen. This screen replaces the
+   whole viewport and shows nothing behind it.
+--------------------------------------------------------------------------- */
+.lnd{
+  position:fixed; inset:0; z-index:200;          /* above .sheet (120) — nothing shows through */
+  background:var(--fx-bg);                       /* OPAQUE. no scrim, no bleed-through */
+  display:flex; flex-direction:column;
+  overflow-y:auto; -webkit-overflow-scrolling:touch;
+  font-size:1rem;                                /* rem base for everything below */
+}
+.lnd[hidden]{ display:none }
+
+/* Safe areas: notches and the Android gesture bar. */
+.lnd__top{
+  flex:0 0 auto;
+  display:flex; align-items:center; gap:.625rem;
+  padding-block:.5rem; padding-inline:1rem;
+  padding-block-start:calc(.5rem + env(safe-area-inset-top,0px));
+  min-block-size:3.5rem;                         /* 56px */
+}
+.lnd__body{
+  flex:1 1 auto;
+  display:flex; flex-direction:column;
+  padding-inline:1rem;
+  padding-block-end:calc(1.25rem + env(safe-area-inset-bottom,0px));
+  inline-size:100%; max-inline-size:27rem;       /* 432px — stops the line length running away on tablets */
+  margin-inline:auto;
+}
+
+/* ---------------------------------------------------------------------------
+   1. THE HEADER — brand and language only. Nothing else.
+   The current build's first screen carries a DEMO tag, a 60px demo
+   disclaimer, a 3-tab segmented bar, a budget card, 3 formation chips, a swap
+   hint and a gameweek slider ABOVE the welcome copy. All of it is removed
+   here. See spec §F.
+--------------------------------------------------------------------------- */
+.lnd__brand{
+  flex:1 1 auto;
+  font-size:1.0625rem; font-weight:900; line-height:1.2;
+  color:var(--fx-ink);                           /* CR 17.99 on --fx-bg */
+  letter-spacing:.01em;
+}
+.lnd__brand b{ color:var(--fx-gold) }            /* CR 12.41 — house lockup, matches .hname b */
+
+/* 48px, not the 38px the app's .hbtn ships at (fantasy-usability.md K.7). */
+.lnd__lang{
+  flex:0 0 auto;
+  inline-size:3rem; block-size:3rem;             /* 48 x 48 */
+  border-radius:.75rem;
+  background:var(--fx-surface-2); border:1px solid var(--fx-line);
+  color:var(--fx-ink-dim);                       /* CR 9.87 */
+  font-size:.8125rem; font-weight:800;
+  display:flex; align-items:center; justify-content:center;
+}
+
+/* ---------------------------------------------------------------------------
+   2. THE THREE-SECOND ANSWER
+   Eyebrow = honest proof, stated as a checkable fact before any claim.
+   H1      = what this is, in one parallel construction.
+   Sub     = why you should care, and what it removes.
+--------------------------------------------------------------------------- */
+.lnd__eyebrow{
+  margin-block-start:.75rem;
+  font-size:.8125rem; font-weight:800;           /* 13px */
+  letter-spacing:.05em;
+  color:var(--fx-acc);                           /* CR 7.58 */
+}
+
+.lnd__h1{
+  margin-block-start:.625rem; margin-block-end:0;
+  /* 26px at 360px, 32px from 432px up. Never smaller than 26 — this is the
+     sentence the whole funnel rests on. */
+  font-size:clamp(1.625rem, 7.2vw, 2rem);
+  line-height:1.26; font-weight:900;
+  color:var(--fx-ink);                           /* CR 17.99 */
+  text-wrap:balance;
+}
+/* The differentiating half of the sentence, coloured so the contrast between
+   the two halves is visible before either is read. */
+.lnd__h1 em{ font-style:normal; color:var(--fx-gold) }   /* CR 12.41 */
+
+.lnd__sub{
+  margin-block-start:.875rem;
+  font-size:1rem; line-height:1.68;              /* 16px/1.68 — Arabic ascenders need the leading */
+  color:var(--fx-ink-dim);                       /* CR 9.87 */
+}
+.lnd__sub + .lnd__sub{ margin-block-start:.5rem }
+.lnd__sub b{ color:var(--fx-ink); font-weight:800 }
+
+/* ---------------------------------------------------------------------------
+   3. THE HERO — five kit tiles on a turf band.
+   Pure CSS. The turf reuses --fx-turf-a/--fx-turf-b, which index.html already
+   defines for the pitch, so this introduces no new colour and reads as the
+   same stadium the game is played in.
+
+   The tiles carry club COLOURS AND PATTERNS but deliberately no 3-letter
+   codes and no names — see spec §C.5 on the trademark line. Inside the
+   product the codes stay; on a marketing surface they do not.
+--------------------------------------------------------------------------- */
+.lnd__hero{
+  margin-block-start:1.25rem;
+  border-radius:1rem;
+  border:1px solid var(--fx-line-2);
+  padding:1rem .75rem .875rem;
+  background:
+    /* the mow stripes, same 12-column rhythm as .pitch in index.html */
+    repeating-linear-gradient(90deg, var(--fx-turf-a) 0 16.6667%, var(--fx-turf-b) 16.6667% 33.3333%),
+    var(--fx-turf-b);
+  position:relative; overflow:hidden;
+}
+/* A floodlight wash so the band reads as a stadium, not a green rectangle.
+   105deg is a physical angle; no logical equivalent exists for gradients, and
+   a symmetric wash mirrors acceptably in both directions. */
+.lnd__hero::before{
+  content:""; position:absolute; inset:0;
+  background:radial-gradient(120% 90% at 50% -10%, rgba(255,255,255,.16), rgba(255,255,255,0) 62%);
+  pointer-events:none;
+}
+.lnd__kits{
+  position:relative; z-index:1;
+  display:flex; align-items:center; justify-content:center;
+  gap:.5rem;
+}
+/* The tile. Two colours, one pattern, a rim. Same construction as .fxkit in
+   index.html, restated here so this module has no dependency on that class. */
+.lnd__kit{
+  inline-size:3rem; block-size:3.375rem;         /* 48 x 54 */
+  border-radius:.5rem .5rem .625rem .625rem;
+  border:1px solid rgba(0,0,0,.42);
+  box-shadow:0 2px 0 rgba(0,0,0,.28), 0 0 0 1px rgba(255,255,255,.10) inset;
+  background:var(--c1,#888);
+  position:relative; overflow:hidden;
+  flex:0 0 auto;
+}
+.lnd__kit[data-pat="stripes"]{
+  background:repeating-linear-gradient(90deg, var(--c1) 0 22%, var(--c2) 22% 44%);
+}
+.lnd__kit[data-pat="halves"]{
+  background:linear-gradient(90deg, var(--c1) 0 50%, var(--c2) 50% 100%);
+}
+.lnd__kit[data-pat="sash"]{
+  background:linear-gradient(115deg, var(--c1) 0 38%, var(--c2) 38% 62%, var(--c1) 62% 100%);
+}
+.lnd__kit[data-pat="hoops"]{
+  background:repeating-linear-gradient(180deg, var(--c1) 0 22%, var(--c2) 22% 44%);
+}
+.lnd__kit[data-pat="solid"]{ background:var(--c1) }
+/* the collar — the one detail that makes a coloured rectangle read as a shirt */
+.lnd__kit::after{
+  content:""; position:absolute; inset-block-start:0; inset-inline-start:35%;
+  inline-size:30%; block-size:18%;
+  background:rgba(0,0,0,.34);
+  border-end-start-radius:.375rem; border-end-end-radius:.375rem;
+}
+/* The "+10" counter. Same block size as a tile so the row reads as one object. */
+.lnd__more{
+  inline-size:3rem; block-size:3.375rem;
+  border-radius:.625rem;
+  border:1px dashed rgba(255,255,255,.55);
+  background:rgba(0,0,0,.30);
+  color:#FFFFFF;                                  /* CR 6.9 on the turf composite [COMPUTED] */
+  font-size:1rem; font-weight:900;
+  display:flex; align-items:center; justify-content:center;
+  flex:0 0 auto;
+}
+.lnd__herocap{
+  position:relative; z-index:1;
+  margin-block-start:.75rem;
+  text-align:center;
+  font-size:.8125rem; font-weight:800;
+  color:#FFFFFF;                                  /* CR 6.9 on the turf composite [COMPUTED] */
+  text-shadow:0 1px 2px rgba(0,0,0,.55);
+}
+
+/* Narrow phones: 5 tiles + a counter + gaps = 6*48 + 5*8 = 328px. That fits
+   360 - 32 = 328 exactly, with zero slack. Below 360 we drop to 4 tiles via
+   the JS (state.heroCount), but shrink here too as a belt-and-braces. */
+@media (max-width:22.5rem){                       /* < 360px */
+  .lnd__kit, .lnd__more{ inline-size:2.625rem; block-size:2.9375rem }
+  .lnd__kits{ gap:.375rem }
+}
+
+/* ---------------------------------------------------------------------------
+   4. THE FACT ROW — the honest-proof strip.
+   Three checkable statements, no numbers we cannot substantiate, and no
+   social proof of any kind. "No betting" is not a disclaimer here; per spec
+   §C.4 it is a conversion lever in this market.
+--------------------------------------------------------------------------- */
+.lnd__facts{
+  margin-block-start:1rem;
+  display:flex; flex-wrap:wrap; gap:.5rem; justify-content:center;
+}
+.lnd__fact{
+  display:inline-flex; align-items:center; gap:.375rem;
+  padding:.4375rem .625rem;
+  border-radius:.5rem;
+  background:var(--fx-surface-2); border:1px solid var(--fx-line);
+  font-size:.8125rem; font-weight:800;           /* 13px — above the 12px floor */
+  color:var(--fx-ink-dim);                       /* CR 8.61 on --fx-surface-2 [COMPUTED] */
+}
+.lnd__fact i{
+  font-style:normal; color:var(--fx-pos);        /* CR 10.96 on --fx-surface-2 */
+  font-size:.875rem; line-height:1;
+}
+
+/* ---------------------------------------------------------------------------
+   5. THE CTA
+   One primary. The current build offers "التالي" and "تخطى الشرح" as two
+   near-equal full-width buttons (345x48.5 and 345x50.5, measured) — that is
+   two choices at the exact moment the visitor has no basis to choose. Here
+   the secondary is a text link at half the weight.
+--------------------------------------------------------------------------- */
+.lnd__ctawrap{ margin-block-start:auto; padding-block-start:1.25rem }
+
+.lnd__cta{
+  display:block; inline-size:100%;
+  min-block-size:3.5rem;                          /* 56px — bigger than .btn's 48, this is the one target that matters */
+  border:0; border-radius:.875rem;
+  background:var(--fx-acc);
+  color:#12060B;                                  /* CR 7.68 on --fx-acc [COMPUTED] */
+  font-size:1.0625rem; font-weight:900;           /* 17px */
+  text-align:center;
+  box-shadow:0 6px 20px rgba(255,122,69,.22);
+}
+.lnd__cta:active{ transform:translateY(1px) }
+
+.lnd__assure{
+  margin-block-start:.625rem;
+  text-align:center;
+  font-size:.8125rem; line-height:1.5;            /* 13px */
+  color:var(--fx-ink-mute);                       /* CR 5.77 */
+}
+
+.lnd__alt{
+  display:block; inline-size:100%;
+  min-block-size:3rem;                            /* 48px hit area even though it looks like a link */
+  margin-block-start:.5rem;
+  background:transparent; border:0;
+  color:var(--fx-ink-dim);                        /* CR 9.87 */
+  font-size:.9375rem; font-weight:700;
+  text-align:center;
+  text-decoration:underline; text-underline-offset:.25rem;
+  text-decoration-color:var(--fx-line-3);
+}
+
+/* ---------------------------------------------------------------------------
+   6. THE RETURNING / SHARED-LINK VARIANTS
+   Neither of these audiences sees the beginner pitch. Spec §H.
+--------------------------------------------------------------------------- */
+
+/* 6a. Returning visitor: a resume strip, not a landing. Replaces .lnd__body's
+   hero and fact row entirely — this renders INSTEAD of screen 0. */
+.lnd--resume .lnd__h1{ font-size:clamp(1.375rem,6.2vw,1.625rem) }
+.lnd__resume{
+  margin-block-start:1rem;
+  border-radius:.875rem;
+  background:var(--fx-surface); border:1px solid var(--fx-line-2);
+  padding:.875rem;
+}
+.lnd__resumerow{
+  display:flex; align-items:center; gap:.625rem;
+  padding-block:.5rem;
+  border-block-end:1px solid var(--fx-line);
+}
+.lnd__resumerow:last-child{ border-block-end:0 }
+.lnd__resumelab{
+  flex:1 1 auto;
+  font-size:.875rem; color:var(--fx-ink-dim);     /* CR 9.02 on --fx-surface [COMPUTED] */
+}
+.lnd__resumeval{
+  flex:0 0 auto;
+  font-size:1rem; font-weight:900; color:var(--fx-gold);
+}
+
+/* 6b. Shared-squad arrival: the friend's team leads, the pitch does not. */
+.lnd--guest .lnd__eyebrow{ color:var(--fx-chip) }  /* CR 6.42 on --fx-bg [COMPUTED] */
+.lnd__guestcard{
+  margin-block-start:1rem;
+  border-radius:1rem;
+  background:var(--fx-surface); border:1px solid var(--fx-line-2);
+  padding:1rem;
+}
+.lnd__guestname{
+  font-size:1.125rem; font-weight:900; color:var(--fx-ink);
+  margin-block-end:.25rem;
+}
+.lnd__guestmeta{
+  font-size:.8125rem; color:var(--fx-ink-mute);   /* CR 5.16 on --fx-surface */
+}
+
+/* ---------------------------------------------------------------------------
+   7. MOTION — honoured, not decorative.
+   One entrance, 240ms, and nothing loops. A looping animation on a landing is
+   a battery cost on a mid-range Android for no comprehension gain.
+--------------------------------------------------------------------------- */
+@keyframes lnd-rise{ from{ opacity:0; transform:translateY(.5rem) } to{ opacity:1; transform:none } }
+.lnd__eyebrow,.lnd__h1,.lnd__sub,.lnd__hero,.lnd__facts,.lnd__ctawrap{
+  animation:lnd-rise .24s cubic-bezier(.22,.9,.3,1) both;
+}
+.lnd__h1{ animation-delay:.04s }
+.lnd__sub{ animation-delay:.08s }
+.lnd__hero{ animation-delay:.12s }
+.lnd__facts{ animation-delay:.16s }
+.lnd__ctawrap{ animation-delay:.18s }
+
+@media (prefers-reduced-motion:reduce){
+  .lnd__eyebrow,.lnd__h1,.lnd__sub,.lnd__hero,.lnd__facts,.lnd__ctawrap{
+    animation:none;
+  }
+  .lnd__cta:active{ transform:none }
+}
+
+/* Short screens (360x640, and any phone in a split view): the hero is the
+   first thing to give up space, never the copy or the CTA. */
+@media (max-height:40rem){                        /* < 640px tall */
+  .lnd__hero{ margin-block-start:.875rem; padding-block:.75rem .625rem }
+  .lnd__kit,.lnd__more{ block-size:2.75rem }
+  .lnd__herocap{ margin-block-start:.5rem }
+  .lnd__sub + .lnd__sub{ margin-block-start:.375rem }
+}

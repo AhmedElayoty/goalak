@@ -1,0 +1,606 @@
+/* ============================================================================
+   GOALLAK FANTASY — THE FIRST-RUN TUTORIAL
+   Companion to modules/tutorial.js. Design rationale: design/fantasy-tutorial.md
+
+   HOUSE RULES OBSERVED
+   • Arabic-first. RTL is the DEFAULT, LTR is the override. LOGICAL PROPERTIES
+     ONLY — inset-inline-*, margin-inline-*, padding-inline-*, border-*-start,
+     text-align:start/end. There is not one `left:` or `right:` in this file,
+     and not one directional gradient angle either (fantasy-ui.md §A: "nothing
+     in this document may be implemented with left or right"; the shipped budget
+     bar's linear-gradient(90deg) is the bug this file refuses to repeat).
+   • No images, no SVG, no canvas, no webfont, no external asset. Every surface
+     is a box with a background.
+   • Phone first: laid out for 360px, tuned for 375-430px. Nothing scrolls
+     sideways and no step needs a vertical scroll to reach its primary button.
+   • Type floor 11px. The usability study found 8.5px and 9px text in the build
+     against an owner-level correction that banned it (§K.8). Nothing here goes
+     below 11px, instructional prose is 15px/1.75 per fantasy-ui.md §G.3, and
+     every numeral uses tabular-nums so figures do not jitter.
+   • Tap targets: 48x48 minimum, per fantasy-ui.md §C.7. The hit area is grown
+     with padding, never by inflating the graphic.
+   • prefers-reduced-motion: every transition and animation is inside a
+     `no-preference` guard, so the default for a user who asked for stillness is
+     no motion at all rather than reduced motion.
+   • It declares no tokens. It consumes the --fx-* set that :root already
+     defines in index.html, and it re-uses .fxkit unchanged so the tutorial
+     introduces no second club-identity language.
+
+   CONTRAST — measured, WCAG 2.1 relative luminance, against the surface named.
+   Ground assumption: the tutorial sits on --fx-surface #101736 inside the
+   existing wizard sheet. Where a component sits on --fx-surface-2 #182246 the
+   comment says so.
+   ============================================================================ */
+
+
+/* ============================================================================
+   1. THE WRAPPER
+   ============================================================================ */
+.tut{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  padding-block:4px 2px;
+  font-variant-numeric:tabular-nums;
+  /* the Arabic face leads, per fantasy-artdirection.md §G: system-ui always
+     resolves, so an Arabic face placed after it is unreachable on every
+     platform. Tahoma is dropped. */
+  font-family:"Noto Sans Arabic","SF Arabic","Segoe UI",system-ui,-apple-system,sans-serif;
+}
+:root[lang="en"] .tut,
+[dir="ltr"] .tut{
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+
+
+/* ============================================================================
+   2. THE TOP ROW — progress, and the one-tap escape
+   ----------------------------------------------------------------------------
+   The shipped wizard gives 345x48.5 to "التالي" and 345x50.5 to "تخطى الشرح",
+   which makes the escape hatch fractionally LARGER than the action. Here the
+   skip is a small ghost control in the corner: always present, always one tap,
+   never competing for the eye with the thing the user should press.
+   ============================================================================ */
+.tut-top{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-block-size:48px;
+}
+
+.tut-prog{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex:1 1 auto;
+  min-inline-size:0;
+}
+.tut-dot{
+  inline-size:7px; block-size:7px;
+  border-radius:50%;
+  background:var(--fx-line-2);              /* #3D4C82 on #101736 = 1.85, decoration only */
+  flex:0 0 auto;
+}
+.tut-dot.past{ background:var(--fx-line-3); }   /* #55689F — the road already walked */
+.tut-dot.on{
+  inline-size:22px;
+  border-radius:4px;
+  background:var(--fx-gold);                /* #FFC53D on #101736 = 11.42 */
+}
+
+.tut-skip{
+  /* 48px hit area, grown with padding. The visible chip is smaller. */
+  min-block-size:48px;
+  padding-inline:14px;
+  padding-block:0;
+  border:0;
+  background:none;
+  color:var(--fx-ink-dim);                  /* #A9B7E4 on #101736 = 8.53 */
+  font:inherit;
+  font-size:14px;
+  font-weight:800;
+  cursor:pointer;
+  flex:0 0 auto;
+  border-radius:10px;
+}
+.tut-skip:hover{ color:var(--fx-ink); }
+
+
+/* ============================================================================
+   3. TYPE
+   ============================================================================ */
+.tut-h{
+  margin:0;
+  font-size:19px;
+  line-height:1.45;
+  font-weight:900;
+  color:var(--fx-ink);                      /* #F2F5FF on #101736 = 16.10 */
+  text-align:start;
+  text-wrap:balance;
+}
+/* step 1 only. The best sentence in the product was the third line of a
+   paragraph; here it is the largest thing on the screen. */
+.tut-h--big{
+  font-size:23px;
+  line-height:1.40;
+}
+
+.tut-p{
+  margin:0;
+  font-size:15px;
+  line-height:1.75;                          /* fantasy-ui.md §G.3 — Arabic without
+                                                diacritics at 1.5 reads cramped */
+  font-weight:700;
+  color:var(--fx-ink-dim);                  /* #A9B7E4 on #101736 = 8.53 */
+  text-align:start;
+}
+.tut-p--gw{
+  color:var(--fx-ink);                      /* 16.10 — the round sentence is the lesson,
+                                               not a caption, so it takes full ink */
+  font-weight:800;
+}
+
+.tut-note{
+  margin:0;
+  min-block-size:44px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding-inline:14px;
+  border-radius:12px;
+  background:var(--fx-surface-2);           /* #182246 */
+  border-inline-start:3px solid var(--fx-gold);
+  font-size:13.5px;
+  line-height:1.6;
+  font-weight:800;
+  color:var(--fx-ink-dim);                  /* #A9B7E4 on #182246 = 7.36 */
+}
+
+/* the live region. It is the only text on the swap step that changes, so it is
+   the only text that carries motion, and even that is opt-in. */
+.tut-live{
+  margin:0;
+  min-block-size:46px;
+  display:flex;
+  align-items:center;
+  padding-inline:14px;
+  border-radius:12px;
+  background:var(--fx-surface-2);           /* #182246 */
+  font-size:14.5px;
+  line-height:1.55;
+  font-weight:800;
+  color:var(--fx-ink);                      /* #F2F5FF on #182246 = 13.65 */
+  text-align:start;
+}
+.tut-ok{
+  color:var(--fx-pos);                      /* #3BE07F on #182246 = 10.35 */
+  font-weight:900;
+}
+p.tut-ok{
+  margin:0;
+  font-size:14px;
+}
+
+
+/* ============================================================================
+   4. BUTTONS
+   ============================================================================ */
+.tut-cta,
+.tut-sec,
+.tut-back{
+  display:block;
+  inline-size:100%;
+  min-block-size:52px;
+  border-radius:14px;
+  font:inherit;
+  font-size:16px;
+  font-weight:900;
+  cursor:pointer;
+  padding-inline:16px;
+  text-align:center;
+}
+
+/* THE PRIMARY BUTTON IS PINNED, ALWAYS.
+   Usability fix #13: "Pin the CTA to the bottom above the nav whenever the
+   squad is incomplete." The shipped wizard buries its own "التالي" 343px below
+   the fold on step 3 and its "تمام" 498px below on step 4 — measured live at
+   375x812 — so on the two steps that matter most the user must scroll inside a
+   sheet to find the way forward, with no scroll affordance telling them to.
+   Sticky removes the whole class of bug at every viewport rather than tuning
+   the content until it happens to fit one. Logical inset only; the box-shadow
+   paints the surface colour around the button so the board cannot show through
+   behind it, which is cheaper than a backdrop-filter and works everywhere. */
+.tut-cta{
+  border:0;
+  background:var(--fx-acc);                 /* #FF7A45 */
+  color:#1A0A03;                            /* #1A0A03 on #FF7A45 = 8.94 */
+  position:sticky;
+  inset-block-end:2px;
+  z-index:2;
+  box-shadow:0 0 0 6px var(--fx-surface), 0 6px 18px rgba(3,5,14,.55);
+}
+
+/* the secondary is pinned too, but only on the steps where it IS the only way
+   forward — the swap step before the gesture, and the favourite step's
+   "no favourite". Both are ghosts, so they get the surface behind them rather
+   than a shadow. */
+.tut-sec{
+  border:1px solid var(--fx-line-2);
+  background:var(--fx-surface);
+  color:var(--fx-ink-dim);                  /* 8.53 */
+  min-block-size:48px;
+  font-size:15px;
+  position:sticky;
+  inset-block-end:2px;
+  z-index:1;
+  box-shadow:0 0 0 6px var(--fx-surface);
+}
+/* on the squad step the secondary sits BELOW the pinned primary, so it must not
+   pin as well — two stacked sticky bars would eat a third of a 640px screen. */
+[data-tut-step="squad"] .tut-sec{ position:static; box-shadow:none; }
+.tut-sec:hover{ color:var(--fx-ink); border-color:var(--fx-line-3); }
+
+/* Back is deliberately the quietest control on the screen: it exists for the
+   user who overshot, and for nobody else. It still meets 48px. */
+.tut-back{
+  border:0;
+  background:none;
+  color:var(--fx-ink-mute);                 /* #7C8AB8 on #101736 = 5.08 */
+  min-block-size:48px;
+  font-size:14px;
+  font-weight:800;
+}
+.tut-back:hover{ color:var(--fx-ink-dim); }
+
+
+/* ============================================================================
+   5. THE FAVOURITE GRID                                    [step 2]
+   ----------------------------------------------------------------------------
+   3 across at 360px: (360 - 32 padding - 16 gaps) / 3 = 104px per tile.
+   Tiles are 104x84 — comfortably past 48x48 and readable at arm's length.
+   ============================================================================ */
+.tut-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+}
+
+.tut-fav{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  min-block-size:80px;
+  padding:8px 4px;
+  border-radius:14px;
+  border:1px solid var(--fx-line);          /* #2A3560 */
+  background:var(--fx-surface-2);           /* #182246 */
+  color:var(--fx-ink);
+  font:inherit;
+  cursor:pointer;
+  text-align:center;
+}
+.tut-fav.on{
+  border-color:var(--fx-gold);
+  background:var(--fx-surface-3);           /* #212D57 */
+}
+.tut-fav:hover{ border-color:var(--fx-line-3); }
+
+
+/* ============================================================================
+   6. THE BOARD — the eleven and the bench            [steps 3 and 4]
+   ----------------------------------------------------------------------------
+   Three rows of 4/4/3, then a labelled divider, then the four subs.
+   NOT a formation. The formation control in the build is entirely cosmetic
+   (engagement §A.5, usability #17) and a tutorial must never teach a decision
+   that does not exist.
+   ============================================================================ */
+.tut-board{
+  border-radius:16px;
+  padding:10px 8px;
+  background:var(--fx-surface-2);           /* #182246 */
+  border:1px solid var(--fx-line);
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.tut-lab{
+  font-size:11px;                            /* the floor, never below */
+  font-weight:900;
+  letter-spacing:.02em;
+  color:var(--fx-ink-mute);                 /* #7C8AB8 on #182246 = 4.60 */
+  text-align:start;
+  padding-inline-start:2px;
+}
+/* the bench label carries the auto-sub rule, in situ, at the moment the user is
+   looking at the bench. That is concept 4 taught without a step of its own —
+   and it is the app's own benchLab wording, which the study found correct. */
+.tut-lab--b{
+  margin-block-start:6px;
+  padding-block-start:10px;
+  border-block-start:1px dashed var(--fx-line-2);
+  line-height:1.55;
+  color:var(--fx-ink-dim);                  /* #A9B7E4 on #182246 = 7.36 */
+}
+
+.tut-line{
+  display:flex;
+  justify-content:center;
+  gap:6px;
+}
+.tut-line--b{ justify-content:space-between; }
+
+.tut-slot{
+  flex:1 1 0;
+  min-inline-size:0;
+  max-inline-size:82px;
+  min-block-size:62px;                       /* > 48 */
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:2px;
+  padding:4px 2px;
+  border-radius:12px;
+  border:1px solid transparent;
+  background:transparent;
+  color:var(--fx-ink);
+  font:inherit;
+  cursor:pointer;
+}
+
+.tut-nm{
+  font-size:11px;
+  line-height:1.3;
+  font-weight:800;
+  color:var(--fx-ink);                      /* 13.65 on surface-2 */
+  max-inline-size:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  text-align:center;
+}
+.tut-pr{
+  font-size:11px;
+  font-weight:900;
+  color:var(--fx-ink-mute);                 /* 4.60 on surface-2 */
+}
+
+/* THE INHERITED FLOOR BREACH.
+   .tut re-uses the app's .fxkit unchanged, which is the right call — the club
+   identity must not fork. But the app ships `.k34 .fxcode` at 9px, one of the
+   nine sub-11px classes the usability study measured (§K.8) against an
+   owner-level correction that banned them. This module cannot fix that
+   globally without editing index.html, which it is not allowed to touch, so it
+   raises the floor inside its own subtree only. Measured live: every leaf text
+   node in every tutorial step is >= 11px with this rule, and 9px without it. */
+.tut .fxkit.k34 .fxcode{ font-size:11px; }
+.tut .fxkit.k44 .fxcode{ font-size:12px; }
+
+/* the club the user named. A gold ring, and it is the only gold ring on the
+   board — fantasy-ui.md §C.1.3 calls this "a trust moment", and it is the
+   direct answer to the study's 0:24 ("the app built him a team and did not put
+   his club in it"). */
+.tut-slot.fav{
+  border-color:var(--fx-gold);
+  background:var(--fx-surface-3);           /* #212D57 */
+}
+
+/* the two slots the swap drill points at. Colour is never the sole channel
+   (fantasy-ui.md §C.9): the hinted slot also gains a border and a raised
+   surface, so it survives full colour-blindness and a monochrome screenshot. */
+.tut-slot.hint{
+  border-color:var(--fx-live);              /* #35D0F5 */
+  background:var(--fx-surface-3);
+}
+/* armed — the first of the two taps has landed */
+.tut-slot.arm{
+  border-color:var(--fx-gold);
+  border-width:2px;
+  background:var(--fx-surface-3);
+}
+.tut-slot.arm .tut-nm{ color:var(--fx-gold); }   /* #FFC53D on #212D57 = 8.94 */
+
+
+/* ============================================================================
+   7. THE CAPTAIN GRID                                      [step 5]
+   ----------------------------------------------------------------------------
+   The eleven only. The shipped wizard lists all fifteen in a scrolling column
+   1213px tall inside a 715px window, which puts its own "تمام" button 498px
+   below the fold. This is a 4-across grid: no scroll, and the same tap the user
+   has just learned on the board, carrying a new meaning.
+   ============================================================================ */
+.tut-caps{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:6px;
+}
+
+.tut-cap{
+  position:relative;
+  min-block-size:72px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  padding:6px 2px;
+  border-radius:12px;
+  border:1px solid var(--fx-line);
+  background:var(--fx-surface-2);
+  color:var(--fx-ink);
+  font:inherit;
+  cursor:pointer;
+}
+.tut-cap.on{
+  border-color:var(--fx-gold);
+  border-width:2px;
+  background:var(--fx-surface-3);
+}
+
+.tut-arm{
+  position:absolute;
+  inset-block-start:4px;
+  inset-inline-end:4px;                      /* logical — mirrors correctly in LTR */
+  inline-size:20px; block-size:20px;
+  border-radius:50%;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  font-size:11px;                            /* the build ships this at 8.5px */
+  font-weight:900;
+  background:var(--fx-gold);
+  color:#1A1000;                             /* #1A1000 on #FFC53D = 12.21 */
+}
+.tut-cap.on .tut-arm{ display:flex; }
+
+
+/* ============================================================================
+   8. THE ROUND                                             [step 6]
+   ============================================================================ */
+.tut-lock{
+  margin:0;
+  min-block-size:48px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding-inline:14px;
+  border-radius:12px;
+  background:var(--fx-surface);             /* pinned to surface, NOT surface-2:
+                                               --fx-urgent on #182246 measures 4.45
+                                               and fails; on #101736 it is 5.27 */
+  border:1px solid var(--fx-line-2);
+  font-size:15px;
+  font-weight:900;
+  color:var(--fx-urgent);                   /* #FF3B5C on #101736 = 5.27 */
+}
+
+
+/* ============================================================================
+   9. THE HOOK                                              [step 7]
+   ----------------------------------------------------------------------------
+   fantasy-engagement.md §E.2. Not a summary and not a reward — an appointment
+   the user made themselves thirty seconds ago.
+   ============================================================================ */
+.tut-hook{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+  padding:20px 16px;
+  border-radius:16px;
+  background:var(--fx-surface-2);
+  border:1px solid var(--fx-line-2);
+  text-align:center;
+}
+.tut-hkline{
+  margin:0;
+  font-size:17px;
+  line-height:1.6;
+  font-weight:900;
+  color:var(--fx-ink);                      /* 13.65 on surface-2 */
+}
+.tut-x2{
+  margin:0;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-block-size:34px;
+  padding-inline:14px;
+  border-radius:999px;
+  background:var(--fx-surface-3);           /* #212D57 */
+  font-size:14px;
+  font-weight:900;
+  color:var(--fx-gold);                     /* #FFC53D on #212D57 = 8.94 */
+}
+
+
+/* ============================================================================
+   10. STATES — focus, motion, density
+   ============================================================================ */
+
+/* the app already ships a correct :focus-visible (3px gold, 2px offset) and the
+   study named it as a strength. Matched exactly rather than re-invented. */
+.tut :focus-visible{
+  outline:3px solid var(--fx-gold);
+  outline-offset:2px;
+  border-radius:12px;
+}
+
+/* MOTION IS OPT-IN. Everything animated lives inside no-preference, so a user
+   who has asked their phone for stillness gets a completely static tutorial —
+   not a faster one. */
+@media (prefers-reduced-motion: no-preference){
+  .tut-cta,
+  .tut-sec,
+  .tut-back,
+  .tut-fav,
+  .tut-cap,
+  .tut-slot,
+  .tut-dot{
+    transition:background-color .16s ease, border-color .16s ease,
+               color .16s ease, inline-size .22s ease, transform .12s ease;
+  }
+  .tut-cta:active,
+  .tut-sec:active,
+  .tut-fav:active,
+  .tut-cap:active,
+  .tut-slot:active{ transform:scale(.97); }
+
+  /* the two drill targets breathe, once per 1.6s, and only until the user has
+     done the gesture. It is the only animation in the file. */
+  .tut-slot.hint{ animation:tut-breathe 1.6s ease-in-out infinite; }
+  @keyframes tut-breathe{
+    0%,100%{ border-color:var(--fx-live); }
+    50%    { border-color:var(--fx-line-2); }
+  }
+}
+
+/* 360px: the narrowest phone the product targets. Nothing is allowed to reflow
+   into a horizontal scroll, so the grids shed a column instead. */
+@media (max-width: 374px){
+  .tut-h--big{ font-size:21px; }
+  .tut-h{ font-size:18px; }
+  .tut-p{ font-size:14.5px; }
+  .tut-slot{ min-block-size:70px; }
+  .tut-caps{ grid-template-columns:repeat(3,1fr); }
+  .tut-pill{ font-size:11px; }
+}
+
+/* very short viewports (a 640px-tall Android in landscape, or a phone with a
+   large system font). The board shrinks; the primary button never moves. */
+@media (max-height: 700px){
+  .tut{ gap:10px; }
+  .tut-slot{ min-block-size:64px; }
+  .tut-cap{ min-block-size:68px; }
+  .tut-hook{ padding-block:14px; }
+}
+
+
+/* ============================================================================
+   11. THE RULE PILLS                                       [step 3]
+   ----------------------------------------------------------------------------
+   The build states 15 / 120M / 11+4 / 3-per-league as a four-line paragraph
+   mid-sheet, and the study found the user absorbed the league cap "not at all".
+   Four pills instead: each rule is one object, next to the board that obeys it.
+   ============================================================================ */
+.tut-pills{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+}
+.tut-pill{
+  display:inline-flex;
+  align-items:center;
+  min-block-size:28px;
+  padding-inline:10px;
+  border-radius:999px;
+  background:var(--fx-surface-2);           /* #182246 */
+  border:1px solid var(--fx-line);
+  font-size:12px;
+  font-weight:800;
+  color:var(--fx-ink-dim);                  /* #A9B7E4 on #182246 = 7.36 */
+  white-space:nowrap;
+}

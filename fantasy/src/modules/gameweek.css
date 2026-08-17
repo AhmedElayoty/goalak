@@ -1,0 +1,722 @@
+/* ============================================================================
+   GOALLAK FANTASY — THE GAMEWEEK EXPLANATION SYSTEM
+   Implements design/fantasy-gameweek-explained.md §B, §C, §E, §F, §J.
+   Palette: design/fantasy-color.md. No colour is invented here — every value is
+   either an --fx-* token or a published composite from fantasy-color.md §E.1.
+
+   HOUSE RULES OBSERVED
+   • Arabic-first. RTL is the DEFAULT, LTR is the override. Logical properties
+     only (inset-inline-*, margin-inline-*, padding-inline-*, border-*-start).
+     The ONE physical-direction declaration in the whole file is --gwm-dir,
+     because linear gradients take a physical angle and no logical property
+     exists for them (spec §C.2 implementation note 2).
+   • No images, no SVG, no <canvas>, no filter, no font, no library.
+     Every part of the calendar diagram is a div with a background.
+   • Phone first: laid out for a 360 px viewport, tuned for 390–430 px.
+   • Contrast: every text/background pair carries its MEASURED ratio in a
+     comment. All are ≥ 4.5:1. Ratios computed with the WCAG 2.1 relative
+     luminance formula and cross-checked against fantasy-color.md §A.4.
+
+   GROUND ASSUMPTION
+   Unless a rule says otherwise, these components sit on --fx-surface #101736
+   (i.e. inside the app's .card). Where a component sits on --fx-surface-2 the
+   comment states it, because three pairs change meaningfully there:
+       --fx-ink-mute  on surface-2 = 4.56  (passes, but only just)
+       --fx-ink-mute  on surface-3 = 3.92  (FORBIDDEN — fantasy-color.md §A.4.3)
+       --fx-urgent    on surface-2 = 4.45  (FAILS — the deadline block is
+                                            therefore pinned to --fx-surface)
+   ============================================================================ */
+
+
+/* ============================================================================
+   1. THE CALENDAR DIAGRAM — .gwm            [spec §C, component 1 of 3, NEW]
+   ============================================================================
+   Seven (or five) LEAGUE rows, one horizontal track each, all representing the
+   same period: this round's deadline → the next. Dots are match DAYS, sized by
+   match count. Gold = a league you own clubs in.
+
+   Rows are leagues, not clubs, and that is the load-bearing decision: blanks
+   are correlated by league (all 18 Turkish clubs go dark together), so five
+   league rows make the pattern the subject where fifteen club rows would hide
+   it behind repetition.                                        [spec §C.3]
+   ---------------------------------------------------------------------------- */
+
+.gwm-w{
+  margin:0;                                  /* it is a <figure> */
+  padding:0;
+  display:block;
+}
+
+.gwm-hd{
+  display:flex; align-items:baseline; gap:8px;
+  margin-block-end:2px;
+  min-block-size:22px;
+}
+.gwm-gw{
+  font-size:14px; font-weight:900;
+  color:var(--fx-ink);                       /* #F2F5FF on #101736 = 16.10 */
+  flex:1 1 auto; min-inline-size:0;
+}
+.gwm-dt{
+  font-size:11.5px; font-weight:700;
+  color:var(--fx-ink-mute);                  /* #7C8AB8 on #101736 =  5.16 */
+  margin-block-end:6px;
+}
+
+/* the long-round chip. Gold @14% over the surface = #312F37 (fantasy-color.md
+   §E.1 precomputed composite — color-mix is avoided for old Android WebView) */
+.gwm-chip{
+  flex:0 0 auto;
+  display:inline-block;
+  padding-block:2px; padding-inline:8px;
+  border-radius:16px;
+  font-size:11px; font-weight:800;
+  background:#312F37;
+  border:1px solid #746039;
+  color:var(--fx-gold);                      /* #FFC53D on #312F37 =  8.36 */
+}
+
+/* ---- the rows container. Also the positioning context for the two rails ---- */
+.gwm{
+  --gwm-lbl:58px;                            /* label column        [spec §C.2] */
+  --gwm-gap:8px;                             /* label → track gap   [spec §C.2] */
+  --gwm-h:22px;                              /* row height          [spec §C.2] */
+  --gwm-row-gap:4px;                         /* row gap             [spec §C.2] */
+  --gwm-dir:to left;                         /* RTL DEFAULT: time runs right→left */
+  --days:14;
+
+  position:relative;
+  display:flex; flex-direction:column;
+  gap:var(--gwm-row-gap);
+  padding-block-start:16px;                  /* room for the rail captions */
+}
+[dir="ltr"] .gwm{ --gwm-dir:to right; }
+
+/* DEVIATION from spec §C.2's CSS, stated as required.
+   The spec declares .gwm as a two-column grid AND selects `.gwm-r.mine .gwm-d`,
+   which cannot both be true: a row wrapper would break a grid whose columns are
+   .gwm-l and .gwm-t. Resolved by making each ROW the grid. Columns stay aligned
+   because the label column is a fixed width, and the .gwm-r hook the spec's own
+   selectors depend on survives. Every measurement is unchanged. */
+.gwm-r{
+  display:grid;
+  grid-template-columns:var(--gwm-lbl) 1fr;
+  column-gap:var(--gwm-gap);
+  align-items:center;
+  min-block-size:var(--gwm-h);
+}
+
+.gwm-l{
+  font-size:11px; font-weight:800;
+  line-height:var(--gwm-h);
+  color:var(--fx-ink-mute);                  /* #7C8AB8 on #101736 =  5.16 */
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+/* a league you own clubs in: the label brightens. Weight alone is not the
+   signal — the dots also change colour AND the row carries its own aria-label,
+   so this is never colour-only.                             [spec §I.3] */
+.gwm-r.mine .gwm-l{ color:var(--fx-ink); }   /* #F2F5FF on #101736 = 16.10 */
+
+/* ---- the track ----
+   The day gridline is RHYTHM, not information: it shows the pitch of a day so
+   that dot spacing can be read as elapsed time. The dots carry the facts, and
+   every row repeats them in its aria-label, so the 1.15:1 line-on-track is
+   deliberate and no contrast minimum applies to it.
+   THIS is the one physical-direction declaration in the module — a gradient
+   angle has no logical form, hence --gwm-dir.               [spec §C.2 note 2] */
+.gwm-t{
+  position:relative;
+  block-size:var(--gwm-h);
+  border-radius:6px;
+  background-color:var(--fx-surface-2);
+  background-image:repeating-linear-gradient(var(--gwm-dir),
+    var(--fx-line) 0 1px,
+    transparent 1px calc(100% / var(--days)));
+  background-size:100% 100%;
+}
+
+/* a league with no fixture at all in this round.
+   The 45deg hatch is symmetric under mirroring, so unlike the day grid it does
+   not need --gwm-dir: it means the same thing in both directions. */
+.gwm-t.none{
+  background-color:transparent;
+  background-image:repeating-linear-gradient(45deg,
+    var(--fx-surface-2) 0 5px, transparent 5px 10px);
+  border:1px dashed var(--fx-line-2);
+}
+.gwm-t.none > span{
+  position:absolute; inset:0;
+  display:grid; place-items:center;
+  font-size:10px; font-weight:800; line-height:1;
+  color:var(--fx-ink-mute);                  /* worst ground is the #182246 hatch
+                                                stripe: #7C8AB8 on #182246 = 4.56 */
+}
+/* not-yet-scheduled: the dashed border is the shape channel that separates
+   "will play, date unpublished" from "will not play".        [spec §F.1, §H.3] */
+.gwm-t.tbc{
+  background-color:transparent;
+  background-image:none;
+  border:1px dashed var(--fx-line-3);        /* #55689F on #101736 = 3.23,
+                                                clears the 3:1 non-text minimum */
+}
+.gwm-t.tbc > span{
+  position:absolute; inset:0;
+  display:grid; place-items:center;
+  font-size:10px; font-weight:800; line-height:1;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #101736 = 8.83 */
+}
+
+/* ---- a match day ----
+   --t is 0..100, the percentage of the window elapsed at kick-off.
+   --s is the dot diameter, 6 / 9 / 12 px by match count.     [spec §C.2]
+
+   CENTRING IS margin-inline-start, NOT translateX(-50%).
+   translateX is a PHYSICAL direction: in RTL it pushes every dot half a
+   diameter the wrong way — invisible in review at 6 px, visible on a phone.
+   margin-inline-start flips with the writing mode, which is the whole point.
+                                                             [spec §C.2 note 1] */
+.gwm-d{
+  position:absolute;
+  inset-block-start:50%;
+  inline-size:var(--s,6px); block-size:var(--s,6px);
+  border-radius:50%;
+  inset-inline-start:calc(var(--t,0) * 1%);
+  margin-inline-start:calc(var(--s,6px) / -2);
+  transform:translateY(-50%);                /* vertical only — no direction to flip */
+  background:var(--fx-ink-mute);             /* #7C8AB8 on #182246 = 4.56 (non-text
+                                                UI needs 3:1 — clears it twice over) */
+}
+.gwm-r.mine .gwm-d{ background:var(--fx-gold); } /* #FFC53D on #182246 = 9.81 */
+
+/* ---- the two deadline rails ----
+   Start rail = this round's deadline. End rail = the next one. Everything
+   between them is one round. In RTL that reads right→left with no markup
+   change; `dir` alone flips it.                                 [spec §C.2] */
+.gwm::before,
+.gwm::after{
+  content:"";
+  position:absolute;
+  inset-block:12px 0;
+  inline-size:2px;
+  border-radius:1px;
+  background:var(--fx-gold);                 /* #FFC53D on #101736 = 11.11 */
+  pointer-events:none;
+}
+.gwm::before{ inset-inline-start:calc(var(--gwm-lbl) + var(--gwm-gap)); }
+.gwm::after { inset-inline-end:0; }
+
+/* ---- rail captions ----
+   DEVIATION: spec §C.2 draws two caption rows — dates above the rails (h 14)
+   and `يقفل` below (h 10). Merged into one row that carries both facts
+   ("Locks 21 Dec"). Reason: at a 360 px viewport the content box is 304 px and
+   two caption rows push the diagram past the fold that §C.2 measures it to fit
+   inside; and the two facts belong together — the rail IS the deadline, so
+   separating the word from the date weakens both. Saves 14 px and one row.
+   Captions hug their rail from the inside rather than centring on it, which
+   avoids overflowing the card and avoids a physical transform. */
+.gwm-caps{
+  position:absolute;
+  inset-block-start:0;
+  inset-inline-start:calc(var(--gwm-lbl) + var(--gwm-gap));
+  inset-inline-end:0;
+  display:flex; justify-content:space-between;
+  font-size:10px; font-weight:800; line-height:14px;
+  color:var(--fx-gold);                      /* #FFC53D on #101736 = 11.11 */
+  pointer-events:none;
+}
+.gwm-caps > span{ padding-inline:3px; white-space:nowrap; }
+
+/* ---- legend + coverage caption ---- */
+.gwm-lg{
+  display:flex; flex-wrap:wrap; gap:4px 12px;
+  margin-block-start:10px;
+  font-size:10.5px; font-weight:700;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #101736 = 8.83 */
+}
+.gwm-lg > span{ display:inline-flex; align-items:center; gap:5px; }
+.gwm-lg i{
+  inline-size:8px; block-size:8px; border-radius:50%;
+  background:var(--fx-ink-mute); flex:0 0 auto;
+}
+.gwm-lg i.mine{ background:var(--fx-gold); }
+.gwm-lg i.none{
+  border-radius:2px;
+  background:repeating-linear-gradient(45deg,
+    var(--fx-surface-2) 0 3px, transparent 3px 6px);
+  border:1px dashed var(--fx-line-2);
+}
+.gwm-cov{
+  margin-block-start:6px;
+  font-size:11px; font-weight:700;
+  color:var(--fx-ink-mute);                  /* #7C8AB8 on #101736 = 5.16 */
+}
+
+/* ---- minimum density: the inline glyph ----
+   One track, the round's dots, the two rails, no labels, no legend. Its whole
+   job is to make the words "فترة بين إقفالين" visible in the same eyeful as the
+   sentence that uses them.                                       [spec §C.4] */
+.gwm.gwm--inline{
+  --gwm-lbl:0px;
+  --gwm-gap:0px;
+  padding-block-start:0;
+  display:inline-flex;
+  inline-size:120px;
+  vertical-align:middle;
+}
+.gwm.gwm--inline .gwm-r{ grid-template-columns:1fr; }
+.gwm.gwm--inline::before,
+.gwm.gwm--inline::after{ inset-block:0; }
+.gwm-inline-w{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+}
+.gwm-inline-d{
+  font-size:11.5px; font-weight:800;
+  color:var(--fx-gold);                      /* #FFC53D on #101736 = 11.11 */
+}
+
+/* At a 360–375 px viewport the content box is 304–319 px, below the 320 px
+   threshold at which spec §C.2 shrinks the label column to 50 px.
+
+   ONE MEASUREMENT THAT CANNOT BE MET, stated rather than hidden. Spec §C.2 sets
+   a floor of 16 px on the day gridline pitch, derived from a 343 px content box
+   (277 px track ÷ 17 days = 16.3). Measured here: at 430 px the pitch is 21.9
+   at 14 days and 18.0 even at the 17-day cap; at 390 px it is 19.0 and 15.6; at
+   360 px it is 17.4 and 14.4. So a round at the 17-day HARD CAP on a 360–390 px
+   phone renders a pitch of 14.4–15.6 px, just under the floor. Nothing is lost
+   by it — the gridline is rhythm, the dots carry the facts, and every row
+   repeats them in its aria-label — and the alternative (dropping to a gridline
+   every 2 days) would make the pitch mean two different things on two different
+   phones, which is worse than a slightly denser texture once a season. */
+@media (max-width:375px){
+  .gwm{ --gwm-lbl:50px; }
+}
+
+/* Nothing in this component animates, in any state.            [spec §C.2] */
+
+
+/* ============================================================================
+   2. THE EXPLAINER — .gwx                                        [spec §A, §B]
+   ============================================================================
+   The one-sentence explanation as the hero, then the box metaphor. The hero is
+   two sentences doing two different jobs — a definition and a rule — and they
+   are separate nodes so a reader who absorbs only the first still has the
+   mental model.                                                  [spec §A.3]
+   ---------------------------------------------------------------------------- */
+
+.gwx-h{
+  margin:0 0 10px;
+  font-size:14px; font-weight:900;
+  color:var(--fx-ink);                       /* #F2F5FF on #101736 = 16.10 */
+}
+.gwx-hero{
+  margin:0;
+  font-size:16px; font-weight:800; line-height:1.6;
+  color:var(--fx-ink);                       /* #F2F5FF on #101736 = 16.10 */
+}
+/* sentence two is the RULE. It gets its own block so it can be quoted,
+   and 2 px of breathing room so it is not read as a continuation. */
+.gwx-hero b{ display:block; font-weight:800; margin-block-start:2px; }
+
+/* the obligatory companion line: wherever fxGwOne appears, this appears
+   directly beneath it.                                           [spec §A.3] */
+.gwx-why{
+  margin:8px 0 0;
+  font-size:13.5px; font-weight:700; line-height:1.6;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #101736 = 8.83 */
+}
+
+/* the box. A teaching device with three call-sites and no fourth; never a
+   label, never a badge, never in the header.                     [spec §B.4] */
+.gwx-box{
+  margin-block-start:14px;
+  padding:12px;
+  border-radius:12px;
+  background:var(--fx-surface-2);
+  border:1px solid var(--fx-line);
+}
+.gwx-boxline{
+  margin:10px 0 0;
+  font-size:13.5px; font-weight:800; line-height:1.6;
+  color:var(--fx-ink);                       /* #F2F5FF on #182246 = 14.22 */
+}
+/* the trust claim: "decided before your first transfer, nobody can move it
+   now". The most valuable user-facing sentence in §K.               [spec §K.3] */
+.gwx-trust{
+  margin:12px 0 0;
+  padding-block-start:10px;
+  border-block-start:1px solid var(--fx-line);
+  font-size:11.5px; font-weight:700; line-height:1.6;
+  color:var(--fx-ink-mute);                  /* #7C8AB8 on #101736 = 5.16 */
+}
+
+
+/* ============================================================================
+   3. THE DEADLINE — .gwdl                                            [spec §E]
+   ============================================================================
+   One merged urgency ladder. Pinned to --fx-surface, never --fx-surface-2:
+   --fx-urgent on surface-2 measures 4.45 and would fail AA.
+   ---------------------------------------------------------------------------- */
+
+.gwdl{
+  display:flex; flex-direction:column; gap:2px;
+  padding-block:8px; padding-inline:0;
+}
+.gwdl-lab{
+  font-size:12px; font-weight:800;
+  color:var(--fx-ink-mute);                  /* #7C8AB8 on #101736 = 5.16 */
+}
+.gwdl-val{
+  font-size:20px; font-weight:900; letter-spacing:.5px;
+  color:var(--fx-gold);                      /* #FFC53D on #101736 = 11.11 */
+  font-variant-numeric:tabular-nums;         /* the readout must not jitter */
+}
+
+/* tiers 1–4: > 3 h. Gold — the game's currency colour, and time is currency. */
+.gwdl--t1 .gwdl-lab,
+.gwdl--t2 .gwdl-lab,
+.gwdl--t3 .gwdl-lab,
+.gwdl--t4 .gwdl-lab{ color:var(--fx-ink-dim); }  /* #A9B7E4 on #101736 = 8.83 */
+
+/* tiers 5–7: < 3 h.
+   DEVIATION, stated as required. Spec §E.1 colours these three tiers
+   var(--red) = --fx-neg. fantasy-color.md §D commits red to LOSS OF POINTS and
+   introduces --fx-urgent #FF3B5C for exactly this — "time running out", one
+   use, nothing else — and §E.4 uses it. A countdown rendered in the loss colour
+   is actively misleading. Using --fx-urgent honours the spec's escalation AT
+   3 h (its actual contribution, resolving the §L.2 contradiction) while keeping
+   the palette's semantics intact. Both tokens are red; they never share a
+   screen region; urgent always carries a shrinking number. */
+.gwdl--t5 .gwdl-val,
+.gwdl--t6 .gwdl-val,
+.gwdl--t7 .gwdl-val{ color:var(--fx-urgent); }   /* #FF3B5C on #101736 = 5.04 */
+.gwdl--t5 .gwdl-lab,
+.gwdl--t6 .gwdl-lab,
+.gwdl--t7 .gwdl-lab{ color:var(--fx-urgent); }   /* #FF3B5C on #101736 = 5.04 */
+
+/* passed, matches live */
+.gwdl--live .gwdl-val{ color:var(--fx-live); }   /* #35D0F5 on #101736 = 9.59 */
+.gwdl--live .gwdl-lab{ color:var(--fx-ink-dim); }
+/* passed, awaiting final */
+.gwdl--wait .gwdl-val{ color:var(--fx-ink-dim); font-size:16px; }
+.gwdl--wait .gwdl-lab{ color:var(--fx-ink-mute); }
+
+/* the locked-but-running header state. On a 14-day round the countdown belongs
+   to the NEXT round for thirteen of the fourteen days, so it must name the
+   round it opens or the app is lying to the user.                 [spec §E.2] */
+.gwdl-lock{
+  display:inline-flex; align-items:center; gap:5px;
+  margin-block-start:6px;
+  padding-block:3px; padding-inline:9px;
+  border-radius:16px;
+  font-size:11.5px; font-weight:800;
+  background:#252D4E;                        /* ink-dim @14% over surface, §E.1 */
+  border:1px solid #505A7F;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #252D4E = 6.77 */
+}
+.gwdl-why{
+  margin-block-start:6px;
+  font-size:11.5px; font-weight:700; line-height:1.6;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #101736 = 8.83 */
+}
+
+/* the pulse. ONLY the < 10 m tier and the live state ever pulse: one timer,
+   one meaning, and nothing else in the product counts down.       [spec §E.1] */
+.gwdot{
+  display:inline-block;
+  inline-size:8px; block-size:8px;
+  border-radius:50%;
+  background:currentColor;
+  margin-inline-end:6px;
+  vertical-align:middle;
+  animation:gwPulse 1.4s ease-in-out infinite;
+}
+@keyframes gwPulse{
+  0%,100%{ opacity:1;  transform:scale(1) }
+  50%    { opacity:.35;transform:scale(.72) }
+}
+
+
+/* ============================================================================
+   4. THE FIXTURE BADGES — .gwb                                       [spec §F]
+   ============================================================================
+   Four states, not two. The fourth — "date not set" — exists because 30 of 228
+   Scottish fixtures have no published date on day one; without it the app tells
+   every Celtic and Rangers owner something false for seven consecutive rounds.
+                                                              [spec §F.1, §H.3]
+   Recipe from fantasy-color.md §E.1: fill = hue @14% over the surface, border =
+   hue @42%, text = the hue. Composites are hard-coded rather than color-mix()
+   because old Android WebView lacks it; the literals are §E.1's own.
+   ---------------------------------------------------------------------------- */
+
+.gwb{
+  display:inline-flex; align-items:center; gap:5px;
+  padding-block:2px; padding-inline:8px;
+  border-radius:16px;
+  font-size:11.5px; font-weight:800; line-height:15px;
+  white-space:nowrap;
+}
+.gwb i{ font-style:normal; font-size:10px; line-height:1; }
+
+/* NO MATCH — "لا يلعب"
+   OVERRIDE, stated as required. Spec §F.1 fills this badge with var(--red)
+   @12%. fantasy-color.md is the palette authority and disagrees on purpose:
+   §A.4.4 defines --fx-blank #63719C as "لا يلعب — no fixture", §E.3 fixes
+   BLANK = grey / DOUBLE = gold, and §E.1 measures the blank hue on its own fill
+   at 3.16 — a fail. Red is committed to realised loss. So: fill and border
+   carry --fx-blank (the category), and --fx-ink-dim carries the word. Colour
+   marks the class; readable ink carries the meaning. */
+.gwb--blank{
+  background:#1C2444;                        /* --fx-blank @14% over --fx-surface */
+  border:1px solid var(--fx-blank);          /* #63719C on #101736 = 3.65 — clears
+                                                the 3:1 non-text UI minimum */
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #1C2444 = 7.64 */
+}
+
+/* PLAYS TWICE / PLAYS 3 TIMES — gold, with ●● / ●●● as the shape channel */
+.gwb--double{
+  background:#312F37;                        /* --fx-gold @14% over --fx-surface */
+  border:1px solid #746039;                  /* --fx-gold @42% */
+  color:var(--fx-gold);                      /* #FFC53D on #312F37 = 8.36 */
+}
+.gwb--triple{
+  background:#403A37;                        /* --fx-gold @20% over --fx-surface,
+                                                per spec §F.1's heavier fill */
+  border:1px solid #746039;
+  color:var(--fx-gold);                      /* #FFC53D on #403A37 = 7.08 */
+}
+
+/* DATE NOT SET — a different visual class entirely.
+   The only dashed border in the Fantasy design, and deliberately so: dashed
+   reads as provisional in every visual language, and this must never be
+   mistaken at a glance for the solid "no match".                  [spec §F.1] */
+.gwb--tbc{
+  background:transparent;
+  border:1px dashed var(--fx-line-3);        /* #55689F on #101736 = 3.23 */
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #101736 = 8.83 */
+}
+
+
+/* ============================================================================
+   5. "WHY DID I SCORE NOTHING?" — .gwj                               [spec §J]
+   ============================================================================
+   F4 Points in its heavy-blank state, for a user who is not curious but
+   annoyed. Five jobs in order: the number first without hedging; the cause in
+   one line above the fold; per-club proof with dates; what the substitutes
+   recovered; a next action. It never apologises.                  [spec §J.1]
+   ---------------------------------------------------------------------------- */
+
+.gwj-score{ text-align:center; padding-block:6px 12px; }
+.gwj-big{
+  font-size:54px; font-weight:900; line-height:1.05;
+  color:var(--fx-gold);                      /* #FFC53D on #101736 = 11.11 */
+  font-variant-numeric:tabular-nums;
+}
+.gwj-biglab{
+  font-size:12px; font-weight:700;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #101736 = 8.83 */
+}
+.gwj-state{
+  display:inline-block;
+  margin-block-start:8px;
+  padding-block:2px; padding-inline:10px;
+  border-radius:16px;
+  font-size:11.5px; font-weight:800;
+  background:#163340;                        /* --fx-pos @14% over --fx-surface */
+  border:1px solid #226B55;
+  color:var(--fx-pos);                       /* #3BE07F on #163340 = 7.68 */
+}
+
+/* THE ANSWER. Directly under the score, in a filled card, not behind a tap.
+   This card is the entire difference between this screen and a bug report. */
+.gwj-answer{
+  background:var(--fx-surface-2);
+  border:1px solid var(--fx-line-2);
+  border-radius:12px;
+  padding:12px;
+  margin-block-end:12px;
+}
+.gwj-a1{
+  font-size:14px; font-weight:800; line-height:1.55;
+  color:var(--fx-ink);                       /* #F2F5FF on #182246 = 14.22 */
+}
+.gwj-a2{
+  margin-block-start:2px;
+  font-size:12.5px; font-weight:700; line-height:1.55;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #182246 = 7.80 */
+}
+
+/* the "why didn't they play?" accordion. INLINE, never a sheet: a sheet over a
+   sheet is where beginners get lost and this user is already unhappy.
+   <details> gives the whole behaviour with no host JavaScript.    [spec §J.5] */
+.gwj-acc{ margin-block-start:10px; }
+.gwj-acc > summary{
+  display:inline-block;                      /* kills the default marker in a way
+                                                that works in RTL Safari too */
+  cursor:pointer;
+  font-size:12px; font-weight:800;
+  color:var(--fx-gold);                      /* #FFC53D on #182246 = 9.81 */
+  padding-block:2px;
+}
+.gwj-acc > summary::-webkit-details-marker{ display:none; }
+.gwj-acc > summary::after{ content:" ›"; }
+.gwj-acc[open] > summary::after{ content:" ˅"; }
+.gwj-accbody{
+  margin-block-start:10px;
+  padding-block-start:10px;
+  border-block-start:1px solid var(--fx-line);
+}
+.gwj-accbody .gwx-hero{ font-size:14px; }
+.gwj-accbody .gwx-why{ font-size:12.5px; }
+.gwj-paused{
+  margin-block-start:8px;
+  font-size:12px; font-weight:700; line-height:1.6;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #182246 = 7.80 */
+}
+
+/* ---- the club list ---- */
+.gwj-list{
+  background:var(--fx-surface);
+  border:1px solid var(--fx-line-2);
+  border-radius:12px;
+  overflow:hidden;
+  margin-block-end:12px;
+}
+.gwj-row{
+  padding:10px 12px;
+  border-block-end:1px solid var(--fx-line);
+}
+.gwj-row:last-child{ border-block-end:none; }
+
+/* DEVIATION: a blanked row is NOT dimmed to opacity .55 as spec §J.2 sketches.
+   At .55 the row's sub-line (#A9B7E4 on #101736, 8.83) composites to #646F96
+   and measures 3.55 — a fail — and this is the one screen in the product where
+   the small print is the whole point. The row is set back with a surface-2 fill
+   instead, which separates it just as clearly and costs no legibility. */
+.gwj-row.blank{ background:var(--fx-surface-2); }
+
+.gwj-main{ display:flex; align-items:center; gap:9px; }
+.gwj-code{
+  flex:0 0 auto;
+  inline-size:34px; block-size:34px;
+  border-radius:9px;
+  display:grid; place-items:center;
+  background:var(--fx-surface-3);
+  border:1px solid var(--fx-line-2);
+  font-size:10px; font-weight:900; letter-spacing:.3px;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #212D57 = 6.71 */
+}
+.gwj-nm{ flex:1 1 auto; min-inline-size:0; }
+/* display:block, because both of these are <span> in the markup. margin-block-start on an
+   inline box does nothing, so the club name and its league sat on ONE line with a zero gap
+   and rendered as a single run: "Real Madridla Liga". Measured on the live page — the two
+   spans ended and began at exactly the same x. The ellipsis rules below only work on a block
+   too, so the author plainly meant these to stack. */
+.gwj-n{
+  display:block;
+  font-size:13.5px; font-weight:800;
+  color:var(--fx-ink);                       /* #F2F5FF on #101736 = 16.10 */
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+/* the league-level reason, not the club-level one. A user who reads it twice on
+   the same screen has learned, without being taught, that blanks travel by
+   league — which is the insight that improves their next transfer. [spec §J.4] */
+.gwj-sub{
+  display:block;
+  margin-block-start:2px;
+  font-size:11px; font-weight:700;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #182246 = 7.80 */
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.gwj-pts{
+  flex:0 0 auto;
+  font-size:16px; font-weight:900;
+  font-variant-numeric:tabular-nums;
+  color:var(--fx-gold);                      /* #FFC53D on #101736 = 11.11 */
+}
+.gwj-pts.zero{
+  color:var(--fx-ink-mute);                  /* #7C8AB8 on #182246 = 4.56 */
+  text-decoration:line-through;
+}
+
+/* the substitution that worked — the best news available, usually invisible */
+.gwj-sup{
+  display:flex; align-items:center; gap:6px;
+  margin-block-start:8px;
+  padding-inline-start:43px;                 /* aligns under the name, not the code */
+  font-size:11.5px; font-weight:800;
+  color:var(--fx-pos);                       /* #3BE07F on #182246 = 8.96 */
+}
+.gwj-sup .v{ margin-inline-start:auto; font-variant-numeric:tabular-nums; }
+/* and the one that did not. Stated as plainly as the one that did: the user
+   knows subs exist, sees one club covered and another not, and finding no
+   explanation for the difference is how "the app is broken" is born. [§J.4] */
+.gwj-nosub{
+  display:flex; align-items:center; gap:6px;
+  margin-block-start:8px;
+  padding-inline-start:43px;
+  font-size:11.5px; font-weight:700;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #182246 = 7.80 */
+}
+.gwj-first{
+  margin-block-start:4px;
+  padding-inline-start:43px;
+  font-size:11.5px; font-weight:700; line-height:1.55;
+  color:var(--fx-ink-mute);                  /* #7C8AB8 on #182246 = 4.56 */
+}
+
+/* THE NEXT ACTION. Names a DATE, not a countdown: on the Monday of a 14-day
+   round the next deadline can be nine days away, and a 9-day countdown is not
+   motivation, it is permission to close the app.                  [spec §J.4] */
+.gwj-next{
+  background:#312F37;                        /* --fx-gold @14% over --fx-surface */
+  border:1px solid #746039;
+  border-radius:12px;
+  padding:12px;
+}
+.gwj-nexth{
+  font-size:14px; font-weight:900;
+  color:var(--fx-gold);                      /* #FFC53D on #312F37 = 8.36 */
+}
+.gwj-nextd{
+  margin-block-start:2px;
+  font-size:12.5px; font-weight:700;
+  color:var(--fx-ink);                       /* #F2F5FF on #312F37 = 12.11 */
+}
+.gwj-cta{
+  display:block; inline-size:100%;
+  margin-block-start:10px;
+  padding-block:11px; padding-inline:12px;
+  border:none; border-radius:11px;
+  background:var(--fx-acc);
+  color:#0B1020;                             /* #0B1020 on #FF7A45 = 7.32 */
+  font-size:14px; font-weight:900;
+  text-align:center; cursor:pointer;
+}
+/* the relief card. No copy fixes a zero — a rule does. This only renders when
+   the per-squad relief rule has actually fired.                   [spec §J.6] */
+.gwj-relief{
+  margin-block-start:12px;
+  padding:11px 12px;
+  border-radius:12px;
+  background:#163340;                        /* --fx-pos @14% over --fx-surface */
+  border:1px solid #226B55;
+  font-size:12.5px; font-weight:800; line-height:1.6;
+  color:var(--fx-pos);                       /* #3BE07F on #163340 = 7.68 */
+}
+
+
+/* ============================================================================
+   6. REDUCED MOTION
+   ============================================================================
+   The calendar diagram animates nothing in any state, so there is nothing to
+   disable there. The only motion in the module is the < 10 m deadline pulse
+   and the live dot. Both must remain VISIBLE with animation off — a dot that
+   was mid-fade when the animation stopped would be a permanently faint dot.
+   ---------------------------------------------------------------------------- */
+@media (prefers-reduced-motion:reduce){
+  .gwdot{
+    animation:none !important;
+    opacity:1 !important;
+    transform:none !important;
+  }
+}

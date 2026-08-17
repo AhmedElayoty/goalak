@@ -1541,6 +1541,21 @@ function tutBuildSquad(input) {
     return true;
   };
 
+  const cheapestRest = (n, extraId) => {
+    if (n <= 0) return 0;
+    const held = extraId ? picked.concat([extraId]) : picked;
+    const cnt = {};
+    for (const id of held) { const cl = c.clubs.find(x => x.id === id); if (cl) cnt[cl.lg] = (cnt[cl.lg] || 0) + 1; }
+    const pool = c.clubs.filter(x => held.indexOf(x.id) < 0)
+                        .sort((a, b2) => priceOf(a.id) - priceOf(b2.id));
+    let tot = 0, got = 0;
+    for (const x of pool) {
+      if (got >= n) break;
+      if ((cnt[x.lg] || 0) >= c.maxPerLeague) continue;
+      cnt[x.lg] = (cnt[x.lg] || 0) + 1; tot += priceOf(x.id); got++;
+    }
+    return got < n ? Infinity : tot;
+  };
   for (let b = 0; b < BANDS.length; b++) {
     while (quota[b] > 0 && picked.length < c.size) {
       const cands = c.clubs.filter(x =>
@@ -1548,7 +1563,7 @@ function tutBuildSquad(input) {
       let best = null, bestScore = -Infinity;
       for (const x of cands) {
         const p = priceOf(x.id);
-        if (spend + p + floorFor(quota.map((q, i) => i === b ? q - 1 : q), picked.length, c) > c.budget) continue;
+        if (spend + p + cheapestRest(c.size - picked.length - 1, x.id) > c.budget) continue;
         const score = (x.fame || 0) + rnd() * 0.35 + (x.ar ? 0.10 : 0) + p / 400;
         if (score > bestScore) { bestScore = score; best = x; }
       }
@@ -1560,7 +1575,7 @@ function tutBuildSquad(input) {
   let guard = 0;
   while (picked.length < c.size && guard++ < 400) {
     const cands = c.clubs.filter(x => eligible(x) &&
-      spend + priceOf(x.id) + (c.size - picked.length - 1) * c.minPrice <= c.budget);
+      spend + priceOf(x.id) + cheapestRest(c.size - picked.length - 1, x.id) <= c.budget);
     if (!cands.length) break;
     cands.sort((a, b2) => priceOf(a.id) - priceOf(b2.id) || (b2.fame || 0) - (a.fame || 0));
     take(cands[0].id);

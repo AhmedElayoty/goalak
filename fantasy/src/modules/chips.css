@@ -1,0 +1,684 @@
+/* ============================================================================
+   GOALLAK FANTASY — THE CHIPS SYSTEM (الجوكرات)
+   Implements design/fantasy-ui.md §D.2.5 (the six states) and §D.8 (F10),
+   dressed to design/fantasy-spectacle.md §H.8 (the clipboard on the dugout
+   wall), with the palette of design/fantasy-color.md §A.4, §C.2 and §E.7.
+
+   HOUSE RULES OBSERVED
+   • Arabic-first. RTL is the DEFAULT, LTR is the override. Logical properties
+     only — inset-inline-*, margin-inline-*, padding-inline-*, border-*-start,
+     block-size, inline-size. There is not one `left`, `right`, `margin-left`
+     or `text-align:left` in this file.
+   • No images, no SVG, no <canvas>, no font, no library. The clipboard, its
+     metal clip and the paper edge are three gradients on two elements.
+   • Phone first: laid out for 360 px, tuned for 390–430 px, unchanged above.
+   • Every animated property is `transform`, `opacity` or `box-shadow`, and
+     every animation is switched off under prefers-reduced-motion.
+   • It declares NO tokens. It consumes the --fx-* set that :root already
+     defines in index.html.
+
+   VIOLET IS THE SIGNATURE, AND IT IS SPENT ONCE
+   fantasy-color.md §C.2: `--fx-chip #A77BFF` means A CHIP and nothing else in
+   the entire product. It appears in this file and nowhere outside it. The
+   corollary is the discipline that matters: no OTHER colour is borrowed to add
+   emphasis here. In particular `--fx-urgent` (the last ten minutes before a
+   deadline) and `--fx-neg` (a realised loss) are NOT warning colours and are
+   not used on the Free Hit confirmation, however severe it is. That severity is
+   carried by type weight, border weight and length of copy — see §5.
+
+   ---------------------------------------------------------------------------
+   CONTRAST — every text/background pair in this file, MEASURED
+   ---------------------------------------------------------------------------
+   Computed with the WCAG 2.1 relative-luminance formula and cross-checked
+   against fantasy-color.md §A.4 / §K.2, which they match to two decimals.
+
+   The card ground is a gradient, `linear-gradient(180deg,#1C2450,#121A3C)`
+   (fantasy-spectacle.md §H.8). Text can land anywhere on it, so EVERY pair
+   below is measured against the LIGHTER end, #1C2450 — the worst case.
+
+     ON THE CARD  #1C2450 (worst end of the gradient)
+       --fx-ink      #F2F5FF   13.60   AAA   chip name
+       --fx-ink-dim  #A9B7E4    7.46   AAA   effect, when-to-use, reason, ghost button
+       --fx-chip     #A77BFF    4.88   AA    the state badge, the play button + its border
+       --fx-gold     #FFC53D    9.39   AAA   the armed ring (non-text) and the count
+       --fx-ink-mute #7C8AB8    4.36   ✗     FORBIDDEN on the card. Never used here.
+
+     ON THE ARMED FILL  #252552  (violet @14% over --fx-surface; §E.7)
+       --fx-ink      #F2F5FF   13.16   AAA
+       --fx-ink-dim  #A9B7E4    7.22   AAA
+       --fx-chip     #A77BFF    4.72   AA    the word مفعّل
+       --fx-ink-mute #7C8AB8    4.22   ✗     FORBIDDEN. Never used here.
+
+     ON THE ACTIVE FILL  --fx-chip #A77BFF  (the one saturated fill; §E.7)
+       #0B1020                  6.24   AA    the word شغّال. The ONLY ink allowed
+                                             on violet: --fx-ink is 2.79 and
+                                             --fx-gold is 1.92, both forbidden.
+
+     ON THE SCREEN GROUND  --fx-surface #101736 (the enclosing .card)
+       --fx-ink      #F2F5FF   16.10   AAA   the screen title
+       --fx-ink-dim  #A9B7E4    8.83   AAA   the sub-line, half headings, notes
+       --fx-ink-mute #7C8AB8    5.16   AA    the round range
+       --fx-chip     #A77BFF    5.78   AA    the armed-now line
+       --fx-gold     #FFC53D   11.11   AAA   —
+
+     ON THE SPENT / EXPIRED CARD  --fx-surface #101736 (§E.7 flattens the card)
+       --fx-ink-dim  #A9B7E4    8.83   AAA   the name and the reason
+       --fx-ink-mute #7C8AB8    5.16   AA    the struck ×0
+
+   NON-TEXT (WCAG 1.4.11, 3:1)
+       play button border --fx-chip vs card      4.88  ✔
+       ghost button border --fx-ink-dim vs card  7.46  ✔
+       armed ring --fx-gold vs card              9.39  ✔
+       focus ring --fx-gold vs every ground      ≥9.08 ✔
+   Card and section EDGES are decorative container boundaries, not control
+   boundaries: the card is separated from the page by its own lighter ground
+   plus `box-shadow:0 4px 10px rgba(0,0,0,.5)` (fantasy-spectacle.md §H.8), and
+   1.4.11 does not apply to them. Every actual CONTROL clears 3:1 above.
+
+   THE TWO DIMMED STATES
+   `locked` and `expired` drop to opacity .45 / .35, which takes their body text
+   below AA. fantasy-color.md §E.7 accepts this explicitly: opacity is the app's
+   established disabled idiom and WCAG 1.4.3 exempts disabled controls. The rule
+   it attaches is obeyed here literally — **the control dims, the explanation
+   does not**: `.fxc-why` is excluded from the dimming and renders at full
+   --fx-ink-dim, 7.46 on the card and 8.83 on the flattened one.
+   ============================================================================ */
+
+
+/* ============================================================================
+   1. THE SCREEN — .fxch                                     [F10, ui §D.8]
+   ============================================================================
+   It renders its own <section class="card">, so it drops into the sheet body
+   or into a full screen without a wrapper.
+   ---------------------------------------------------------------------------- */
+
+.fxch{
+  display:block;
+}
+
+.fxch-hd{
+  margin-block-end:14px;
+}
+.fxch-ttl{
+  margin:0 0 4px;
+  font-size:18px; font-weight:900;
+  color:var(--fx-ink);                       /* #F2F5FF on #101736 = 16.10 */
+}
+.fxch-sub{
+  margin:0;
+  font-size:12.5px; font-weight:700; line-height:1.6;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #101736 =  8.83 */
+}
+
+/* ONE CHIP PER ROUND is the rule the whole screen hangs off, so the round's
+   single slot is stated before anything is offered. */
+.fxch-now{
+  margin-block:10px 0;
+  padding:8px 10px;
+  border-radius:10px;
+  background:var(--fx-surface-2);
+  border:1px solid var(--fx-line);
+  font-size:12px; font-weight:800;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #182246 =  7.80 */
+}
+.fxch-now[data-on="1"]{
+  border-color:#4F418A;                      /* violet @42% — the armed border, §E.7 */
+  color:var(--fx-chip);                      /* #A77BFF on #182246 =  5.10 */
+}
+
+
+/* ============================================================================
+   2. THE TWO HALVES OF THE SEASON — .fxch-half
+   ============================================================================
+   fantasy-design.md §12.2: the first set expires at the halfway deadline, the
+   second unlocks immediately after, and NOTHING carries over. The screen has to
+   make that visible without a paragraph, so the half you are not in is present,
+   labelled, and visibly not now.
+   ---------------------------------------------------------------------------- */
+
+.fxch-half{
+  margin-block-start:18px;
+  padding-block-start:14px;
+  border-block-start:1px solid var(--fx-line);
+}
+.fxch-half:first-of-type{
+  margin-block-start:0;
+  padding-block-start:0;
+  border-block-start:none;
+}
+
+.fxch-hh{
+  display:flex; align-items:baseline; gap:8px;
+  margin:0 0 2px;
+  font-size:13.5px; font-weight:900;
+  color:var(--fx-ink);                       /* #F2F5FF on #101736 = 16.10 */
+}
+.fxch-hn{ flex:0 0 auto }
+.fxch-hr{
+  font-size:11.5px; font-weight:700;
+  color:var(--fx-ink-mute);                  /* #7C8AB8 on #101736 =  5.16 */
+  flex:1 1 auto; min-inline-size:0;
+}
+/* The tag is a word, never a colour alone: `دلوقتي` / `خلص` / `لسه ما فتحش`. */
+.fxch-ht{
+  flex:0 0 auto;
+  font-size:10px; font-weight:800; letter-spacing:.3px;
+  padding:2px 7px; border-radius:99px;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #182246 =  7.80 */
+  background:var(--fx-surface-2);
+  border:1px solid var(--fx-line);
+}
+.fxch-ht[data-tag="fxChipHalfNow"]{
+  color:var(--fx-chip);                      /* #A77BFF on #182246 =  5.10 */
+  border-color:#4F418A;
+}
+
+.fxch-hl{
+  margin:0 0 10px;
+  font-size:11.5px; font-weight:700;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #101736 =  8.83 */
+}
+
+.fxch-grid{
+  display:grid;
+  grid-template-columns:1fr;                 /* the open half: one object per row */
+  gap:10px;
+}
+/* The half you are not in is two-up and compact — four names and four reasons,
+   not four sales pitches. Below 340 px it falls back to one column. */
+.fxch-half:not([data-now="1"]) .fxch-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+@media (max-width:339px){
+  .fxch-half:not([data-now="1"]) .fxch-grid{ grid-template-columns:1fr }
+}
+
+/* The expiry line. fantasy-engagement.md §I.3 is explicit: informative, never
+   urgent. No countdown, no crimson, no exclamation. */
+.fxch-note,
+.fxch-ft{
+  margin:10px 0 0;
+  font-size:11.5px; line-height:1.65; font-weight:700;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #101736 =  8.83 */
+}
+.fxch-ft{
+  margin-block-start:16px;
+  padding-block-start:12px;
+  border-block-start:1px solid var(--fx-line);
+  font-weight:400;
+}
+
+
+/* ============================================================================
+   3. THE CHIP — .fxc                        [spectacle §H.8, ui §D.2.5]
+   ============================================================================
+   A clipboard hanging on the dugout wall: a rounded rect with a 10 px metal
+   clip at the top and a paper-white inner edge. It is a physical object with a
+   count, which is the whole point — a chip is finite and it is worth owning.
+   ---------------------------------------------------------------------------- */
+
+.fxc{
+  position:relative;
+  margin-block-start:6px;                    /* room for the clip to overhang */
+  padding:14px 13px 12px;
+  border-radius:4px 4px 10px 10px;           /* square at the clip, soft at the foot */
+  background:linear-gradient(180deg,#1C2450,#121A3C);
+  border:1px solid var(--fx-line-2);
+  box-shadow:0 4px 10px rgba(0,0,0,.5);
+  display:block;
+}
+/* the paper edge — a 1 px light seam under the clip, so the board reads as a
+   sheet of paper on a backing board rather than a flat tile */
+.fxc::after{
+  content:"";
+  position:absolute; inset-inline:0; inset-block-start:0;
+  block-size:1px;
+  background:rgba(255,255,255,.10);
+  pointer-events:none;
+  border-radius:4px 4px 0 0;
+}
+/* The clip, centred on the card's top edge.
+
+   NOT `inset-inline-start:50%` + `translateX(-50%)`. That pair looks logical
+   and is not: in RTL `inset-inline-start` resolves to `right`, so the element's
+   RIGHT edge lands on the centre line and the translate — which is physical,
+   because `translateX` has no logical form — then pushes it the same physical
+   way it does in LTR. The clip ends up a full clip-width off centre in Arabic
+   and perfectly centred in English, which is the exact failure mode this file's
+   logical-only rule exists to prevent. [MEASURED: 28 px off at 360 px]
+
+   `inset-inline:0` + `margin-inline:auto` centres against both edges with no
+   transform at all, so it is correct in both directions by construction. */
+.fxc-clip{
+  position:absolute;
+  inset-block-start:-5px;
+  inset-inline:0;
+  margin-inline:auto;
+  inline-size:28px; block-size:10px;
+  border-radius:2px;
+  background:linear-gradient(180deg,#8D9BC8,#4A5687);
+  box-shadow:0 1px 2px rgba(0,0,0,.6);
+}
+
+.fxc-hd{
+  display:flex; align-items:center; gap:9px;
+  margin-block-end:8px;
+}
+/* The glyph. Two of the four ARE the rule — `×3` and `+4` — which is
+   fantasy-ui.md §J row 11: do not name the chip, show the arithmetic. Both get
+   dir="ltr" from the markup. */
+.fxc-glyph{
+  flex:0 0 auto;
+  display:flex; align-items:center; justify-content:center;
+  inline-size:34px; block-size:34px;
+  border-radius:9px;
+  background:var(--fx-surface-3);
+  border:1px solid #4F418A;                  /* violet @42%, §E.7's armed border */
+  font-size:14px; font-weight:900; letter-spacing:.2px;
+  color:var(--fx-chip);                      /* #A77BFF on #212D57 = 4.39 — see note */
+}
+/* NOTE on that 4.39: --fx-chip on --fx-surface-3 is below AA for TEXT, so the
+   glyph is not text — it is `aria-hidden` decoration duplicating the name
+   beside it, and 1.4.11's 3:1 is the applicable bar (4.39 ✔). The card is still
+   fully readable with the glyph removed entirely. */
+
+.fxc-name{
+  flex:1 1 auto; min-inline-size:0;
+  font-size:14.5px; font-weight:900;
+  color:var(--fx-ink);                       /* #F2F5FF on #1C2450 = 13.60 */
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+
+/* the state badge — six states, each a WORD, never a colour alone (§G.3) */
+.fxc-badge{
+  flex:0 0 auto;
+  font-size:10px; font-weight:800; letter-spacing:.3px;
+  padding:3px 8px; border-radius:99px;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #1C2450 =  7.46 */
+  background:rgba(255,255,255,.045);
+  border:1px solid var(--fx-line-2);
+}
+
+.fxc-eff{
+  margin:0 0 5px;
+  font-size:12.5px; line-height:1.6; font-weight:700;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #1C2450 =  7.46 */
+}
+/* The second line is the one a beginner needs and the one FPL never gives him:
+   not what the chip does, but WHEN to play it (fantasy-ui.md §D.8). */
+.fxc-when,
+.fxc-sug{
+  margin:0;
+  font-size:11.5px; line-height:1.6;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #1C2450 =  7.46 */
+  opacity:.9;                                /* 7.46 → ~6.4, still AA */
+}
+.fxc-sug{ margin-block-start:5px; font-weight:800; opacity:1 }
+
+.fxc-ft{
+  display:flex; align-items:center; gap:10px;
+  margin-block-start:11px;
+}
+/* THE CONTROL DIMS, THE EXPLANATION DOES NOT — fantasy-color.md §E.7. This
+   element is excluded from every dimming rule in §3.1 below. */
+.fxc-why{
+  margin:0;
+  flex:1 1 auto; min-inline-size:0;
+  font-size:11.5px; line-height:1.55; font-weight:700;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #1C2450 =  7.46 */
+}
+
+/* the play button. An OUTLINE in the signature violet, not a fill: tapping a
+   chip opens the confirmation, it never arms the chip (fantasy-ui.md §D.2.5),
+   so this control must not look like the commitment. The commitment is the one
+   rust `.btn` inside the sheet. */
+.fxc-act{
+  flex:0 0 auto;
+  margin-inline-start:auto;
+  /* fantasy-ui.md §I.2 sets the floor at 48 x 48 for EVERY interactive element,
+     and fantasy-usability.md §430 records that the current build misses it
+     nearly everywhere. This module does not add to that list. */
+  min-block-size:48px; min-inline-size:88px;
+  padding:9px 18px;
+  border-radius:10px;
+  background:transparent;
+  border:1px solid var(--fx-chip);           /* #A77BFF on #1C2450 = 4.88 ✔ 3:1 */
+  color:var(--fx-chip);                      /* #A77BFF on #1C2450 = 4.88 */
+  font-size:13px; font-weight:900;
+  transition:transform 90ms cubic-bezier(.22,1,.36,1);   /* --d-1, --e-out */
+}
+.fxc-act:active{ transform:scale(.97) }
+.fxc-act--undo{
+  border-color:var(--fx-ink-dim);            /* #A9B7E4 on #1C2450 = 7.46 ✔ 3:1 */
+  color:var(--fx-ink-dim);                   /* 7.46 */
+  font-weight:800;
+}
+
+
+/* ----------------------------------------------------------------------------
+   3.1 THE SIX STATES                                       [ui §D.2.5, §E.7]
+   ---------------------------------------------------------------------------- */
+
+/* AVAILABLE — the default above. Nothing to add. */
+
+/* ARMED (pending) — violet @14% fill, violet @42% border, and a gold 2 px ring.
+   The gold ring is the second channel: the state is legible in greyscale and to
+   a viewer who cannot separate violet from navy. */
+.fxc[data-st="pending"]{
+  background:#252552;                        /* violet @14% over --fx-surface */
+  border-color:#4F418A;                      /* violet @42% */
+  box-shadow:0 0 0 2px var(--fx-gold), 0 4px 10px rgba(0,0,0,.5);
+}
+.fxc[data-st="pending"] .fxc-badge{
+  color:var(--fx-chip);                      /* #A77BFF on #252552 = 4.72 */
+  border-color:#4F418A;
+  background:rgba(167,123,255,.10);
+}
+.fxc[data-st="pending"] .fxc-name{ color:var(--fx-ink) }        /* 13.16 on #252552 */
+.fxc[data-st="pending"] .fxc-eff,
+.fxc[data-st="pending"] .fxc-when,
+.fxc[data-st="pending"] .fxc-why{ color:var(--fx-ink-dim) }     /*  7.22 on #252552 */
+
+/* ACTIVE (in play — a Free Hit or a locked Wildcard actually running) — the one
+   saturated fill in the module, and there can only ever be one on screen,
+   because only one chip can be played in a round. §C.1's fill budget holds. */
+.fxc[data-st="active"]{
+  background:var(--fx-chip);
+  border-color:var(--fx-chip);
+  box-shadow:0 4px 14px rgba(167,123,255,.28);
+}
+.fxc[data-st="active"] .fxc-name,
+.fxc[data-st="active"] .fxc-eff,
+.fxc[data-st="active"] .fxc-when,
+.fxc[data-st="active"] .fxc-why,
+.fxc[data-st="active"] .fxc-badge{
+  color:#0B1020;                             /* #0B1020 on #A77BFF = 6.24 — the
+                                                only ink permitted on violet */
+}
+.fxc[data-st="active"] .fxc-badge{
+  background:rgba(11,16,32,.14);
+  border-color:rgba(11,16,32,.34);
+}
+.fxc[data-st="active"] .fxc-glyph{
+  background:rgba(11,16,32,.18);
+  border-color:rgba(11,16,32,.30);
+  color:#0B1020;                             /* 6.24 */
+}
+.fxc[data-st="active"] .fxc-clip{ background:linear-gradient(180deg,#F0EAFF,#7E5FC4) }
+.fxc[data-st="active"]::after{ background:rgba(11,16,32,.14) }
+
+/* SPENT — the card flattens onto the page ground and stops being an object.
+   It is a record, not an offer. */
+.fxc[data-st="used"]{
+  background:var(--fx-surface);
+  border-color:var(--fx-line);
+  box-shadow:none;
+}
+.fxc[data-st="used"] .fxc-name{
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #101736 = 8.83 */
+  font-weight:800;
+}
+.fxc[data-st="used"] .fxc-glyph{
+  border-color:var(--fx-line-2);
+  color:var(--fx-ink-mute);                  /* #7C8AB8 on #212D57 = 3.92 — decorative,
+                                                aria-hidden, 1.4.11's 3:1 applies */
+  opacity:.8;
+}
+.fxc[data-st="used"] .fxc-clip{ background:linear-gradient(180deg,#5B688F,#39436B) }
+
+/* LOCKED and EXPIRED — the two dimmed states. See the header note: the control
+   dims, the explanation does not, so `.fxc-why` is lifted back out of both. */
+.fxc[data-st="locked"],
+.fxc[data-st="expired"]{
+  background:var(--fx-surface);
+  border-color:var(--fx-line);
+  box-shadow:none;
+}
+.fxc[data-st="locked"] .fxc-hd,
+.fxc[data-st="locked"] .fxc-eff,
+.fxc[data-st="locked"] .fxc-when,
+.fxc[data-st="locked"] .fxc-clip{ opacity:.45 }
+.fxc[data-st="expired"] .fxc-hd,
+.fxc[data-st="expired"] .fxc-eff,
+.fxc[data-st="expired"] .fxc-when,
+.fxc[data-st="expired"] .fxc-clip{ opacity:.35 }
+.fxc[data-st="expired"] .fxc-name{ text-decoration:line-through }
+.fxc[data-st="locked"] .fxc-why,
+.fxc[data-st="expired"] .fxc-why{
+  opacity:1;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #101736 = 8.83 — full
+                                                strength, outside the dimming */
+}
+
+/* the compact card, used for the half of the season you are not in */
+.fxc--compact{
+  padding:12px 11px 10px;
+}
+.fxc--compact .fxc-hd{ gap:7px; margin-block-end:6px }
+.fxc--compact .fxc-glyph{ inline-size:26px; block-size:26px; font-size:12px; border-radius:7px }
+.fxc--compact .fxc-name{ font-size:13px }
+.fxc--compact .fxc-badge{ font-size:9.5px; padding:2px 6px }
+.fxc--compact .fxc-ft{ margin-block-start:7px }
+.fxc--compact .fxc-why{ font-size:11px }
+
+
+/* ============================================================================
+   4. FOCUS — the one place a physical direction would be wrong twice
+   ============================================================================
+   index.html already sets `:focus-visible{outline:3px solid var(--fx-gold)}`
+   globally. It is restated here only to give the two fills a matching offset,
+   because a gold ring 2 px off a gold armed ring is unreadable.
+   ---------------------------------------------------------------------------- */
+.fxc-act:focus-visible,
+.fxcf-go:focus-visible,
+[data-chip-dismiss]:focus-visible{
+  outline:3px solid var(--fx-gold);          /* #FFC53D vs every ground ≥ 9.08 */
+  outline-offset:2px;
+  border-radius:10px;
+}
+.fxc[data-st="pending"] .fxc-act:focus-visible{ outline-offset:4px }
+
+
+/* ============================================================================
+   5. THE CONFIRMATION — .fxcf
+   ============================================================================
+   Four chips, four different irreversibilities, and the design problem is that
+   they must NOT look interchangeable:
+
+     Free Hit        no cancel ever, a revert that undoes the round's transfers,
+                     and a ban on the next round. Three sentences, 2 px border,
+                     heaviest headline.
+     Wildcard        cancellable while Pending. Two sentences, 1 px border.
+     Triple Captain  cancellable, but it can be WASTED and not refunded.
+     Full Squad      cancellable, nothing can waste it. The lightest.
+
+   The escalation is TYPE WEIGHT, BORDER WEIGHT AND LENGTH. It is not colour:
+   fantasy-color.md §C.2 gives --fx-urgent one meaning (the last ten minutes
+   before a deadline) and --fx-neg one meaning (a realised loss). Neither is a
+   warning colour and borrowing one here would break the contract on the single
+   screen where the product most needs to be believed.
+   ---------------------------------------------------------------------------- */
+
+.fxcf{ display:block }
+
+.fxcf-ttl{
+  margin:0 0 14px;
+  font-size:18px; font-weight:900; line-height:1.45;
+  color:var(--fx-ink);                       /* #F2F5FF on #101736 = 16.10 */
+}
+
+/* what it does, restated at the moment of commitment */
+.fxcf-eff{
+  display:flex; align-items:flex-start; gap:11px;
+  padding:12px;
+  border-radius:12px;
+  background:var(--fx-surface-2);
+  border:1px solid var(--fx-line);
+  margin-block-end:12px;
+}
+.fxcf-glyph{
+  flex:0 0 auto;
+  display:flex; align-items:center; justify-content:center;
+  inline-size:38px; block-size:38px;
+  border-radius:10px;
+  background:var(--fx-surface-3);
+  border:1px solid #4F418A;
+  font-size:15px; font-weight:900;
+  color:var(--fx-chip);                      /* decorative + aria-hidden; 4.39 ≥ 3:1 */
+}
+.fxcf-effb{ flex:1 1 auto; min-inline-size:0 }
+.fxcf-efft{
+  display:block;
+  font-size:10.5px; font-weight:800; letter-spacing:.4px;
+  color:var(--fx-ink-mute);                  /* #7C8AB8 on #182246 = 4.56 */
+  margin-block-end:3px;
+}
+.fxcf-effp{
+  margin:0;
+  font-size:13px; line-height:1.6; font-weight:700;
+  color:var(--fx-ink);                       /* #F2F5FF on #182246 = 14.22 */
+}
+.fxcf-cost{
+  margin:6px 0 0;
+  font-size:11.5px; font-weight:700;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #182246 =  7.80 */
+}
+
+/* the irreversibility block — three weights, one colour */
+.fxcf-warn{
+  padding:12px 13px;
+  border-radius:12px;
+  background:var(--fx-surface-2);
+  border:1px solid var(--fx-line-2);
+  border-inline-start:3px solid var(--fx-line-3);
+}
+.fxcf-wh{
+  margin:0;
+  font-size:13px; font-weight:800; line-height:1.5;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #182246 =  7.80 */
+}
+.fxcf-wb{
+  margin:6px 0 0;
+  font-size:12px; line-height:1.7;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #182246 =  7.80 */
+}
+
+/* soft — Triple Captain, Full Squad. Cancellable, so the block is a note. */
+.fxcf-warn[data-level="soft"]{
+  border-inline-start-color:var(--fx-line-3);
+}
+
+/* conditional — the Wildcard. Cancellable UNTIL it is not, which is the part
+   people get wrong, so the headline goes to ink and the seam goes violet. */
+.fxcf-warn[data-level="conditional"]{
+  border-inline-start-color:var(--fx-chip);  /* #A77BFF vs #182246 = 5.10 ✔ 3:1 */
+}
+.fxcf-warn[data-level="conditional"] .fxcf-wh{
+  color:var(--fx-ink);                       /* #F2F5FF on #182246 = 14.22 */
+  font-weight:900;
+}
+
+/* final — the Free Hit, and nothing else in the product reaches this level.
+   A 2 px violet border on all four sides, a 15 px/900 ink headline, and three
+   consequence lines at full size. No colour is added; the block is simply
+   BIGGER and HEAVIER than the other three, which is what the difference in
+   consequence actually is. */
+.fxcf-warn[data-level="final"]{
+  padding:14px;
+  background:#252552;                        /* violet @14% over --fx-surface */
+  border:2px solid var(--fx-chip);           /* #A77BFF vs #101736 = 5.78 ✔ 3:1 */
+  border-inline-start-width:2px;
+}
+.fxcf-warn[data-level="final"] .fxcf-wh{
+  font-size:15px; font-weight:900;
+  color:var(--fx-ink);                       /* #F2F5FF on #252552 = 13.16 */
+  margin-block-end:2px;
+}
+.fxcf-warn[data-level="final"] .fxcf-wb{
+  font-size:12.5px;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #252552 =  7.22 */
+}
+
+/* the refusal — one chip per round, stated and not confirmable */
+.fxcf[data-level="blocked"] .fxcf-ttl{ margin-block-end:8px }
+.fxcf-blocked{
+  margin:0 0 4px;
+  padding:12px 13px;
+  border-radius:12px;
+  background:var(--fx-surface-2);
+  border:1px solid var(--fx-line-2);
+  font-size:13px; line-height:1.65; font-weight:700;
+  color:var(--fx-ink-dim);                   /* #A9B7E4 on #182246 =  7.80 */
+}
+
+/* `.btn` and `.btn.ghost` come from index.html unchanged — the rust primary is
+   the app's own commitment control and this module does not restyle it. The two
+   additions are the block spacing above it and the 48 px floor, which `.btn`
+   reaches only at the default font size (fantasy-usability.md §430). */
+.fxcf-go,
+.fxcf [data-chip-dismiss]{
+  min-block-size:48px;
+}
+.fxcf-go{ margin-block-start:16px }
+
+
+/* ============================================================================
+   6. MOTION                                            [spectacle §F.1, §F.2]
+   ============================================================================
+   Two animations, both on `transform`/`box-shadow`, both under 200 ms.
+
+   The arm is one of the FOUR sanctioned uses of `--e-pop` in the whole product
+   (§F.1: the manager avatar, the captain's armband, the reputation pennant, and
+   the chip arm). The curves and durations are written literally because
+   index.html's :root declares the colour tokens but not the motion ones; the
+   values are §F.1's, unchanged:
+       --e-out cubic-bezier(.22,1,.36,1)   --e-pop cubic-bezier(.34,1.3,.5,1)
+       --d-1 90ms   --d-2 180ms
+   ---------------------------------------------------------------------------- */
+
+@keyframes fxcArm{
+  from{ transform:scale(.94) }
+  to  { transform:scale(1) }
+}
+.fxc[data-st="pending"]{
+  animation:fxcArm 180ms cubic-bezier(.34,1.3,.5,1) both;   /* --d-2, --e-pop */
+}
+
+@keyframes fxcLive{
+  from{ box-shadow:0 0 0 0 rgba(167,123,255,0), 0 4px 14px rgba(167,123,255,.28) }
+  to  { box-shadow:0 0 0 0 rgba(167,123,255,0), 0 4px 14px rgba(167,123,255,.28) }
+}
+/* the in-play card arrives, it does not pulse. A chip that throbs on the screen
+   for a week is noise, and §F.2 forbids continuous animation outside the crowd
+   drift and the empty slot. */
+.fxc[data-st="active"]{
+  animation:fxcLive 180ms cubic-bezier(.22,1,.36,1) both;   /* --d-2, --e-out */
+}
+
+@media (prefers-reduced-motion:reduce){
+  .fxc[data-st="pending"],
+  .fxc[data-st="active"]{
+    animation:none !important;
+    transform:none !important;
+  }
+  .fxc-act{ transition:none !important }
+  .fxc-act:active{ transform:none !important }
+}
+
+
+/* ============================================================================
+   7. NARROW — 360 px is the floor, and it is a real phone, not a fallback
+   ============================================================================ */
+@media (max-width:365px){
+  .fxc{ padding:12px 11px 10px }
+  .fxc-glyph{ inline-size:30px; block-size:30px; font-size:13px }
+  .fxc-name{ font-size:13.5px }
+  .fxc-eff{ font-size:12px }
+  .fxc-ft{ flex-wrap:wrap; gap:8px }
+  .fxc-act{ inline-size:100%; margin-inline-start:0 }   /* the button owns its row
+                                                           rather than shrinking to
+                                                           a 44 px tap target */
+  .fxch-ttl{ font-size:17px }
+  .fxcf-ttl{ font-size:16.5px }
+}

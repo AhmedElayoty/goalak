@@ -1,0 +1,179 @@
+/* ============================================================================
+   GOALLAK FANTASY — الشريط · THE STRIP  (share surfaces)
+   Companion to modules/share.js. Implements design/fantasy-viral.md §B, §D.
+
+   Declares NO tokens. Consumes the --fx-* set that :root already defines in
+   index.html (fantasy-color.md §A.4). If a colour is not a --fx-* var or a
+   per-club --c1/--c2/--ink, it is a bug.
+
+   Three surfaces live here:
+     1. .shstrip  — the 15-tile grid, as DOM. Same order and same dimming as
+                    the SVG, so the in-app preview is not a lie about what
+                    gets sent.
+     2. .shsheet  — the preview sheet: one primary button, one secondary, and
+                    the caption printed in full so the user can read what they
+                    are about to post before they post it.
+     3. .shland   — the cold-link landing hero. §D.
+
+   No animation longer than 200 ms, and every one of them is inside a
+   prefers-reduced-motion guard. Nothing here autoplays.
+   ============================================================================ */
+
+/* ---------------------------------------------------------------------------
+   1. THE STRIP, as DOM
+   5 columns x 3 rows, always. The grid is the constant — Wordle's shape is
+   identical every day and that is most of why it is recognisable. The tile
+   itself is .fxkit, unchanged, so the club identity rules in
+   fantasy-color.md §D apply here with no new code.
+   --------------------------------------------------------------------------- */
+.shstrip{
+ display:grid;
+ grid-template-columns:repeat(5,1fr);
+ gap:clamp(5px,1.6vw,9px);
+ direction:inherit;                 /* RTL fills right-to-left: cell 1 = captain */
+}
+.shtile{
+ /* .fxkit supplies the pattern, rim and gloss. This only supplies the box. */
+ width:100%;
+ aspect-ratio:1/1;
+ border-radius:14%;
+ display:flex;align-items:center;justify-content:center;
+}
+.shtile .fxcode{
+ font-size:clamp(10px,3.1vw,15px);
+ font-weight:900;letter-spacing:.2px;color:var(--ink);
+ /* the mandatory outline — fantasy-color.md §D.4.3 */
+ text-shadow:0 0 2px rgba(6,10,26,.9),0 1px 0 rgba(6,10,26,.55);
+}
+/* the bench: dimmed, never hidden. Four dim tiles in a fixed place is part of
+   the fingerprint — a squad with a strong bench looks different from one that
+   spent everything on the XI, and that difference should be visible. */
+.shtile--bench{opacity:.5}
+/* the captain: a gold ring OUTSIDE the tile. Club colour owns the tile and
+   nothing else — fantasy-color.md §C.1. The UI palette never tints a kit. */
+.shtile--cap{
+ outline:2px solid var(--fx-gold);
+ outline-offset:2px;
+}
+
+/* ---------------------------------------------------------------------------
+   2. THE PREVIEW SHEET
+   --------------------------------------------------------------------------- */
+.shsheet{padding:var(--pad,14px);max-width:560px;margin:0 auto}
+.shsheet__lbl{
+ font-size:12px;font-weight:800;color:var(--fx-ink-mute);
+ margin:0 0 10px;
+}
+/* The card renders at its native 1080 x 1350 and is scaled by the box, so the
+   preview is pixel-for-pixel the file that will be sent. Never re-lay-out a
+   preview: a preview that differs from the artifact is a trust bug. */
+.shsheet__frame{
+ border-radius:var(--r,14px);
+ overflow:hidden;
+ border:1px solid var(--fx-line-2);
+ background:var(--fx-bg);
+ line-height:0;
+}
+.shsheet__frame > svg{width:100%;height:auto;display:block}
+.shsheet__acts{display:flex;gap:8px;margin:12px 0 0}
+.shbtn{
+ flex:1;padding:13px 10px;border-radius:12px;
+ font-size:14px;font-weight:900;
+ background:var(--fx-surface-2);border:1px solid var(--fx-line-2);
+ color:var(--fx-ink-dim);
+ min-height:48px;                   /* fantasy-color.md §G.5 tap minimum */
+}
+.shbtn--go{
+ background:var(--fx-acc);border-color:var(--fx-acc);color:#160702;
+}
+.shbtn:active{transform:translateY(1px)}
+.shbtn[data-sh-done]{color:var(--fx-pos)}
+/* the caption, printed in full. The user reads what they are about to post.
+   There is no pre-filled message they have not seen — fantasy-viral.md §H. */
+.shsheet__txt{
+ margin:12px 0 0;padding:10px 12px;
+ background:var(--fx-surface);border:1px solid var(--fx-line);
+ border-radius:10px;
+ font:inherit;font-size:12.5px;line-height:1.7;
+ color:var(--fx-ink-dim);
+ white-space:pre-wrap;word-break:break-word;
+}
+
+/* ---------------------------------------------------------------------------
+   3. THE COLD-LINK LANDING  (§D)
+   Someone opens this from a WhatsApp group with no context. Everything above
+   the fold answers three questions in this order: who sent it, what is it,
+   what do I press. Nothing else is on the screen.
+   --------------------------------------------------------------------------- */
+.shland{
+ padding:24px var(--pad,14px) 20px;
+ max-width:430px;margin:0 auto;
+ text-align:center;
+ background:
+   radial-gradient(120% 100% at 50% 0%,rgba(90,120,255,.16),transparent 68%),
+   var(--fx-bg);
+}
+.shland__who{
+ margin:0 0 4px;
+ font-size:clamp(19px,5.6vw,24px);font-weight:900;color:var(--fx-ink);
+}
+.shland__grp{
+ margin:0 0 18px;
+ font-size:13px;font-weight:700;color:var(--fx-gold);
+}
+.shland .shstrip{margin:0 auto 18px;max-width:330px}
+.shland__what{
+ margin:0 0 18px;
+ font-size:14.5px;line-height:1.65;color:var(--fx-ink-dim);
+}
+.shland__cta{
+ width:100%;font-size:16px;padding:16px;min-height:54px;
+}
+.shland__free{
+ margin:10px 0 0;
+ font-size:12px;color:var(--fx-ink-mute);
+}
+/* No account wall, no download banner, no cookie interstitial, and no second
+   ask anywhere on this screen. The first thing a cold visitor does is pick a
+   club, not type an email. fantasy-viral.md §D and §H. */
+
+/* ---------------------------------------------------------------------------
+   4. THE ONE ANIMATION
+   The strip fills in on the landing page, tile by tile, 40 ms apart. It runs
+   once, lasts 600 ms total, and exists for one reason: it makes a stranger
+   look at fifteen colour blocks for long enough to recognise two of them.
+   --------------------------------------------------------------------------- */
+@media (prefers-reduced-motion:no-preference){
+ .shland .shtile{animation:shIn 200ms ease-out both}
+ .shland .shtile:nth-child(1){animation-delay:0ms}
+ .shland .shtile:nth-child(2){animation-delay:40ms}
+ .shland .shtile:nth-child(3){animation-delay:80ms}
+ .shland .shtile:nth-child(4){animation-delay:120ms}
+ .shland .shtile:nth-child(5){animation-delay:160ms}
+ .shland .shtile:nth-child(6){animation-delay:200ms}
+ .shland .shtile:nth-child(7){animation-delay:240ms}
+ .shland .shtile:nth-child(8){animation-delay:280ms}
+ .shland .shtile:nth-child(9){animation-delay:320ms}
+ .shland .shtile:nth-child(10){animation-delay:360ms}
+ .shland .shtile:nth-child(11){animation-delay:400ms}
+ .shland .shtile:nth-child(12){animation-delay:440ms}
+ .shland .shtile:nth-child(13){animation-delay:480ms}
+ .shland .shtile:nth-child(14){animation-delay:520ms}
+ .shland .shtile:nth-child(15){animation-delay:560ms}
+}
+@keyframes shIn{from{opacity:0;transform:scale(.86)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:no-preference){
+ .shland .shtile--bench{animation-name:shInDim}
+}
+@keyframes shInDim{from{opacity:0;transform:scale(.86)}to{opacity:.5;transform:none}}
+
+/* ---------------------------------------------------------------------------
+   5. SMALL SCREENS
+   360 px is the floor the product supports. At 360 the tile is 62 px and the
+   3-letter code is 11 px — above the 10 px legibility minimum in
+   fantasy-color.md §G.5, with nothing to spare. Do not add a sixth column.
+   --------------------------------------------------------------------------- */
+@media (max-width:365px){
+ .shstrip{gap:5px}
+ .shsheet__txt{font-size:12px}
+}
