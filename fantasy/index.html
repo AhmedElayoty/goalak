@@ -654,6 +654,14 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
 .lbrow{display:flex;align-items:center;gap:10px;padding:10px 14px;
  border-bottom:1px solid var(--fx-line-2)}
 .lbrow:last-child{border-bottom:none}
+.rdlist{max-block-size:52vh;overflow:auto;border:1px solid var(--fx-line-2);border-radius:12px}
+.rdrow{display:flex;align-items:center;gap:10px;padding:9px 12px;border-block-end:1px solid var(--fx-line-2)}
+.rdrow:last-child{border-block-end:none}
+.rdrow.on{background:var(--fx-surface-3)}
+.rdn{inline-size:26px;text-align:center;font-weight:900;color:var(--fx-gold);font-size:13px;flex:0 0 auto;
+ font-variant-numeric:tabular-nums}
+.rdw{flex:1;min-inline-size:0;font-size:13px}
+.rdnote{display:block;font-size:10.5px;color:var(--fx-ink-mute);margin-block-start:1px}
 .lbempty{padding:22px 14px;text-align:center;color:var(--fx-ink-dim);font-size:13px;line-height:1.7}
 .lbrank{width:22px;text-align:center;font-weight:800;color:var(--fx-ink-mute);font-size:13px;flex:0 0 auto}
 .lbrow.me{background:var(--fx-surface-3)}
@@ -989,6 +997,22 @@ const STR = {
  mgrDefault:["المدير","Manager"],
  renameTeam:["اسم الفريق","Team name"],
  replayTut:["شوف الشرح من الأول","Replay the tutorial"],
+ roundsTitle:["مواعيد الجولات","Round dates"],
+ scoreTitle:["النادي بياخد نقط إزاي؟","How a club scores"],
+ scoreLead:["كل نادي في الـ11 بيجمع نقط من نتيجة ماتشه في دوريه.",
+            "Every club in your eleven scores from the result of its own league match."],
+ scWin:["فوز","Win"], scDraw:["تعادل","Draw"], scLoss:["خسارة","Loss"],
+ scGoal:["كل جول بيحرزه","Each goal it scores"],
+ scClean:["شباك نضيفة","Clean sheet"],
+ scConc:["كل جولين بياخدهم","Every 2 goals it concedes"],
+ scBig:["فوز على فريق كبير","Beating a strong side"],
+ scCap:["الكابتن","Your captain"],
+ scBlank:["مالوش ماتش في الجولة","No match that round"],
+ scoreNote:["يعني فوز 2-0 على فريق كبير = 6 + 2 جول + 4 شباك نضيفة + 3 = 15 نقطة. ولو ده الكابتن تبقى 30.",
+            "So a 2-0 win over a strong side = 6 + 2 goals + 4 clean sheet + 3 = 15 points. Captain it and that is 30."],
+ roundsSub:["الموسم من {a} لحد {b} · 36 جولة","The season runs {a} to {b} · 36 rounds"],
+ longRound:["{n} يوم","{n} days"],
+ covShort:["{pct}% بس من الأندية بتلعب","only {pct}% of clubs play"],
  navSet:["إعدادات","Settings"],
  renameAsk:["سمّي فريقك","Name your team"],
  toolsTitle:["إعدادات الفريق","Team settings"],
@@ -1828,6 +1852,7 @@ function openTools(){
   + (full ? '<button type="button" class="btn ghost" onclick="closeSheet();openCaptain()">' + esc(t("capTitle")) + "</button>" : "")
   + (full ? '<button type="button" class="btn ghost" onclick="closeSheet();openChips()">' + esc(t("chipsLab")) + "</button>" : "")
   + (full ? '<button type="button" class="btn ghost" onclick="closeSheet();openShare()">' + esc(t("shareTitle")) + "</button>" : "")
+  + '<button type="button" class="btn ghost" onclick="closeSheet();openRounds()">' + esc(t("roundsTitle")) + "</button>"
   + '<button type="button" class="btn ghost" onclick="replayTutorial()">' + esc(t("replayTut")) + "</button>"
   + '<button type="button" class="btn ghost" onclick="closeSheet();openHelp()">' + esc(t("rulesTitle")) + "</button>"
   + '<button type="button" class="btn ghost" onclick="closeSheet();openRename()">' + esc(t("renameTeam")) + "</button>"
@@ -1843,6 +1868,30 @@ function teamName(){
    right behaviour for starting over and the wrong one for wanting to see the walkthrough
    again. This clears only the flag that says you have seen it. Also reachable as
    /fantasy/?tutorial=1, so it can be re-run without hunting through a sheet. */
+/* THE WHOLE SEASON, READABLE. The round bar shows the round you are on; this is the map -
+   all 36 windows, the long ones marked, and the rounds where a lot of clubs sit out marked
+   too, because those are exactly the weeks a badly chosen bench costs you. */
+function openRounds(){
+ if(!CAL || !CAL.gws) return;
+ const rows = CAL.gws.map(function(g, i){
+  const gw = i + 1, longR = g[2] > 7, cov = g[3];
+  return '<div class="rdrow' + (gw === CURRENT_GW ? " on" : "") + '">'
+   + '<span class="rdn" dir="ltr">' + num(gw) + "</span>"
+   + '<span class="rdw"><b dir="ltr">' + esc(gwDates(gw)) + "</b>"
+   + (longR || cov < 100
+      ? '<span class="rdnote">'
+        + (longR ? esc(t("longRound", {n: g[2]})) : "")
+        + (longR && cov < 100 ? " · " : "")
+        + (cov < 100 ? esc(t("covShort", {pct: Math.round(cov)})) : "")
+        + "</span>" : "")
+   + "</span></div>";
+ }).join("");
+ openSheet("<h2>" + esc(t("roundsTitle")) + "</h2>"
+  + '<div class="muted" style="margin-bottom:10px">' + esc(t("roundsSub", {
+      a: gwDates(1).split(" – ")[0], b: gwDates(36).split(" – ")[1]})) + "</div>"
+  + '<div class="rdlist">' + rows + "</div>"
+  + '<button type="button" class="btn" onclick="closeSheet()">' + esc(t("done")) + "</button>");
+}
 function replayTutorial(){
  try{ localStorage.removeItem("fx_onboarded"); }catch(_){}
  closeSheet();
@@ -2263,6 +2312,13 @@ function openHelp(){
  openSheet("<h2>" + esc(t("rulesTitle")) + "</h2>"
   + '<div class="card"><h3>' + esc(t("wiz1h")) + '</h3><div class="dim" style="font-size:13px;line-height:1.7">' + t("wiz1p") + "</div></div>"
   + '<div class="card"><h3>' + esc(t("wiz2h")) + '</h3><div class="dim" style="font-size:13px;line-height:1.7">' + t("wiz2p") + "</div></div>"
+  + '<div class="card"><h3>' + esc(t("scoreTitle")) + "</h3>"
+  + '<div class="dim" style="font-size:13px;margin-bottom:10px">' + esc(t("scoreLead")) + "</div>"
+  + [["scWin","+6"],["scDraw","+2"],["scLoss","0"],["scGoal","+1"],["scClean","+4"],
+     ["scConc","−1"],["scBig","+1…+3"],["scCap","×2"],["scBlank","0"]]
+    .map(function(r){ return '<div class="ptsrow"><span class="dim">' + esc(t(r[0]))
+      + '</span><span class="v" dir="ltr">' + esc(r[1]) + "</span></div>"; }).join("")
+  + '<div class="dim" style="font-size:12px;margin-top:10px;line-height:1.7">' + esc(t("scoreNote")) + "</div></div>"
   + '<div class="card"><h3>' + esc(t("glossTitle")) + "</h3>"
   + GLOSSARY.map(g => '<div class="gloss"><div class="gterm">' + esc(LANG === "ar" ? g[0] : g[1]) + '</div>'
     + '<div class="gen"' + (LANG === "ar" ? ' dir="ltr"' : "") + '>' + esc(LANG === "ar" ? g[1] : g[0]) + "</div>"
