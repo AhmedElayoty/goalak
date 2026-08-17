@@ -6,7 +6,7 @@
  "clubs": [
   {
    "id": "359",
-   "price": 18.5,
+   "price": 20,
    "tier": "elite",
    "str": 0.702
   },
@@ -126,13 +126,13 @@
   },
   {
    "id": "83",
-   "price": 16.5,
+   "price": 18.5,
    "tier": "elite",
    "str": 0.655
   },
   {
    "id": "86",
-   "price": 15.5,
+   "price": 17.5,
    "tier": "elite",
    "str": 0.577
   },
@@ -354,7 +354,7 @@
   },
   {
    "id": "132",
-   "price": 17.5,
+   "price": 19,
    "tier": "elite",
    "str": 0.711
   },
