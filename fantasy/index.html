@@ -990,6 +990,8 @@ const STR = {
  whyZero:["ليه في أندية ماجابتش نقط؟","Why did some clubs score nothing?"],
  preTtl:["الموسم لسه ما بدأش","The season has not started"],
  locksOn:["يقفل {d}","Locks {d}"],
+ noFixtureThisRound:["مالوش ماتش في الجولة دي","No fixture this round"],
+ playsThisRound:["بيلعب","Plays"],
  lockedNow:["مقفول","Locked"],
  lockedTtl:["الجولة اتقفلت","This round is locked"],
  lockedBody:["مش هتقدر تغيّر فريقك ولا الكابتن بعد ما الجولة تبدأ — زي أي فانتازي محترم. أي تغيير هيتحسب من الجولة الجاية.",
@@ -1102,6 +1104,10 @@ function blockReason(c){
  if(squad.includes(c.id)) return null;
  if(slotsLeft() <= 0) return t("squadFull");
  if(leagueCount(c.lg) >= MAX_PER_LEAGUE) return t("leagueFull");
+ /* Owner's rule: do not let somebody spend on a club that cannot play. Only ever fires on a
+    KNOWN absence - clubHasFixture returns null while the answer is still loading, and null is
+    not false. An unknown fixture must never look like a confirmed one. */
+ if(clubHasFixture(c.id, CURRENT_GW) === false) return t("noFixtureThisRound");
  if(priceOf(c.id) > maxNextPrice()) return t("tooExpensive");
  return null;
 }
@@ -1157,6 +1163,54 @@ function hash(str){ let h = 2166136261; for(let i = 0; i < str.length; i++){ h ^
    The fallback is the old flat 10/11 so the game still runs if the file fails to load. */
 let CAL = null;
 let CRESTS = {};
+/* ============================================================================
+   WHO ACTUALLY PLAYS THIS ROUND — from ESPN, not from a hash.
+   The blank badge used to be invented: a bit of the club-id hash decided whether
+   a club "had no match". That was fiction dressed as a fixture, the same class of
+   thing as the simulated points, and it must not drive a decision the player makes.
+   One request per league covers a whole round window (ESPN accepts a date RANGE:
+   dates=YYYYMMDD-YYYYMMDD), so a round costs 7 requests, cached per round.
+   Only the club's OWN league counts, which is exactly how the Premier League's game
+   defines a blank: a cup tie is a match, but it is not a league match, and league
+   results are what this game scores.
+   Until the answer has loaded we claim NOTHING - no badge, no block. An unknown
+   fixture must never look like a confirmed absence. */
+let FIXT = {};              /* gw -> Set of club ids with a real league fixture */
+let fixtLoading = {};
+function fixtureSetFor(gw){ return FIXT[gw] || null; }
+function clubHasFixture(id, gw){
+ const set = fixtureSetFor(gw);
+ return set ? set.has(String(id)) : null;      /* null = not known yet */
+}
+function ymd(d){ return d.replace(/-/g, ""); }
+async function loadFixtures(gw){
+ if(FIXT[gw] || fixtLoading[gw]) return;
+ const r = gwRound(gw); if(!r) return;
+ fixtLoading[gw] = 1;
+ const key = "fx_fixt_" + gw;
+ try{
+  const cached = JSON.parse(localStorage.getItem(key) || "null");
+  if(cached && cached.ids){ FIXT[gw] = new Set(cached.ids); render(); return; }
+ }catch(_){}
+ const base = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
+ const range = ymd(r[0]) + "-" + ymd(r[1]);
+ try{
+  const lists = await Promise.all((LEAGUES || []).map(l =>
+   fetch(base + l.slug + "/scoreboard?dates=" + range + "&limit=300")
+    .then(x => x.json()).catch(() => null)));
+  const ids = new Set();
+  lists.forEach(j => ((j && j.events) || []).forEach(e =>
+   (e.competitions || []).forEach(c => (c.competitors || []).forEach(t => ids.add(String(t.id))))));
+  /* An empty answer is not proof that nobody plays - it is far more likely the feed
+     failed. Only a non-empty result is allowed to become the truth for a round. */
+  if(ids.size){
+   FIXT[gw] = ids;
+   try{ localStorage.setItem(key, JSON.stringify({ids: [...ids], at: Date.now()})); }catch(_){}
+   render();
+  }
+ }catch(_){}
+ fixtLoading[gw] = 0;
+}
 function gwRound(gw){ return CAL && CAL.gws[gw - 1] ? CAL.gws[gw - 1] : null; }
 function gwCoverage(gw){ const r = gwRound(gw); return r ? r[3] / 100 : 10 / 11; }
 /* "25/09 – 12/10" is a puzzle; "25 سبتمبر – 12 أكتوبر" is a date. Numeric day/month is also
@@ -1313,6 +1367,7 @@ let _gwRaf = 0;
 function setGw(g){
  clearArm();
  CURRENT_GW = Math.max(1, Math.min(36, g));
+ loadFixtures(CURRENT_GW);
  /* on the team screen nothing but the stadium and the label depend on the gameweek, so
     patch in place and never touch the input the user is dragging */
  if(view === "team" && patchTeamGw()) return;
@@ -1430,8 +1485,12 @@ function cardHtml(c, withPoints, gw, slotIndex){
   l2 = signed(p);
   ven = m.home ? "H" : "A";
  }else{
-  l2 = "▸ " + (m.opp ? m.opp.code : "—");
-  ven = m.home ? "H" : "A";
+  /* The opponent shown here is drawn from the same hash as the simulated result, so before
+     the season starts it is a guess with a club's name on it. Until real fixtures feed this
+     line it says only whether the club plays, which IS known. */
+  const plays = clubHasFixture(c.id, gw == null ? CURRENT_GW : gw);
+  l2 = plays === false ? t("noMatch") : plays === true ? t("playsThisRound") : "";
+  ven = "";
  }
  const act = withPoints ? "openBreakdown('" + esc(c.id) + "'," + g + ")"
    : (slotIndex == null ? "openClub('" + esc(c.id) + "')" : "swapArm(" + slotIndex + ")");
@@ -2340,6 +2399,7 @@ function toggleLang(){
  load();
  paintChrome();
  render();
+ loadFixtures(CURRENT_GW);
  let onboarded = "";
  try{ onboarded = localStorage.getItem("fx_onboarded") || ""; }catch(_){}
  if(!onboarded) openWizard();
