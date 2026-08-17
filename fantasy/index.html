@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#070B1A">
-<title>جولك فانتازي · Goallak Fantasy — DEMO</title>
+<title>جولك فانتازي · Goallak Fantasy</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>⚽</text></svg>">
 <!-- The five design modules, built from modules/*.js by scripts/build-bundle.mjs.
      Sibling files rather than inlined: the sources are 325KB and inlining would take the
@@ -74,8 +74,6 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
 .hbtn{width:38px;height:38px;border-radius:11px;background:var(--fx-surface-2);border:1px solid var(--fx-line);
  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex:0 0 auto}
 /* was gold-on-navy at 12.4:1 - the brightest thing on the screen was a debug label */
-.demoTag{font-size:9px;font-weight:800;letter-spacing:.6px;color:var(--fx-ink-mute);
- background:transparent;border:1px solid var(--fx-line-2);padding:2px 6px;border-radius:5px;flex:0 0 auto}
 
 /* ---------- shell ---------- */
 .wrap{padding:var(--pad);max-width:560px;margin:0 auto}
@@ -873,7 +871,7 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
 </a>
 <main class="wrap">
  <!-- #demoNote and #segbar are gone. Measured at 360x640 they cost 34px and 62px above the
-      pitch for nothing: the note was a standing disclaimer that the DEMO tag and the settings
+      pitch for nothing: the note was a standing disclaimer that the settings
       sheet already carry, and the segmented bar was a second copy of the bottom nav, which
       does the same three views plus two more. 96px of stadium recovered. -->
  <section id="viewTeam"></section>
@@ -889,13 +887,13 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
 
 <script>
 /* ===========================================================================
-   GOALLAK FANTASY — DEMO
-   Standalone. No backend, no accounts, no network writes. Everything lives in
-   localStorage so the whole flow can be walked through and judged.
-   The real build will sit behind the worker's signed sessions.
+   GOALLAK FANTASY
+   No backend and no accounts yet: a manager's squad, captain, chips, team name
+   and ground all live in localStorage on his own device.
+   Accounts and a shared leaderboard will sit behind the worker's signed sessions.
    =========================================================================== */
 const $ = id => document.getElementById(id);
-const VERSION = "demo-1.0";
+const VERSION = "fx-1.0";
 /* ELEVEN clubs — a football XI. The squad is a team sheet, not a shopping list.
    The ceiling, RECOMPUTED against the prices that actually ship (18.5, 17.5, 16.5, 15.5, 15.0)
    with every other slot at the 4.5M floor:
@@ -926,16 +924,9 @@ const FORMATIONS = {
  "4-3-3": [1, 4, 3, 3],
  "3-5-2": [1, 3, 5, 2]
 };
-/* ============================================================================
-   DEMO RESETS ON EVERY OPEN.
-   This is a review build, not a product: the owner opens the link to judge the
-   FIRST-RUN experience, and a half-finished squad from last time hides exactly
-   what he came to look at. So every page load starts clean — new onboarding,
-   empty squad, coach marks re-armed, Arabic.
-   State still persists WITHIN a session, so the app behaves normally while you
-   use it; it is only wiped when the page loads.
-   ============================================================================ */
-/* The demo wiped localStorage on every load. In the app that would delete a manager's
+/* Nothing is wiped on load. A manager's squad, captain, chips, team name and ground
+   all persist; starting over is a deliberate act in the settings sheet. */
+/* An earlier build wiped localStorage on every load. In the app that would delete a manager's
    squad every time he opened it, so it is gone and everything persists. */
 
 let formation = "4-4-2";
@@ -963,8 +954,8 @@ const STR = {
     paintChrome never touched, so the English build read جولك فانتازي in its own header */
  brandA:["جولك","GOALLAK"], brandB:["فانتازي","FANTASY"],
  backToApp:["الرجوع لتطبيق جولك","Go back to the Goallak app"],
- demoNote:["دي نسخة تجريبية للعرض بس — من غير حساب ومن غير سيرفر، وكل حاجة متسجلة على تليفونك. النقط اللي هنا مش حقيقية، دي عشان تشوف الشكل.",
-           "Demo build for review only — no account, no server. Everything is stored on your device and the points are simulated to show the design."],
+ pickFirst:["لسه ما اخترتش فريقك — ابدأ من «الاختيار».",
+            "You have not picked a team yet — start from Pick."],
  segTeam:["فريقي","My team"], segPts:["النقاط","Points"], segBoard:["الترتيب","Standings"],
  navTeam:["فريقي","Team"], navPick:["الاختيار","Pick"], navPts:["النقاط","Points"], navBoard:["الترتيب","Table"], navHelp:["الشرح","Help"],
  budLeft:["المتبقي","Remaining"], budOf:["من 120 مليون","of 120M"],
@@ -1052,7 +1043,7 @@ const STR = {
  glossTitle:["قاموس الفانتازي","Fantasy glossary"],
  startWiz:["ابدأ فريقك","Build your team"],
  changeTeam:["عدّل فريقك","Edit your team"],
- resetDemo:["ابدأ من الأول","Reset demo"],
+ resetDemo:["ابدأ من الأول","Start over"],
  benchLab:["دكة البدلاء · بيدخلوا لوحدهم لو ناديك مالوش ماتش","The bench · they come on automatically when a starter has no match"],
  cameOn:["دخل","Came on"],
  swapWith:["بدّل","Swap"],
@@ -1189,7 +1180,7 @@ function validateSquad(){
  save();
 }
 
-/* ---------------- simulated scoring (demo only) ----------------
+/* ---------------- match simulation (until real results feed the scoring) ------------
    Deterministic from club id + gameweek so the same squad always shows the same
    story. Mirrors the real scoring shape: result + clean sheet + goals - conceded
    + opponent-strength tier bonus. */
@@ -1408,8 +1399,8 @@ function scoreGw(gw){
  return applyChip(id, res) || res;
 }
 function gwTotal(gw){ return SEASON_STARTED ? scoreGw(gw).total : 0; }
-/* DEMO ONLY: a scrubber so the season can be walked in ten seconds instead of nine months.
-   The real product reads the gameweek from the fixture calendar. */
+/* A scrubber, so the whole season can be walked in ten seconds rather than nine months.
+   It is a VIEWING control: it never credits the ground ledger and never moves a deadline. */
 let CURRENT_GW = 6;
 let _gwRaf = 0;
 function setGw(g){
@@ -1578,7 +1569,7 @@ function pitchHtml(withPoints, gw){
     already knows — no new data, and none of it changes a single point scored. */
  const gwNow = CURRENT_GW;
  const sky = gwNow <= 4 ? "dusk" : gwNow >= 33 ? "golden" : (gwNow >= 15 && gwNow <= 24) ? "december" : "night";
- const friends = 5;                                   /* demo: the five rivals on the board */
+ const friends = 5;                                   /* the crowd fills as your group fills */
  const crowd = (0.34 + 0.072 * friends).toFixed(3);
  const wear = (0.055 + (0.030 * Math.min(1, gwNow / 36))).toFixed(3);   /* trodden ring grows */
  const scuff = gwNow >= 12 ? 1 : 0;                   /* goalmouth scuff from GW12 */
@@ -1761,7 +1752,7 @@ function renderTeam(){
 }
 
 function renderPoints(){
- if(!squad.length){ $("viewPoints").innerHTML = '<div class="card"><div class="muted">' + esc(t("demoNote")) + "</div></div>"; return; }
+ if(!squad.length){ $("viewPoints").innerHTML = '<div class="card"><div class="muted">' + esc(t("pickFirst")) + "</div></div>"; return; }
  const gw = CURRENT_GW;
  /* The round scrubber lives HERE now, on the screen whose whole subject is the round. On the
     team screen it was 96px of chrome above a pitch nobody could see. */
@@ -1870,7 +1861,7 @@ function openTools(){
   + '<button type="button" class="btn ghost" onclick="closeSheet();openHelp()">' + esc(t("rulesTitle")) + "</button>"
   + '<button type="button" class="btn ghost" onclick="closeSheet();openRename()">' + esc(t("renameTeam")) + "</button>"
   + '<button type="button" class="btn ghost" onclick="resetDemo()">' + esc(t("resetDemo")) + "</button>"
-  + '<div class="muted" style="margin-top:14px;text-align:center">DEMO · ' + esc(t("demoNote")) + "</div>");
+  );
 }
 /* IDENTITY. `managerName` returned zero hits across the whole codebase: there was no manager,
    no team, nothing on the screen that was yours rather than generic. One prompt, one name. */
