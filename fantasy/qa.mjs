@@ -1161,6 +1161,26 @@ async function tutorialSuite() {
   ok("tutorial: it opens on a first visit", open, open ? "" : "the wizard did not appear for a user with no fx_onboarded");
   if (!open) return;
 
+  /* IT MUST NOT BE LOSABLE BY ACCIDENT. closeWizard() writes fx_onboarded, and the flag is
+     one-way: a first-timer who dismisses the tutorial with a stray tap never sees it again
+     unless he finds Settings. The generic sheet DOES close on a backdrop tap, so the two
+     overlays behave differently and this asserts the difference on purpose rather than
+     trusting that nobody adds a listener later. Escape is checked for the same reason. */
+  const survives = await evaluate(`(async()=>{
+    const wiz = document.getElementById("wiz");
+    const r = wiz.getBoundingClientRect();
+    /* a tap on the backdrop, clear of the panel */
+    wiz.dispatchEvent(new MouseEvent("click", {bubbles:true, clientX:r.left+4, clientY:r.top+4}));
+    document.dispatchEvent(new KeyboardEvent("keydown", {key:"Escape", bubbles:true}));
+    await new Promise(f => setTimeout(f, 120));
+    let flag = ""; try{ flag = localStorage.getItem("fx_onboarded") || ""; }catch(e){}
+    return JSON.stringify({ stillOpen: !wiz.classList.contains("hide"), flag: flag });
+  })()`).then(JSON.parse);
+  ok("tutorial: a stray tap on the backdrop does not dismiss it",
+     survives.stillOpen, "the wizard closed on a backdrop tap — a first-timer loses it for good");
+  ok("tutorial: it is not marked seen before the user has finished or skipped",
+     !survives.flag, "fx_onboarded was already written while the tutorial was still on screen");
+
   const trail = [];
   let deadEnd = null, finishedIn = -1;
   for (let step = 0; step < 40; step++) {
