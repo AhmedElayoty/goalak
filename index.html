@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Goallak · الجول جولك</title>
-<meta name="description" content="Live scores and predictions for top leagues and the UEFA Champions League. Fantasy coming soon!">
+<meta name="description" content="Live scores and predictions for top leagues and the UEFA Champions League, plus Goallak Fantasy — pick 15 clubs and play every round.">
 <link rel="canonical" href="https://goallak.com/">
 <meta property="og:site_name" content="Goallak">
 <meta property="og:title" content="Goallak · الجول جولك">
-<meta property="og:description" content="Live scores and predictions for top leagues and the UEFA Champions League. Fantasy coming soon!">
+<meta property="og:description" content="Live scores and predictions for top leagues and the UEFA Champions League, plus Goallak Fantasy — pick 15 clubs and play every round.">
 <meta property="og:url" content="https://goallak.com/">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="ar_AE">
@@ -21,7 +21,7 @@
 <meta property="og:image:alt" content="GOALLAK · الجول جولك">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Goallak · الجول جولك">
-<meta name="twitter:description" content="Live scores and predictions for top leagues and the UEFA Champions League. Fantasy coming soon!">
+<meta name="twitter:description" content="Live scores and predictions for top leagues and the UEFA Champions League, plus Goallak Fantasy — pick 15 clubs and play every round.">
 <meta name="twitter:image" content="https://goallak.com/goallak-social-cover-v22.jpg">
 <meta name="twitter:image:alt" content="GOALLAK · الجول جولك">
 <meta name="theme-color" content="#0a1230">
@@ -736,8 +736,11 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    <div class="fantsoon">
     <div class="fbig">⭐</div>
     <div class="fttl" id="fantBrand">فانتازي جولك</div>
-    <div class="fsoon" id="fantSoon">قريبًا…</div>
-    <a class="fantcta hide" id="fantCta" href="fantasy/">إبدأ فريقك</a>
+    <!-- The CTA no longer ships hidden and #fantSoon no longer says "قريبًا". Both are
+         painted by paintFantasyGate on every language change; the markup carries the open
+         state so a first paint never flashes a holding screen that is not true any more. -->
+    <div class="fsoon" id="fantSoon">اختار 15 نادي · 120 مليون · 36 جولة</div>
+    <a class="fantcta" id="fantCta" href="fantasy/">إبدأ فريقك</a>
     <div class="fantwho" id="fantWho"></div>
    </div>
   </section>
@@ -1135,9 +1138,7 @@ const STR = {
  alreadyPicked:["سبق أن توقعت هذه المباراة من جهاز آخر","You already predicted this match on another device"],
  fantasyNav:["فانتازي","Fantasy"],
  fantasyTag:["اختار 15 نادي · 120 مليون · 36 جولة","Pick 15 clubs · 120M · 36 rounds"],
- fantasySoon:["قريبًا…","Coming soon…"],
  fantasyCta:["إبدأ فريقك","Build your team"],
- fantasyWho:["داخل باسم {u} — لسه مقفول على الحساب ده","Signed in as {u} — not unlocked for this account"],
  soon:["قريبًا…","Soon…"],
  details:["التفاصيل","Details"],
  account:["الحساب","Account"],
@@ -3768,42 +3769,21 @@ function paintClubHero(){
   '<div class="chtm"><span class="tm tmh"><i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + '</span><span class="mtime" dir="ltr">' + esc(fmtTime(e.date)) + '</span><span class="tm tma">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span></div>" +
   '<div class="chsub">' + esc(fmtDayFull(dkey(new Date(e.date)))) + "</div></button>";
 }
-/* ---------- fantasy: owner preview ----------
-   Fantasy is not open yet. The tab says "coming soon" to everyone and the way in appears
-   only for the owner's own signed-in account.
-
-   THE MATCH IS DELIBERATELY GENEROUS. A previous version compared the username against a
-   list of exact spellings and the owner - the one person it exists for - was locked out of
-   his own product, because nobody outside his account knows how he actually typed it. It
-   now normalises to letters only and accepts any username CONTAINING his family name, plus
-   an explicit unlock for a device he is signed in on.
-
-   This is a RELEASE GATE, not a security control: the check is readable in this file and
-   /fantasy/ is a public path. It stops an unfinished game being advertised to the app's
-   users. Real protection belongs in the worker, the way chat already is. */
-const FX_OWNER_MARKS = ["ayoty", "elayoty", "ahmedayoty", "ahmedelayoty"];
-function fxKey(v){ return String(v || "").toLowerCase().replace(/[^a-z]/g, ""); }
-function fxAllowed(){
- try{ if(localStorage.getItem("gk_fx_owner") === "1") return true; }catch(_){}
- const k = fxKey(gkUser && gkUser.username);
- return !!k && FX_OWNER_MARKS.some(m => k.indexOf(m) >= 0);
-}
+/* ---------- fantasy ---------- */
+/* THE RELEASE GATE IS GONE - fantasy is open to everyone, on the owner's instruction of
+   2026-08-18. What stood here decided whether the tab offered the game or said "coming soon",
+   by matching the signed-in username against the owner's name. It is deleted outright, along
+   with the gk_fx_owner flag and the ?fxowner=1 unlock, because a gate left in place but
+   switched off is one accidental edit away from locking everybody out again - which is very
+   nearly what happened when an earlier exact-spelling version locked out the owner himself. */
 function paintFantasyGate(){
  const cta = $("fantCta"), soon = $("fantSoon"), who = $("fantWho");
  if(!cta || !soon) return;
- const ok = fxAllowed();
- cta.classList.toggle("hide", !ok);
+ cta.classList.remove("hide");
  cta.textContent = t("fantasyCta");
- soon.textContent = ok ? t("fantasyTag") : t("fantasySoon");
- /* If he is signed in and still shut out, the screen must say WHICH account it is judging -
-    otherwise the only way to debug it is to ask him to guess his own username. */
- if(who) who.textContent = (!ok && gkUser && gkUser.username)
-   ? t("fantasyWho").replace("{u}", gkUser.username) : "";
+ soon.textContent = t("fantasyTag");
+ if(who) who.textContent = "";
 }
-try{
- if(/[?&]fxowner=1/.test(location.search)) localStorage.setItem("gk_fx_owner", "1");
- if(/[?&]fxowner=0/.test(location.search)) localStorage.removeItem("gk_fx_owner");
-}catch(_){}
 function hdrAuthTap(){ if(gkUser) showMain("pred"); else openAuth("L"); }
 function refreshHdrAuth(){
  const b = $("hdrAuth");

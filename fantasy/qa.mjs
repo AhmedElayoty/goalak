@@ -212,12 +212,14 @@ async function loadApp({ lang, fresh }) {
           free. The app deliberately does not - a manager's squad must survive closing it - so
           the suite clears storage itself, or the wizard appears only on the very first load
           of a run and every later viewport times out waiting for it.
-       2. Fantasy is behind an owner gate until it launches. The suite unlocks it the same way
-          the owner does, with the gk_fx_owner flag; without it the page serves a holding
-          screen and there is no app to test. */
+       2. Fantasy USED to sit behind an owner gate, and the suite unlocked it with the
+          gk_fx_owner flag. The gate was deleted on 2026-08-18 when the owner opened the game
+          to everyone, so nothing is set here any more - which means this suite now proves
+          something it could not before: that a visitor with EMPTY storage and no account
+          reaches the game. If a holding screen ever comes back, every case below fails at
+          the first wait rather than passing behind an unlock the public does not have. */
   await navigate(BASE + "/index.html");
-  await evaluate(`(()=>{try{localStorage.clear();sessionStorage.clear();
-    localStorage.setItem("gk_fx_owner","1");}catch(e){}return 1})()`).catch(() => {});
+  await evaluate(`(()=>{try{localStorage.clear();sessionStorage.clear();}catch(e){}return 1})()`).catch(() => {});
   await navigate(BASE + "/index.html");
   try {
     await waitFor(`typeof CLUBS !== "undefined" && CLUBS && CLUBS.length > 0`, 15000, "club data");
@@ -842,6 +844,79 @@ async function main() {
      !filt.sameBg, "selected chip has the same background as an unselected one");
   ok("picker: the selected chip is scrolled into view",
      filt.inView, "the chip for " + filt.onLabel + " is off-screen in the strip");
+
+  /* ---- THE ROUND STATUS BAND -------------------------------------------------
+     The one genuinely weekly decision this game has, and the backtest of a real season is what
+     promoted it from a whisper on a card to a band on the team screen. The live fixture feed
+     is unreachable from this sandbox, so the round is SEEDED the same way the app stores it -
+     through the fx_fixt_N cache that loadFixtures itself writes - rather than by stubbing a
+     function. That way the band is exercised through the real code path, and a change to how
+     fixtures are read still breaks this test.
+
+     All four tones are checked in both languages, because the last two copy defects that
+     reached a user were both "measured the Arabic, estimated the English". */
+  for (const lang of ["ar", "en"]) {
+    setCtx("round band " + lang);
+    await setViewport(360, 800);
+    await loadApp({ lang, fresh: false });
+    const band = await evaluate(`(async()=>{
+      autoFill(); captain = squad[0]; save();
+      const gw = CURRENT_GW, out = {};
+      const seed = (fn) => {
+        const ids = squad.map((id,i) => [String(id), fn(i)]).filter(x => x[1] > 0);
+        localStorage.setItem("fx_fixt_"+gw, JSON.stringify({ids: ids, at: Date.now()}));
+        FIXT = {}; fixtLoading = {};
+        FIXT[gw] = new Map(ids);
+        render();
+        const el = document.querySelector("#viewTeam .rs");
+        if(!el) return {missing:true};
+        const cap = el.querySelector(".rs__cap");
+        return { tone: el.getAttribute("data-tone"), text: el.innerText.split(String.fromCharCode(10)).join(" ").trim(),
+                 hasCapWarning: !!cap, clipped: el.scrollWidth > el.clientWidth + 1,
+                 tappable: !!el.getAttribute("onclick"),
+                 hit: (()=>{ const r = el.getBoundingClientRect();
+                   const e = document.elementFromPoint(r.left + r.width/2, r.top + r.height/2);
+                   return !!(e && e.closest(".rs")); })() };
+      };
+      out.allPlay  = seed(() => 1);                 /* everybody plays once */
+      out.doubles  = seed(i => i < 3 ? 2 : 1);      /* three of the XI play twice */
+      out.blanks   = seed(i => (i === 4 || i === 5) ? 0 : 1);   /* two starters idle, captain fine */
+      out.capBlank = seed(i => i === 0 ? 0 : 1);    /* the captain is the one who is idle */
+      /* and the sheet the band opens */
+      openRoundWho();
+      await new Promise(r => setTimeout(r, 250));
+      const rows = document.querySelectorAll("#sheetBox .rwrow");
+      out.sheet = { rows: rows.length, hasCapMark: !!document.querySelector("#sheetBox .rwcap"),
+                    tagged: [...rows].filter(r => r.querySelector(".fxn")).length };
+      closeSheet();
+      return JSON.stringify(out);
+    })()`).then(JSON.parse);
+
+    ok("round band " + lang + ": it appears once the fixtures are known",
+       !band.allPlay.missing, "no .rs element on the team screen");
+    ok("round band " + lang + ": an all-playing round reads calm, not alarming",
+       band.allPlay.tone === "calm", "tone was " + band.allPlay.tone);
+    ok("round band " + lang + ": doubles are called out",
+       band.doubles.tone === "good" && /3/.test(band.doubles.text),
+       "tone " + band.doubles.tone + " · " + band.doubles.text);
+    ok("round band " + lang + ": blanks in the XI raise a warning",
+       band.blanks.tone === "warn" && /2/.test(band.blanks.text),
+       "tone " + band.blanks.tone + " · " + band.blanks.text);
+    ok("round band " + lang + ": a blanked CAPTAIN is the loudest state",
+       band.capBlank.tone === "bad" && band.capBlank.hasCapWarning,
+       "tone " + band.capBlank.tone + ", captain line " + band.capBlank.hasCapWarning);
+    ok("round band " + lang + ": nothing overflows in any state",
+       !["allPlay","doubles","blanks","capBlank"].some(k => band[k].clipped),
+       "clipped in " + ["allPlay","doubles","blanks","capBlank"].filter(k => band[k].clipped).join(", "));
+    ok("round band " + lang + ": it is actually tappable where it is drawn",
+       band.capBlank.hit && band.capBlank.tappable,
+       "elementFromPoint did not land on the band — the same failure that made 9 of 11 pitch cards dead");
+    ok("round band " + lang + ": the sheet lists the whole squad, tagged",
+       band.sheet.rows === 15 && band.sheet.tagged === 15,
+       band.sheet.rows + " rows, " + band.sheet.tagged + " carrying a fixture tag");
+    ok("round band " + lang + ": the captain is marked in that sheet",
+       band.sheet.hasCapMark, "no captain mark among the rows");
+  }
 
   /* A blocked call to a THIRD-PARTY host is not an application error - it is the fail-soft
      path, and this suite deliberately runs against a local server with no outside network.

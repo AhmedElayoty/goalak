@@ -804,6 +804,30 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
  .st--enter .slot{opacity:1 !important;transform:none !important}
  .cc--empty{animation:none !important;opacity:.85 !important}
 }
+/* THE ROUND STATUS BAND. Loud on purpose - it carries the only weekly decision the game has,
+   and it sat as a whisper on a card until a backtest of a real season said so. Tone is a data
+   attribute so the three states are one rule, not three copies of a border. */
+.rs{display:block;inline-size:100%;text-align:start;margin-block-end:10px;padding:10px 14px;
+ border:1px solid var(--line);border-radius:14px;background:var(--card);cursor:pointer;
+ border-inline-start-width:4px}
+.rs[data-tone="calm"]{border-inline-start-color:var(--line)}
+.rs[data-tone="good"]{border-inline-start-color:var(--ok,#3fca7a)}
+.rs[data-tone="warn"]{border-inline-start-color:var(--fx-gold,#e8b64c)}
+.rs[data-tone="bad"] {border-inline-start-color:var(--bad,#ff5c5c);
+ background:color-mix(in srgb,var(--bad,#ff5c5c) 8%,var(--card))}
+.rs__cap{font-size:13px;font-weight:800;color:var(--bad,#ff5c5c);margin-block-end:6px;line-height:1.5}
+.rs__row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--fg)}
+.rs__sep{color:var(--dim);opacity:.6}
+.rs__n{font-weight:900;font-size:15px;font-variant-numeric:tabular-nums}
+.rs__n--blank{color:var(--bad,#ff5c5c)}
+.rs__n--dbl{color:var(--ok,#3fca7a)}
+.rs__hint{font-size:11px;color:var(--dim);margin-block-start:4px}
+.rwrow{display:flex;align-items:center;gap:10px;padding:8px 2px;border-block-end:1px solid var(--line)}
+.rwrow.out{opacity:.62}
+.rwcap{display:inline-block;min-inline-size:16px;text-align:center;border-radius:5px;
+ background:var(--fx-gold,#e8b64c);color:#1a1305;font-size:10px;padding:1px 4px}
+.fxn--one{background:color-mix(in srgb,var(--dim) 18%,transparent);color:var(--dim)}
+
 /* the transfer line lives inside the budget panel: the two numbers a manager spends are
    money and points, and they belong beside each other */
 .ftline{display:flex;justify-content:space-between;align-items:center;gap:10px;
@@ -820,53 +844,19 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
 .fxn--dbl{background:color-mix(in srgb,var(--ok,#3fca7a) 20%,transparent);color:var(--ok,#3fca7a)}
 </style>
 <script>
-/* ---------- owner preview gate ----------
-   Fantasy has not started. The app's tab says "coming soon"; this page is the game itself,
-   and a public URL, so it checks the same signed-in session (same origin, so gk_user is the
-   very same record the app wrote) and shows the same holding screen to everyone else.
-   This is a RELEASE GATE, not security: the list is readable in this file. It exists so the
-   game is not open before it starts, not to protect anything secret. */
-(function fxGate(){
- /* Generous on purpose: an exact-spelling list locked the owner out of his own product,
-    because nobody outside his account knows how he actually typed his username. Letters
-    only, and any username CONTAINING his family name counts. */
- var MARKS = ["ayoty","elayoty","ahmedayoty","ahmedelayoty"];
- var key = function(v){ return String(v||"").toLowerCase().replace(/[^a-z]/g,""); };
- var ok = false;
- try{ if(localStorage.getItem("gk_fx_owner") === "1") ok = true; }catch(_){}
- try{
-  if(/[?&]fxowner=1/.test(location.search)){ localStorage.setItem("gk_fx_owner","1"); ok = true; }
-  var u = JSON.parse(localStorage.getItem("gk_user") || "null");
-  var k = u ? key(u.username) : "";
-  if(k) for(var i=0;i<MARKS.length;i++){ if(k.indexOf(MARKS[i])>=0){ ok = true; break; } }
- }catch(_){}
- if(ok) return;
- /* honour the language the visitor last chose in the game, not the markup default */
- var ar = true;
- try{ ar = (localStorage.getItem("fx_lang") || "ar") !== "en"; }catch(_){}
- document.documentElement.dir = ar ? "rtl" : "ltr";
- document.addEventListener("DOMContentLoaded", function(){
-  document.body.innerHTML =
-   '<div style="min-height:100dvh;display:flex;flex-direction:column;align-items:center;'
-   + 'justify-content:center;gap:14px;padding:28px;text-align:center;color:#F2F5FF;'
-   + 'background:#070B1A;font-family:system-ui,sans-serif">'
-   + '<div style="font-size:54px">⭐</div>'
-   + '<div style="font-size:22px;font-weight:900;letter-spacing:1.5px;color:#FFC53D">'
-   + (ar ? "فانتازي جولك" : "GOALLAK FANTASY") + "</div>"
-   + '<div style="font-size:16px;font-weight:700;color:#A9B7E4">'
-   + (ar ? "قريبًا…" : "Coming soon…") + "</div>"
-   + '<a href="/" style="margin-top:18px;padding:12px 26px;border-radius:12px;'
-   + 'background:#182246;color:#F2F5FF;text-decoration:none;font-weight:800">'
-   + (ar ? "رجوع للتطبيق" : "Back to the app") + "</a></div>";
- });
- /* The app must NOT boot behind the holding screen. Letting it run was not harmless: it
-    replaced the body, then paintChrome looked for a header that no longer existed and threw
-    an uncaught TypeError on every gated visit. Caught by the suite's no-console-errors
-    assertion, which is exactly the kind of thing that used to reach production here.
-    Deliberately not window.stop() either - aborting the parse can stop DOMContentLoaded
-    firing at all, leaving a blank page instead of a holding screen. */
- window.__FX_GATED = 1;
-})();
+/* ---------- THE GATE IS GONE. FANTASY IS OPEN. ----------
+   It shipped closed on the owner's instruction - "keep it as coming soon and only allow me
+   my account" - so an unfinished game was not advertised to the app's users while it was
+   being built. On 2026-08-18 he opened it: "AND OPEN THE FANTASY FOR EVERYONE! MAKE SURE TO
+   REMOVE THE SOON SCREEN! LET'S GIVE IT A TRY".
+
+   What used to sit here was a username check that replaced document.body with a holding
+   screen and set window.__FX_GATED so boot() would return early. All of it is DELETED rather
+   than left switched off, because a dormant gate is a gate somebody re-enables by accident -
+   and this one had already locked the owner out of his own product once.
+
+   gk_fx_owner and ?fxowner=1 are gone with it. They were keys to a door that no longer
+   exists, and leaving them would leave a reader wondering what they still unlock. */
 </script>
 <script src="modules.js"></script>
 </head>
@@ -1033,6 +1023,17 @@ const STR = {
  noFixtureThisRound:["مالوش ماتش في الجولة دي","No fixture this round"],
  playsThisRound:["بيلعب","Plays"],
  playsTwice:["بيلعب {n} ماتشات","Plays {n}"],
+ rsBlank:["مالهمش ماتش","with no match"],
+ rsDouble:["بيلعبوا مرتين","play twice"],
+ rsAllPlay:["كل الـ11 بيلعبوا الجولة دي","All eleven of your XI play this round"],
+ rsCapBlank:["الكابتن بتاعك مالوش ماتش — الشارة مش هتجيب ولا نقطة","Your captain has no match — the armband scores nothing"],
+ rsCoverHint:["عندك {n} على الدكة بيلعبوا ويقدروا يغطّوا","{n} on your bench are playing and can cover"],
+ rsTap:["اضغط تشوف مين بيلعب","Tap to see who plays"],
+ rsTitle:["مين بيلعب الجولة دي","Who plays this round"],
+ rsLead:["النادي اللي مالوش ماتش بياخد صفر. اللي بيلعب مرتين بيجيب تقريباً الضعف. الاتنين معروفين دلوقتي — قبل ما الجولة تقفل.",
+         "A club with no match scores nothing. A club playing twice scores roughly double. Both are known right now — before the round locks."],
+ rsOnPitch:["في الملعب","On the pitch"],
+ rsOnBench:["على الدكة","On the bench"],
  ftLeft:["تغييرات مجانية","Free transfers"],
  ftNoCost:["من غير خصم","No cost"],
  ftPts:["نقطة","pts"],
@@ -1987,6 +1988,7 @@ function renderTeam(){
      the standings tab, which is where somebody goes to ask that question. Removing it also
      retires the shared-club dimming, whose only purpose was to explain that band. */
   + roundBarHtml()
+  + roundStatusHtml()
   + pitchHtml(false)
   + '<button type="button" class="btn" onclick="openPicker()">'
   + esc(squad.length ? t("changeTeam") : t("startWiz")) + "</button>"
@@ -2264,6 +2266,63 @@ function roundBarHtml(){
           + "</b>" : "") + "</div>"
   +  '<div class="rndb__bar"><div class="rndb__fill" style="inline-size:' + pct + '%"></div></div>'
   + "</span></div>";
+}
+/* WHO PLAYS THIS ROUND, SAID OUT LOUD.
+   The backtest settled what actually matters week to week in this game, and it is not form -
+   chasing the last five rounds cost 105 points across a season. It is the calendar. A blank
+   starter scores zero and a club playing twice scores roughly double, and both are KNOWN at
+   the deadline. That is the only genuinely weekly decision Goallak has, and it was whispered:
+   a small line on a card the manager had to go looking for.
+
+   The worst case is the captain. He is the one club worth double, so a blanked captain is the
+   biggest single loss available in a round - and the auto-sub cannot rescue it the way it
+   rescues an ordinary starter, because the armband follows the shirt onto a substitute who
+   was picked to be a substitute. It gets its own red line.
+
+   Silent until the fixtures are known: clubMatchCount returns null while they load, and an
+   unknown must never be drawn as a confirmed absence. */
+function roundStatusHtml(){
+ if(squad.length < SQUAD_SIZE) return "";
+ const gw = CURRENT_GW;
+ const xi = squad.slice(0, START_SIZE);
+ if(clubMatchCount(xi[0], gw) === null) return "";
+ const blanks = xi.filter(id => clubMatchCount(id, gw) === 0);
+ const dbl    = xi.filter(id => (clubMatchCount(id, gw) || 0) > 1);
+ const benchUp = squad.slice(START_SIZE).filter(id => (clubMatchCount(id, gw) || 0) > 0).length;
+ const capOut = !!captain && clubMatchCount(captain, gw) === 0;
+ const tone = capOut ? "bad" : blanks.length ? "warn" : dbl.length ? "good" : "calm";
+ const bits = [];
+ if(blanks.length) bits.push('<span class="rs__n rs__n--blank" dir="ltr">' + num(blanks.length) + "</span> "
+   + esc(t("rsBlank", {n: blanks.length})));
+ if(dbl.length) bits.push('<span class="rs__n rs__n--dbl" dir="ltr">' + num(dbl.length) + "</span> "
+   + esc(t("rsDouble", {n: dbl.length})));
+ if(!bits.length) bits.push(esc(t("rsAllPlay")));
+ return '<button type="button" class="rs" data-tone="' + tone + '" onclick="openRoundWho()">'
+  + (capOut ? '<div class="rs__cap">⚠️ ' + esc(t("rsCapBlank")) + "</div>" : "")
+  + '<div class="rs__row">' + bits.join('<span class="rs__sep">·</span>') + "</div>"
+  + '<div class="rs__hint">' + esc(blanks.length && benchUp ? t("rsCoverHint", {n: benchUp}) : t("rsTap")) + "</div>"
+  + "</button>";
+}
+/* the whole squad, sorted by what it does this round, so the fix is one tap from the warning */
+function openRoundWho(){
+ const gw = CURRENT_GW;
+ const line = (id, i) => {
+  const c = CLUBS.find(x => x.id === id); if(!c) return "";
+  const n = clubMatchCount(id, gw);
+  const tag = n === null ? "" : n === 0 ? '<span class="fxn fxn--blank">' + esc(t("noMatchFull")) + "</span>"
+            : n > 1 ? '<span class="fxn fxn--dbl">' + esc(t("playsTwice", {n: n})) + "</span>"
+            : '<span class="fxn fxn--one">' + esc(t("playsThisRound")) + "</span>";
+  return '<div class="rwrow' + (n === 0 ? " out" : "") + '">' + kitHtml(c, "k34")
+   + '<span class="crname"><span class="crn">' + esc(clubName(c))
+   + (id === captain ? ' <b class="rwcap">C</b>' : "") + "</span>"
+   + '<span class="crl">' + esc(i < START_SIZE ? t("rsOnPitch") : t("rsOnBench")) + "</span></span>"
+   + tag + "</div>";
+ };
+ openSheet("<h2>" + esc(t("rsTitle")) + "</h2>"
+  + '<div class="dim" style="font-size:13px;line-height:1.7;margin-bottom:12px">' + esc(t("rsLead")) + "</div>"
+  + squad.map(line).join("")
+  + '<button type="button" class="btn" onclick="closeSheet();openPicker()">' + esc(t("changeTeam")) + "</button>"
+  + '<button type="button" class="btn ghost" onclick="closeSheet();openCaptain()">' + esc(t("capTitle")) + "</button>");
 }
 /* الشريط - the share artifact. The captain is the shared referent: one decision, same pool,
    same deadline, settled in 48 hours. That is what makes two managers' rounds comparable. */
@@ -2781,7 +2840,6 @@ function toggleLang(){
 /* ---------------- boot ---------------- */
 (async function boot(){
  /* the owner gate above replaced the page; there is no app DOM to paint */
- if(window.__FX_GATED) return;
  try{
   const [cj, pj, kj, xj] = await Promise.all([
    fetch("clubs.json").then(r => r.json()),

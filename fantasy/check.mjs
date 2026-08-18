@@ -136,6 +136,19 @@ for (const fn of ["transferCost", "transferHtml"]) {
 }
 if (!body.includes('t("ftRule")')) fail.push("the rules screen no longer explains transfers");
 
+/* 12. THE GATE STAYS GONE.
+      Fantasy shipped behind an owner-only release gate and was opened to everyone on
+      2026-08-18. The gate is deleted rather than switched off, because a dormant one is a
+      single edit away from locking the public out again — and an earlier version of it
+      managed to lock out the owner himself, the one person it existed for. These are the
+      code shapes, not the words: the comments explaining the history are allowed to stay. */
+if (/window\.__FX_GATED\s*=/.test(body))
+  fail.push("the fantasy page sets __FX_GATED again — the holding screen is back");
+if (/getItem\(\s*["']gk_fx_owner["']\s*\)/.test(body))
+  fail.push("the fantasy page reads gk_fx_owner again — that flag was deleted with the gate");
+if (/function\s+fxAllowed\s*\(/.test(body))
+  fail.push("fxAllowed() is back — fantasy is meant to be open to everyone");
+
 if (fail.length) { fail.forEach(f => console.log("  FAIL  " + f)); process.exit(1); }
 console.log("check.mjs: index.html parses, " + called.size + " handlers and "
   + usedKeys.size + " strings resolve, data files intact");

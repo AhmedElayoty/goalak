@@ -31,7 +31,10 @@ const SQUAD_SIZE = START_SIZE + BENCH_SIZE;
 const BUDGET = K(/const BUDGET = ([\d.]+)/, 120);
 const MAX_PER_LEAGUE = K(/MAX_PER_LEAGUE = (\d+)/, 3);
 const FT_MAX = K(/const FT_MAX = (\d+)/, 5);
-const HIT_COST = K(/FT_MAX = \d+, HIT_COST = (\d+)/, 4);
+/* overridable so the hit can be sized against a real season rather than argued about:
+   HIT=6 node scripts-playtest-2526.mjs */
+const HIT_COST = Number(process.env.HIT || K(/FT_MAX = \d+, HIT_COST = (\d+)/, 4));
+const FT_BANK  = Number(process.env.BANK || FT_MAX);
 
 const byId = new Map(CLUBS.map(c => [String(c.id), c]));
 const priceOf = id => (PRICE.get(String(id)) || {}).price || 999;
@@ -368,7 +371,7 @@ function play(man) {
     /* ---- transfers ---- */
     const firstRound = gw === joined;
     const unlimited = firstRound || !!wildcard || chip === "fh";
-    const ft = { free: unlimited ? 99 : Math.max(1, Math.min(FT_MAX, banked)) };
+    const ft = { free: unlimited ? 99 : Math.max(1, Math.min(FT_BANK, banked)) };
     let made = 0;
     if (freeHitRevert) { sq = freeHitRevert; freeHitRevert = null; }
     if (!firstRound) {
@@ -387,7 +390,7 @@ function play(man) {
     }
     const hits = unlimited ? 0 : Math.max(0, made - ft.free);
     const cost = hits * HIT_COST;
-    banked = unlimited ? 1 : Math.min(FT_MAX, Math.max(0, ft.free - made) + 1);
+    banked = unlimited ? 1 : Math.min(FT_BANK, Math.max(0, ft.free - made) + 1);
     transfersTotal += made; hitsTotal += cost;
 
     /* ---- order the XI: the eleven most likely to play go on the pitch ---- */
