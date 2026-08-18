@@ -925,7 +925,7 @@ const SEASON_OPENS = "2026-08-21";
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.13";
+const FX_BUILD = "6.14";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -1098,7 +1098,7 @@ const STR = {
  scrubHint:["اسحب عشان تشوف نقط أي جولة","Swipe to see any round"],
  repaired:["الأسعار اتغيرت، فشيلنا الأندية اللي مابقتش تدخل في ميزانيتك. اختار بدلها.",
            "Prices changed, so clubs that no longer fit your budget were removed. Pick replacements."],
- done:["تمام","Done"], next:["التالي","Next"], back:["رجوع","Back"], skip:["بعدين","Skip"],
+ done:["تمام","Done"], next:["التالي","Next"], back:["رجوع","Back"], skip:["بعدين","Later"],
  confirmSquad:["أكّد الفريق","Confirm squad"],
  wiz1h:["أهلاً بيك في جولك فانتازي","Welcome to Goallak Fantasy"],
  wiz1p:["مش هتختار لاعيبة — هتختار <b>أندية</b>. كل أسبوع، الأندية اللي في فريقك بتجيب لك نقط على حسب نتايجها.",
@@ -2156,11 +2156,18 @@ function openRounds(){
   + '<button type="button" class="btn" onclick="closeSheet()">' + esc(t("done")) + "</button>");
 }
 function replayTutorial(){
- try{ localStorage.removeItem("fx_onboarded"); }catch(_){}
+ try{
+  localStorage.removeItem("fx_onboarded");
+  localStorage.removeItem("fx_tut_skips");      /* an explicit replay resets the count */
+  sessionStorage.removeItem("fx_tut_hold");
+ }catch(_){}
  closeSheet();
  openWizard();
 }
-try{ if(/[?&]tutorial=1/.test(location.search)) localStorage.removeItem("fx_onboarded"); }catch(_){}
+try{ if(/[?&]tutorial=1/.test(location.search)){
+ localStorage.removeItem("fx_onboarded"); localStorage.removeItem("fx_tut_skips");
+ sessionStorage.removeItem("fx_tut_hold");
+} }catch(_){}
 function openRename(){
  const cur = teamName();
  const v = window.prompt(t("renameAsk"), cur === t("teamDefault") ? "" : cur);
@@ -2790,6 +2797,24 @@ $("wizBox").addEventListener("click", function(e){
   if(f) f.focus({preventScroll:true});
  }
 });
+/* SKIP POSTPONES, IT DOES NOT DISMISS FOREVER.
+   fx_onboarded used to be written whenever this ran, so tapping «بعدين» on the first screen
+   spent the tutorial permanently - and the Arabic word for that button has always been
+   "later", which was simply not true. It is true now: the flag is only set when the manager
+   actually HAS a squad, so somebody who put it off is offered it again next time he opens
+   the game, on an empty pitch, exactly where he left off.
+
+   THREE THINGS STOP THIS BECOMING NAGWARE, and the third is a judgement I made rather than
+   an instruction I was given:
+     · a session hold, so putting it off means putting it off for THIS visit - reloading the
+       page two seconds later does not throw it back in his face;
+     · a full squad ends it, which is the owner's own rule - once he has a team he is playing,
+       not learning;
+     · and a cap. Somebody who declines three times has told us three times. Without it, a
+       manager sitting on fourteen clubs would be asked at every single launch for the rest
+       of the season, which is not "offered again", it is pestering. Settings still replays
+       it whenever he wants. */
+const TUT_MAX_SKIPS = 3;
 function closeWizard(){
  /* Re-arm the walk-out. boot() paints the pitch and then covers it with the wizard, so the
     entry sequence was being spent behind a z-index 120 modal — every run, since the demo
@@ -2797,7 +2822,16 @@ function closeWizard(){
  _entryPlayed = false;
  $("wiz").classList.add("hide");
  document.body.classList.remove("gk-lock");
- try{ localStorage.setItem("fx_onboarded", "1"); }catch(_){}
+ const built = squad.length >= SQUAD_SIZE;
+ try{
+  if(built){ localStorage.setItem("fx_onboarded", "1"); }
+  else{
+   const n = (+localStorage.getItem("fx_tut_skips") || 0) + 1;
+   localStorage.setItem("fx_tut_skips", String(n));
+   if(n >= TUT_MAX_SKIPS) localStorage.setItem("fx_onboarded", "1");
+   try{ sessionStorage.setItem("fx_tut_hold", "1"); }catch(__){}
+  }
+ }catch(_){}
  render();
 }
 function wizNext(){ wizStep++; if(wizStep > 3) return closeWizard(); paintWizard(); }
@@ -2832,6 +2866,8 @@ function resetDemo(){
  squad = []; captain = null; swapFrom = null;
  try{ localStorage.removeItem("fx_squad"); localStorage.removeItem("fx_cap");
       localStorage.removeItem("fx_onboarded"); localStorage.removeItem("fx_coach");
+      localStorage.removeItem("fx_tut_skips");
+      try{ sessionStorage.removeItem("fx_tut_hold"); }catch(__){}
       localStorage.removeItem("fx_team"); localStorage.removeItem("fx_ledger"); }catch(_){}
  seenCoach = {}; coachShownThisSession = false;
  closeSheet(); paintChrome(); render(); openWizard();
@@ -2881,9 +2917,12 @@ function toggleLang(){
  paintChrome();
  render();
  loadFixtures(CURRENT_GW);
- let onboarded = "";
+ /* Offered until he has a squad. `hold` is sessionStorage, so "later" means later - the
+    next time he opens the game, not the next time this page happens to reload. */
+ let onboarded = "", hold = "";
  try{ onboarded = localStorage.getItem("fx_onboarded") || ""; }catch(_){}
- if(!onboarded) openWizard();
+ try{ hold = sessionStorage.getItem("fx_tut_hold") || ""; }catch(_){}
+ if(!onboarded && !hold) openWizard();
 })();
 </script>
 </body>

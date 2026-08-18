@@ -1391,8 +1391,9 @@ const ltr = s => '<span dir="ltr">' + esc(s) + "</span>";
 
 const TUT_STR = {
 
-  tutSkip:      ["بعدين", "Skip"],
-  tutSkipAria:  ["سيب الشرح وروح على الملعب", "Skip the tutorial and go to the pitch"],
+  tutSkip:      ["بعدين", "Later"],
+  tutSkipAria:  ["سيب الشرح دلوقتي — هنعرضه تاني لما تفتح اللعبة",
+                 "Leave the tutorial for now — we will offer it again next time"],
   tutBack:      ["رجوع", "Back"],
   tutStepAria:  ["خطوة {n} من {total}", "Step {n} of {total}"],
 

@@ -784,7 +784,7 @@ test("TUT_STR collides with nothing in CHIP_STR or GW_STR", () => {
 
 test("tutT falls back to the key rather than throwing or printing undefined", () => {
   eq(tutT("noSuchKey", "ar"), "noSuchKey");
-  eq(tutT("tutSkip", "en"), "Skip");
+  eq(tutT("tutSkip", "en"), "Later");   /* not "Skip": since v6.14 it postpones, it does not dismiss */
   eq(tutT("tutSkip", "ar"), "بعدين");
   eq(tutT("tutSkip"), "بعدين", "no lang defaults to Arabic — the product is Arabic-first");
 });

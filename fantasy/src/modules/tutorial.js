@@ -207,8 +207,13 @@ const ltr = s => '<span dir="ltr">' + esc(s) + "</span>";
 const TUT_STR = {
 
   /* ---- chrome, present on every step ---- */
-  tutSkip:      ["بعدين", "Skip"],
-  tutSkipAria:  ["سيب الشرح وروح على الملعب", "Skip the tutorial and go to the pitch"],
+  /* "بعدين" is "later", and as of v6.14 that is finally what the button does: the host only
+     marks onboarding finished once the manager actually HAS a squad, so putting the tutorial
+     off means it is offered again next time he opens the game. The English said "Skip",
+     which described the old behaviour and would now be a small lie. */
+  tutSkip:      ["بعدين", "Later"],
+  tutSkipAria:  ["سيب الشرح دلوقتي — هنعرضه تاني لما تفتح اللعبة",
+                 "Leave the tutorial for now — we will offer it again next time"],
   tutBack:      ["رجوع", "Back"],
   tutStepAria:  ["خطوة {n} من {total}", "Step {n} of {total}"],
 

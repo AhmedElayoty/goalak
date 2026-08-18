@@ -845,6 +845,71 @@ async function main() {
   ok("picker: the selected chip is scrolled into view",
      filt.inView, "the chip for " + filt.onLabel + " is off-screen in the strip");
 
+  /* ---- "LATER" MUST MEAN LATER -------------------------------------------------
+     Skip used to write fx_onboarded, so a first-timer who put the tutorial off spent it
+     permanently — while the Arabic button said «بعدين», "later". It postpones now, and this
+     asserts the whole rule, including the parts that stop it becoming nagware. The state is
+     driven through the app's own closeWizard/boot conditions rather than by setting flags
+     from outside, so a change to how onboarding is decided still breaks this. */
+  setCtx("skip postpones");
+  await setViewport(360, 800);
+  await loadApp({ lang: "ar", fresh: true });
+  const skip = await evaluate(`(async()=>{
+    const offered = () => { try{ return !localStorage.getItem("fx_onboarded")
+      && !sessionStorage.getItem("fx_tut_hold"); }catch(e){ return false; } };
+    const out = {};
+    /* 1. he puts it off with nothing built */
+    squad = []; captain = null; save();
+    closeWizard();
+    out.afterFirstSkip = { onboarded: !!localStorage.getItem("fx_onboarded"),
+                           heldThisSession: !!sessionStorage.getItem("fx_tut_hold"),
+                           skips: +localStorage.getItem("fx_tut_skips") || 0 };
+    /* 2. reloading inside the same visit must NOT throw it back at him */
+    out.offeredAgainSameSession = offered();
+    /* 3. a NEW visit does offer it again */
+    sessionStorage.removeItem("fx_tut_hold");
+    out.offeredOnNextVisit = offered();
+    /* 4. declining three times is an answer */
+    closeWizard(); sessionStorage.removeItem("fx_tut_hold");
+    closeWizard(); sessionStorage.removeItem("fx_tut_hold");
+    out.skipsAtCap = +localStorage.getItem("fx_tut_skips") || 0;
+    out.offeredAfterCap = offered();
+    /* 5. and finishing with a real squad ends it on the spot */
+    localStorage.removeItem("fx_onboarded"); localStorage.removeItem("fx_tut_skips");
+    sessionStorage.removeItem("fx_tut_hold");
+    autoFill(); captain = squad[0]; save();
+    closeWizard();
+    out.built = squad.length;
+    out.offeredAfterBuilding = offered();
+    out.skipsAfterBuilding = +localStorage.getItem("fx_tut_skips") || 0;
+    /* 6. and an explicit replay wipes the slate */
+    replayTutorial();
+    out.afterReplay = { onboarded: !!localStorage.getItem("fx_onboarded"),
+                        skips: +localStorage.getItem("fx_tut_skips") || 0,
+                        held: !!sessionStorage.getItem("fx_tut_hold") };
+    closeWizard();
+    return JSON.stringify(out);
+  })()`).then(JSON.parse);
+
+  ok("skip: putting it off does not mark onboarding finished",
+     !skip.afterFirstSkip.onboarded, "fx_onboarded was written on a skip with no squad");
+  ok("skip: it is held for the rest of this visit, not thrown straight back",
+     skip.afterFirstSkip.heldThisSession && !skip.offeredAgainSameSession,
+     "a reload in the same session would show the tutorial again");
+  ok("skip: it IS offered again on the next visit",
+     skip.offeredOnNextVisit, "the tutorial never comes back — that is the old behaviour");
+  ok("skip: declining three times stops the asking",
+     skip.skipsAtCap === 3 && !skip.offeredAfterCap,
+     skip.skipsAtCap + " skips recorded, still offered: " + skip.offeredAfterCap);
+  ok("skip: building a full squad ends onboarding immediately",
+     skip.built === 15 && !skip.offeredAfterBuilding,
+     "squad " + skip.built + ", still offered: " + skip.offeredAfterBuilding);
+  ok("skip: a completed run is not counted as a skip",
+     skip.skipsAfterBuilding === 0, "finishing incremented the skip counter");
+  ok("skip: replaying from settings wipes the slate",
+     !skip.afterReplay.onboarded && skip.afterReplay.skips === 0 && !skip.afterReplay.held,
+     JSON.stringify(skip.afterReplay));
+
   /* ---- THE ROUND STATUS BAND -------------------------------------------------
      The one genuinely weekly decision this game has, and the backtest of a real season is what
      promoted it from a whisper on a card to a band on the team screen. The live fixture feed
