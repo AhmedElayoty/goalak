@@ -919,6 +919,13 @@ const VERSION = "fx-1.0";
    Flip this to true when real fixtures feed the scoring. */
 const SEASON_STARTED = false;
 const SEASON_OPENS = "2026-08-21";
+/* WHICH BUILD AM I LOOKING AT? Fantasy had no version anywhere on it. The main app has one
+   in settings and the owner reads it to tell whether a deploy has reached him - which is how
+   he caught that APP_VERSION had been frozen at 5.4 for twelve releases. This page is a
+   separate document with its own cache entry, so it can be a different age from the app, and
+   it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
+   the release. */
+const FX_BUILD = "6.11";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -2111,6 +2118,8 @@ function openTools(){
   + '<button type="button" class="btn ghost" onclick="closeSheet();openHelp()">' + esc(t("rulesTitle")) + "</button>"
   + '<button type="button" class="btn ghost" onclick="closeSheet();openRename()">' + esc(t("renameTeam")) + "</button>"
   + '<button type="button" class="btn ghost" onclick="resetDemo()">' + esc(t("resetDemo")) + "</button>"
+  + '<div class="dim" style="text-align:center;font-size:11px;margin-block-start:14px" dir="ltr">'
+  + "Goallak Fantasy · v" + esc(FX_BUILD) + "</div>"
   );
 }
 /* IDENTITY. `managerName` returned zero hits across the whole codebase: there was no manager,

@@ -822,10 +822,20 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <script>
 "use strict";
 /* ============ GOALLAK · الجول جولك ============ */
-const APP_VERSION = "5.4";
+/* BOTH OF THESE HAVE TO MOVE ON EVERY RELEASE, and both had silently stopped.
+   APP_VERSION sat on "5.4" through TWELVE releases, so gkVersionCheck compared 5.4 against
+   5.4 and never once reloaded a running client - and the marker in settings, the only place
+   the owner can read which build he is looking at, said 5.4 while the site served 6.10.
+   FORCE_RELOAD sat on the 2026-08-16 token, and its rule is "reload once per token", so every
+   client that had already reloaded for that token ignored the nine releases after it.
+   Between them an installed app that is only ever RESUMED - never navigated - had no path to
+   a new build at all. A commit gate now refuses any release where APP_VERSION does not match
+   the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
+   has gone stale, and the first time something stops it. */
+const APP_VERSION = "6.11";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-16-v46";
+const FORCE_RELOAD = "2026-08-18-v611";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
