@@ -1419,6 +1419,9 @@ const TUT_STR = {
   tutBgP2:   ["3 أندية بالكتير من الدوري الواحد", "Max 3 from any one league"],
   tutBgP3:   ["أرخص نادي 4.5 مليون", "The cheapest club is 4.5M"],
   tutBgP4:   ["11 في الملعب و4 على الدكة", "11 on the pitch, 4 subs"],
+  tutQuickCta: ["كمّل الفريق تلقائي", "Build the rest for me"],
+  tutQuickNote: ["هنكمّل باقي الفريق حواليه، وتقدر تغيّر أي حاجة بعدين.",
+                 "We will build the rest around it — you can change anything afterwards."],
   tutBgCta:  ["فهمت", "Got it"],
 
   tutXiTtl:  ["كمّل الـ11", "Fill your eleven"],
@@ -1610,6 +1613,58 @@ function tutBlockReason(s, club, pool) {
   return null;
 }
 
+function tutQuickFill(s) {
+  if (s.squad.length >= s.size) return s;
+  const pool = poolAsc(s);
+  const strOf = id => {
+    const st = s.strength && s.strength[String(id)];
+    return st != null ? st : priceOf(s, id);
+  };
+  const value = id => strOf(id) / (priceOf(s, id) || 1);
+  let squad = s.squad.slice();
+  let guard = 0;
+  while (squad.length < s.size && guard++ < 400) {
+    const trial = Object.assign({}, s, { squad: squad });
+    const cands = s.clubs.filter(c => squad.indexOf(c.id) < 0 && !tutBlockReason(trial, c, pool));
+    if (!cands.length) break;
+    cands.sort((a, b) => value(b.id) - value(a.id) || priceOf(s, a.id) - priceOf(s, b.id));
+    squad.push(cands[0].id);
+  }
+  let up = 0;
+  while (up++ < 60) {
+    const spent = squad.reduce((acc, id) => acc + priceOf(s, id), 0);
+    const left = s.budget - spent;
+    if (left < 0.5) break;
+    let best = null;
+    for (const out of squad) {
+      if (s.squad.indexOf(out) >= 0) continue;                 /* never his own choice */
+      const without = squad.filter(x => x !== out);
+      const trial = Object.assign({}, s, { squad: without });
+      for (const c of s.clubs) {
+        if (without.indexOf(c.id) >= 0) continue;
+        if (priceOf(s, c.id) > priceOf(s, out) + left + 1e-9) continue;
+        if (tutBlockReason(trial, c, pool)) continue;
+        const gain = strOf(c.id) - strOf(out);
+        if (gain > 1e-9 && (!best || gain > best.gain)) best = { out: out, in: c.id, gain: gain };
+      }
+    }
+    if (!best) break;
+    squad = squad.map(x => x === best.out ? best.in : x);
+  }
+
+  const mine = s.squad.slice();
+  const rest = squad.filter(id => mine.indexOf(id) < 0)
+                    .sort((a, b) => priceOf(s, b) - priceOf(s, a));
+  const ordered = mine.concat(rest);
+  let t = next(s, { squad: ordered, quick: true });
+  if (!t.captain) {
+    const eleven = ordered.slice(0, t.startSize);
+    const cap = eleven.slice().sort((a, b) => priceOf(s, b) - priceOf(s, a))[0];
+    if (cap) t = next(t, { captain: cap });
+  }
+  return t;
+}
+
 function tutInit(opts) {
   const o = opts || {};
   const clubs = o.clubs || [];
@@ -1629,6 +1684,7 @@ function tutInit(opts) {
     startSize: startSize,
     budget: o.budget != null ? o.budget : 120.0,
     maxPerLeague: o.maxPerLeague != null ? o.maxPerLeague : 3,
+    strength: o.strength || null,
     minPrice: o.minPrice != null ? o.minPrice : 4.5,
     gw: o.gw || null,   /* {no, from:[ar,en], to:[ar,en], lock:[ar,en], seasonFrom, seasonTo, rounds, lineHtml} */
     squad: seed,
@@ -1645,7 +1701,8 @@ const next = (s, patch) => Object.freeze(Object.assign({}, s, patch));
 
 const ACCEPTS = Object.freeze({
   PICK:   Object.freeze({ first: 1, eleven: 1, bench: 1 }),
-  DROP:   Object.freeze({ first: 1, eleven: 1, bench: 1 }),
+  DROP:   Object.freeze({ first: 1, eleven: 1, bench: 1, captain: 1 }),
+  QUICK:  Object.freeze({ first: 1, budget: 1, eleven: 1, bench: 1 }),
   FILTER: Object.freeze({ first: 1, eleven: 1, bench: 1 }),
   CAP:    Object.freeze({ captain: 1 }),
   CHIP:   Object.freeze({ chips: 1 })
@@ -1721,6 +1778,14 @@ function tutReduce(state, action) {
       let t = next(s, { squad: squad });
       if (t.captain && squad.slice(0, t.startSize).indexOf(t.captain) < 0) t = next(t, { captain: null });
       return t;
+    }
+
+    case "QUICK": {
+      if (s.squad.length < 1) return s;            /* he must own at least one club first */
+      if (s.squad.length >= s.size) return s;
+      const t = tutQuickFill(s);
+      if (t.squad.length < s.size) return t;       /* could not complete: leave him where he is */
+      return goto(t, "captain");
     }
 
     case "FILTER": {
@@ -1911,7 +1976,9 @@ function pickingStep(s, ttlKey, bodyKey, liveHtml, ctaKey, F, rows, pool, b) {
     + board(s, s.squad.length > s.startSize || stepIndex(s.step) >= stepIndex("bench"))
     + live(liveHtml)
     + picker(s, rows, pool, F)
-    + (tutGateMet(s) ? btn(T(s, ctaKey), "NEXT", "tut-cta", null, focusAttr(F, "cta")) : "");
+    + (tutGateMet(s) ? btn(T(s, ctaKey), "NEXT", "tut-cta", null, focusAttr(F, "cta")) : "")
+    + (s.squad.length >= 1 && s.squad.length < s.size
+       ? btn(T(s, "tutQuickCta"), "QUICK", "tut-sec") : "");
 }
 
 function tutHtml(state) {
@@ -1951,7 +2018,9 @@ function tutHtml(state) {
       + '<span class="tut-pill">' + T(s, "tutBgP3") + "</span>"
       + "</div>"
       + '<p class="tut-note">' + T(s, "tutBgBig") + "</p>"
-      + btn(T(s, "tutBgCta"), "NEXT", "tut-cta", null, focusAttr(F, "cta"));
+      + btn(T(s, "tutBgCta"), "NEXT", "tut-cta", null, focusAttr(F, "cta"))
+      + btn(T(s, "tutQuickCta"), "QUICK", "tut-sec")
+      + '<p class="tut-note">' + T(s, "tutQuickNote") + "</p>";
   }
 
   else if (s.step === "eleven") {

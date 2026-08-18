@@ -2487,7 +2487,12 @@ function openWizard(){
      who opens the walkthrough again is handed his OWN fifteen clubs to walk through: every
      gate is already satisfied, he reads and taps out, and nothing is lost. A genuine first
      run passes an empty array and the pitch is empty, which is the instruction. */
-  TS = tutInit({clubs: CLUBS, leagues: LEAGUES, price: priceOf, lang: LANG,
+  /* the calibrated per-club strength, so the quick build ranks by what the game actually pays
+     out on. The generator this replaces ranked on a `fame` field the scoring never reads, and
+     the squad it produced finished last of six in a measured season. */
+  const strength = {};
+  for(const c of CLUBS){ const px = PRICES[String(c.id)]; if(px && px.str) strength[String(c.id)] = px.str; }
+  TS = tutInit({clubs: CLUBS, leagues: LEAGUES, price: priceOf, lang: LANG, strength: strength,
                 squad: squad.slice(), captain: captain,
                 size: SQUAD_SIZE, startSize: START_SIZE, budget: BUDGET,
                 maxPerLeague: MAX_PER_LEAGUE, minPrice: MIN_CLUB_PRICE,

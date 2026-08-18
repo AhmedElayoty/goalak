@@ -928,7 +928,14 @@ test("an action a step does not offer is inert, exactly as if it were unknown", 
     ["eleven",  { type: "CAP",  arg: null }],
     ["bench",   { type: "CHIP", arg: "wildcard" }],
     ["welcome", { type: "FILTER", arg: "liga" }],
-    ["captain", { type: "DROP", arg: null }]
+    /* DROP on the captain step is DELIBERATELY accepted now and is asserted separately below.
+       A quick-built squad is first seen in full on that step, and the copy promises the player
+       can change anything - a promise the reducer has to keep, not just the sentence. */
+    ["welcome", { type: "DROP", arg: null }],
+    ["chips",   { type: "DROP", arg: null }],
+    ["welcome", { type: "QUICK", arg: null }],
+    ["captain", { type: "QUICK", arg: null }],
+    ["chips",   { type: "QUICK", arg: null }]
   ];
   for (const [id, act] of cases) {
     const s = atStepUnmet(id);
@@ -1171,7 +1178,94 @@ test("the player who reads nothing still leaves with a state the app can hold", 
    RESULT
    =========================================================================== */
 console.log("\n" + "=".repeat(64));
+/* ---------------------------------------------------------------------------
+   11. THE SHORT PATH — name a club you care about, we build the rest.
+   Fifteen taps is data entry. This is the owner's answer, and it has to hold the
+   same guarantees as picking by hand: a legal squad, the budget actually spent,
+   his own choices untouched, and everything still editable afterwards.
+   --------------------------------------------------------------------------- */
+group("11. the quick build");
+{
+  const seedOpts = baseOpts("en");
+  const start = () => tutReduce(tutInit(Object.assign({}, seedOpts, { squad: [] })), { type: "NEXT" });
+  const spendOf = st => st.squad.reduce((a, id) => a + (PRICE[String(id)] || 0), 0);
+  const maxLg = st => {
+    const m = {};
+    st.squad.forEach(id => { const c = CLUBS.find(x => String(x.id) === String(id)); if (c) m[c.lg] = (m[c.lg] || 0) + 1; });
+    return Math.max.apply(null, Object.values(m));
+  };
+
+  test("QUICK on an empty pitch does nothing — a seed is required", () => {
+    const s0 = start();
+    eq(JSON.stringify(tutReduce(s0, { type: "QUICK" })), JSON.stringify(s0));
+  });
+
+  test("a legal fifteen for every one of the 126 clubs as the seed", () => {
+    let bad = null;
+    for (const c of CLUBS) {
+      let s = tutReduce(start(), { type: "PICK", arg: String(c.id) });
+      s = tutReduce(s, { type: "QUICK" });
+      if (s.squad.length !== 15 || maxLg(s) > 3 || spendOf(s) > 120 + 1e-9) {
+        bad = (c.short || c.name) + " -> " + s.squad.length + " clubs, max/league " + maxLg(s)
+            + ", " + spendOf(s).toFixed(1) + "M"; break;
+      }
+    }
+    ok(!bad, bad || "");
+  });
+
+  test("the club he chose is never dropped to make it fit", () => {
+    for (const c of CLUBS) {
+      let s = tutReduce(start(), { type: "PICK", arg: String(c.id) });
+      s = tutReduce(s, { type: "QUICK" });
+      ok(s.squad.indexOf(String(c.id)) >= 0, "dropped " + (c.short || c.name));
+    }
+  });
+
+  test("it spends the budget instead of handing money back", () => {
+    let worst = 999, who = "";
+    for (const c of CLUBS) {
+      let s = tutReduce(start(), { type: "PICK", arg: String(c.id) });
+      s = tutReduce(s, { type: "QUICK" });
+      const sp = spendOf(s);
+      if (sp < worst) { worst = sp; who = c.short || c.name; }
+    }
+    ok(worst >= 110, "leanest build was " + worst.toFixed(1) + "M with " + who);
+  });
+
+  test("it lands on the captain step with a legal armband already set", () => {
+    let s = tutReduce(start(), { type: "PICK", arg: String(CLUBS[0].id) });
+    s = tutReduce(s, { type: "QUICK" });
+    eq(s.step, "captain");
+    ok(!!s.captain, "no captain");
+    ok(s.squad.slice(0, s.startSize).indexOf(s.captain) >= 0, "captain is on the bench");
+  });
+
+  test("everything stays editable — a generated club can still be dropped", () => {
+    let s = tutReduce(start(), { type: "PICK", arg: String(CLUBS[0].id) });
+    s = tutReduce(s, { type: "QUICK" });
+    eq(tutReduce(s, { type: "DROP", arg: s.squad[14] }).squad.length, 14);
+  });
+
+  test("two seeds are both kept — the owner said one OR TWO clubs", () => {
+    let s = tutReduce(start(), { type: "PICK", arg: String(CLUBS[0].id) });
+    s = tutReduce(s, { type: "NEXT" });
+    const second = CLUBS.find(c => c.lg !== CLUBS[0].lg);
+    s = tutReduce(s, { type: "PICK", arg: String(second.id) });
+    s = tutReduce(s, { type: "QUICK" });
+    ok(s.squad.indexOf(String(CLUBS[0].id)) >= 0 && s.squad.indexOf(String(second.id)) >= 0);
+  });
+
+  test("the offer is visible while picking, in both languages", () => {
+    for (const lang of ["ar", "en"]) {
+      let s = tutReduce(tutInit(Object.assign({}, baseOpts(lang), { squad: [] })), { type: "NEXT" });
+      s = tutReduce(s, { type: "PICK", arg: String(CLUBS[0].id) });
+      ok(/data-tut-act="QUICK"/.test(tutHtml(s)), "no quick control on the budget step in " + lang);
+    }
+  });
+}
+
 console.log("  " + pass + " passed, " + fail + " failed");
 if (fail) { console.log("\n" + failures.map(f => "  - " + f).join("\n")); }
 console.log("=".repeat(64));
 process.exit(fail ? 1 : 0);
+

@@ -252,6 +252,9 @@ const TUT_STR = {
   tutBgP2:   ["3 أندية بالكتير من الدوري الواحد", "Max 3 from any one league"],
   tutBgP3:   ["أرخص نادي 4.5 مليون", "The cheapest club is 4.5M"],
   tutBgP4:   ["11 في الملعب و4 على الدكة", "11 on the pitch, 4 subs"],
+  tutQuickCta: ["كمّل الفريق تلقائي", "Build the rest for me"],
+  tutQuickNote: ["هنكمّل باقي الفريق حواليه، وتقدر تغيّر أي حاجة بعدين.",
+                 "We will build the rest around it — you can change anything afterwards."],
   tutBgCta:  ["فهمت", "Got it"],
 
   /* ---- step 4 · الـ11 ---- */
@@ -513,6 +516,81 @@ function tutBlockReason(s, club, pool) {
   return null;
 }
 
+/* BUILD THE REST AROUND WHAT HE ALREADY CHOSE.
+   Fifteen taps is the whole squad and it turns a game into data entry. The owner's answer, and
+   it is the right one: let him name the one or two clubs he actually cares about, then fill the
+   rest for him and let him change anything. It is also what the Premier League's own game
+   shipped in 2026 - guided questions, a generated squad, and a "try again".
+
+   It fills by VALUE, not by fame. The previous generator ranked candidates on a `fame` field
+   that the scoring engine never reads, and the squad it produced finished last of six in a
+   measured season. Value here is the club's own strength per million, which is the same number
+   the scoring actually pays out on.
+
+   The clubs he chose are never touched, never reordered out of the eleven, and never dropped
+   to make the budget work - they are the reason he is here. */
+function tutQuickFill(s) {
+  if (s.squad.length >= s.size) return s;
+  const pool = poolAsc(s);
+  /* Strength is what the game pays out on. Where it is missing, PRICE is the honest proxy -
+     the five-season backtest puts price against real points at r = 0.967 - and using 1/price
+     instead built the cheapest legal squad in the game and handed back 50M. */
+  const strOf = id => {
+    const st = s.strength && s.strength[String(id)];
+    return st != null ? st : priceOf(s, id);
+  };
+  const value = id => strOf(id) / (priceOf(s, id) || 1);
+  let squad = s.squad.slice();
+  let guard = 0;
+  while (squad.length < s.size && guard++ < 400) {
+    const trial = Object.assign({}, s, { squad: squad });
+    const cands = s.clubs.filter(c => squad.indexOf(c.id) < 0 && !tutBlockReason(trial, c, pool));
+    if (!cands.length) break;
+    /* best value first, and a cheap tiebreak so two equal clubs do not always resolve the
+       same way and every generated squad looks identical */
+    cands.sort((a, b) => value(b.id) - value(a.id) || priceOf(s, a.id) - priceOf(s, b.id));
+    squad.push(cands[0].id);
+  }
+  /* SPEND THE BUDGET. Ranking purely on value fills the squad with the cheapest efficient
+     clubs and hands back money - 114.0M of 120.0M in the first test - which is both weaker and
+     reads as a mean team. Upgrade the worst slot he did not choose, as long as the money is
+     there and the swap raises real strength. His own picks are never touched. */
+  let up = 0;
+  while (up++ < 60) {
+    const spent = squad.reduce((acc, id) => acc + priceOf(s, id), 0);
+    const left = s.budget - spent;
+    if (left < 0.5) break;
+    let best = null;
+    for (const out of squad) {
+      if (s.squad.indexOf(out) >= 0) continue;                 /* never his own choice */
+      const without = squad.filter(x => x !== out);
+      const trial = Object.assign({}, s, { squad: without });
+      for (const c of s.clubs) {
+        if (without.indexOf(c.id) >= 0) continue;
+        if (priceOf(s, c.id) > priceOf(s, out) + left + 1e-9) continue;
+        if (tutBlockReason(trial, c, pool)) continue;
+        const gain = strOf(c.id) - strOf(out);
+        if (gain > 1e-9 && (!best || gain > best.gain)) best = { out: out, in: c.id, gain: gain };
+      }
+    }
+    if (!best) break;
+    squad = squad.map(x => x === best.out ? best.in : x);
+  }
+
+  /* the eleven are the dearest of what he now owns, with his own picks held at the front */
+  const mine = s.squad.slice();
+  const rest = squad.filter(id => mine.indexOf(id) < 0)
+                    .sort((a, b) => priceOf(s, b) - priceOf(s, a));
+  const ordered = mine.concat(rest);
+  let t = next(s, { squad: ordered, quick: true });
+  if (!t.captain) {
+    const eleven = ordered.slice(0, t.startSize);
+    const cap = eleven.slice().sort((a, b) => priceOf(s, b) - priceOf(s, a))[0];
+    if (cap) t = next(t, { captain: cap });
+  }
+  return t;
+}
+
 /* ---------------------------------------------------------------------------
    5. STATE
    --------------------------------------------------------------------------- */
@@ -546,6 +624,8 @@ function tutInit(opts) {
     startSize: startSize,
     budget: o.budget != null ? o.budget : 120.0,
     maxPerLeague: o.maxPerLeague != null ? o.maxPerLeague : 3,
+    /* calibrated per-club strength, so the quick build ranks by what the game pays out on */
+    strength: o.strength || null,
     minPrice: o.minPrice != null ? o.minPrice : 4.5,
     gw: o.gw || null,   /* {no, from:[ar,en], to:[ar,en], lock:[ar,en], seasonFrom, seasonTo, rounds, lineHtml} */
     squad: seed,
@@ -570,7 +650,11 @@ const next = (s, patch) => Object.freeze(Object.assign({}, s, patch));
    accepted everywhere, because they are chrome, not lesson. */
 const ACCEPTS = Object.freeze({
   PICK:   Object.freeze({ first: 1, eleven: 1, bench: 1 }),
-  DROP:   Object.freeze({ first: 1, eleven: 1, bench: 1 }),
+  /* DROP reaches the captain step too. A quick-built squad is first SEEN in full there, and
+     the copy promises "you can change anything afterwards" - a promise the reducer has to
+     keep, not just the sentence. */
+  DROP:   Object.freeze({ first: 1, eleven: 1, bench: 1, captain: 1 }),
+  QUICK:  Object.freeze({ first: 1, budget: 1, eleven: 1, bench: 1 }),
   FILTER: Object.freeze({ first: 1, eleven: 1, bench: 1 }),
   CAP:    Object.freeze({ captain: 1 }),
   CHIP:   Object.freeze({ chips: 1 })
@@ -673,6 +757,16 @@ function tutReduce(state, action) {
       let t = next(s, { squad: squad });
       if (t.captain && squad.slice(0, t.startSize).indexOf(t.captain) < 0) t = next(t, { captain: null });
       return t;
+    }
+
+    /* one tap: keep what he chose, fill the rest, and land him on the captain step with a
+       complete legal squad he can still change entirely. */
+    case "QUICK": {
+      if (s.squad.length < 1) return s;            /* he must own at least one club first */
+      if (s.squad.length >= s.size) return s;
+      const t = tutQuickFill(s);
+      if (t.squad.length < s.size) return t;       /* could not complete: leave him where he is */
+      return goto(t, "captain");
     }
 
     case "FILTER": {
@@ -919,7 +1013,10 @@ function pickingStep(s, ttlKey, bodyKey, liveHtml, ctaKey, F, rows, pool, b) {
     + board(s, s.squad.length > s.startSize || stepIndex(s.step) >= stepIndex("bench"))
     + live(liveHtml)
     + picker(s, rows, pool, F)
-    + (tutGateMet(s) ? btn(T(s, ctaKey), "NEXT", "tut-cta", null, focusAttr(F, "cta")) : "");
+    + (tutGateMet(s) ? btn(T(s, ctaKey), "NEXT", "tut-cta", null, focusAttr(F, "cta")) : "")
+    /* still one tap away while he is picking - he can stop at two clubs or at ten */
+    + (s.squad.length >= 1 && s.squad.length < s.size
+       ? btn(T(s, "tutQuickCta"), "QUICK", "tut-sec") : "");
 }
 
 function tutHtml(state) {
@@ -959,7 +1056,12 @@ function tutHtml(state) {
       + '<span class="tut-pill">' + T(s, "tutBgP3") + "</span>"
       + "</div>"
       + '<p class="tut-note">' + T(s, "tutBgBig") + "</p>"
-      + btn(T(s, "tutBgCta"), "NEXT", "tut-cta", null, focusAttr(F, "cta"));
+      + btn(T(s, "tutBgCta"), "NEXT", "tut-cta", null, focusAttr(F, "cta"))
+      /* THE SHORT PATH. Fifteen taps is data entry; naming the club you care about and having
+         the rest built around it is a game. Offered here, one club in, because that is the
+         moment he has told us the only thing we needed from him. Everything stays editable. */
+      + btn(T(s, "tutQuickCta"), "QUICK", "tut-sec")
+      + '<p class="tut-note">' + T(s, "tutQuickNote") + "</p>";
   }
 
   else if (s.step === "eleven") {
