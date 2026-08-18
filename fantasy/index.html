@@ -804,6 +804,20 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
  .st--enter .slot{opacity:1 !important;transform:none !important}
  .cc--empty{animation:none !important;opacity:.85 !important}
 }
+/* the transfer line lives inside the budget panel: the two numbers a manager spends are
+   money and points, and they belong beside each other */
+.ftline{display:flex;justify-content:space-between;align-items:center;gap:10px;
+ margin-block-start:8px;padding-block-start:8px;border-block-start:1px solid var(--line);
+ font-size:12px;color:var(--dim)}
+.ftline b{color:var(--fg);font-variant-numeric:tabular-nums}
+.ftline.ftfree{justify-content:center;color:var(--ok,#3fca7a)}
+.ftline.fthit b{color:var(--bad,#ff5c5c)}
+/* a blank or a double is the most important fact about a club THIS round — it reads at a
+   glance on the row, before the tap, in a colour that says which one it is */
+.fxn{font-size:10px;font-weight:800;padding:2px 6px;border-radius:6px;white-space:nowrap;
+ letter-spacing:.02em}
+.fxn--blank{background:color-mix(in srgb,var(--bad,#ff5c5c) 18%,transparent);color:var(--bad,#ff5c5c)}
+.fxn--dbl{background:color-mix(in srgb,var(--ok,#3fca7a) 20%,transparent);color:var(--ok,#3fca7a)}
 </style>
 <script>
 /* ---------- owner preview gate ----------
@@ -1019,6 +1033,22 @@ const STR = {
  noFixtureThisRound:["مالوش ماتش في الجولة دي","No fixture this round"],
  playsThisRound:["بيلعب","Plays"],
  playsTwice:["بيلعب {n} ماتشات","Plays {n}"],
+ ftLeft:["تغييرات مجانية","Free transfers"],
+ ftNoCost:["من غير خصم","No cost"],
+ ftPts:["نقطة","pts"],
+ ftUnlimited:["غيّر زي ما تحب — من غير خصم","Change whatever you like — no cost"],
+ ftTitle:["التغييرات","Transfers"],
+ ftRule:["تغيير واحد مجاني كل جولة. اللي متستخدمهوش بيتجمّع لحد 5. أي تغيير زيادة بيكلّفك 4 نقط.",
+         "One free transfer each round. Unused ones stack up to 5. Every extra transfer costs 4 points."],
+ ftFirstFree:["أول جولة ليك إنت مفتوحة بالكامل: ابني الفريق زي ما تحب من غير أي خصم، لحد ما الجولة تقفل.",
+              "Your own first round is completely open: build the squad however you like with no cost, until that round locks."],
+ ftChipFree:["الوايلد كارد والفري هيت بيرفعوا الخصم للجولة كلها.",
+             "Wildcard and Free Hit lift the cost for the whole round."],
+ ftRuleFree:["تغييرات مجانية كل جولة","Free transfers each round"],
+ ftRuleBank:["أقصى عدد ممكن تجمّعه","The most you can bank"],
+ ftRuleHit:["خصم كل تغيير زيادة","Cost of each extra transfer"],
+ ftBlankOk:["تقدر تحتفظ بنادي مالوش ماتش في الجولة دي — ساعات ده أوفر من إنك تطلّعه وترجّعه.",
+            "You may keep a club that has no match this round — sometimes that is cheaper than selling it and buying it back."],
  lockedNow:["مقفول","Locked"],
  lockedTtl:["الجولة اتقفلت","This round is locked"],
  lockedBody:["مش هتقدر تغيّر فريقك ولا الكابتن بعد ما الجولة تبدأ — زي أي فانتازي محترم. أي تغيير هيتحسب من الجولة الجاية.",
@@ -1163,10 +1193,12 @@ function blockReason(c){
  if(squad.includes(c.id)) return null;
  if(slotsLeft() <= 0) return t("squadFull");
  if(leagueCount(c.lg) >= MAX_PER_LEAGUE) return t("leagueFull");
- /* Owner's rule: do not let somebody spend on a club that cannot play. Only ever fires on a
-    KNOWN absence - clubHasFixture returns null while the answer is still loading, and null is
-    not false. An unknown fixture must never look like a confirmed one. */
- if(clubHasFixture(c.id, CURRENT_GW) === false) return t("noFixtureThisRound");
+ /* A CLUB WITH NO MATCH IS NOT AN ILLEGAL PICK. This used to be blocked outright, and the
+    owner overturned it with the better argument: once a transfer costs points, keeping a club
+    through a blank week is a real decision - eat one quiet round rather than pay -4 to leave
+    and -4 to come back. Blocking it removes the decision AND charges him for it later. The
+    Premier League's own game allows exactly this. So it is surfaced loudly on the row and on
+    the card, and it is his to make. */
  /* Affordability is not "is this club under the cap" - it is "can the squad still be FINISHED
     after buying it". Those differ once the league cap limits which cheap clubs remain: the
     reserve has to be recomputed as if this club were already owned, or a pick can look legal
@@ -1251,6 +1283,59 @@ function clubHasFixture(id, gw){
  return m ? m.has(String(id)) : null;          /* null = not known yet */
 }
 function ymd(d){ return d.replace(/-/g, ""); }
+/* EVERY COMPETITION, NOT JUST THE SEVEN LEAGUES.
+   This was measured against 2025-26, a season that has finished: our 126 clubs played 3,023
+   matches, and asking only the seven league feeds finds 2,254 of them. ONE MATCH IN FOUR WAS
+   INVISIBLE - 171 Champions League ties, 130 Europa, 65 Copa del Rey, and so on down to the
+   Community Shield. The clubs worst hit were the biggest ones, up to 25 matches each, because
+   the clubs that go deep in Europe and the cups are exactly the clubs a manager pays for.
+   A Barcelona Champions League night read as "Rest" and scored zero.
+
+   These are the competitions our leagues' clubs can actually reach. Every one of them was
+   confirmed to carry real matches in the audit; none is speculative. */
+/* THE LEAGUE SLUGS ARE ADDED AT CALL TIME, NOT HERE. The first version of this list read
+   `(LEAGUES || []).map(...)` at parse time, and LEAGUES is filled from clubs.json AFTER the
+   script runs - so it evaluated to the empty array and the seven league feeds, the ones that
+   carry nine matches in ten, were silently dropped. Round 1 came back with 42 of 126 clubs
+   playing, all of them from cup ties. It was invisible to every check because the code read
+   correctly; only asking the live feed showed it. */
+const FIXT_EXTRA = [
+ "uefa.champions", "uefa.europa", "uefa.europa.conf",            /* Europe, main draws */
+ "uefa.champions_qual", "uefa.europa_qual", "uefa.europa.conf_qual",
+ "eng.fa", "eng.league_cup", "eng.charity",                      /* England */
+ "esp.copa_del_rey", "esp.super_cup",                            /* Spain */
+ "ita.coppa_italia", "ita.super_cup",                            /* Italy */
+ "ger.dfb_pokal", "ger.super_cup",                               /* Germany */
+ "fra.coupe_de_france", "fra.super_cup",                         /* France */
+ "sco.tennents", "sco.cis",                                      /* Scotland */
+ /* Turkey has NO cup feed. tur.cup, tur.ziraat, tur.kupa, tur.tff_cup and tur.super_cup all
+    answer 400 - ESPN simply does not publish the Turkish Cup, and an invented slug is not a
+    harmless extra: it 400s on every round for every user and fills their console with errors.
+    Known gap, recorded rather than papered over: Super Lig clubs' cup ties are invisible. */
+ "uefa.super_cup", "fifa.cwc", "fifa.intercontinental_cup",      /* the one-offs */
+ "fra.1.promotion.relegation", "sco.1.promotion.relegation",     /* the play-offs that decide */
+ "ger.playoff.relegation"                                        /*   a top-flight place in May */
+];
+function fixtSlugs(){
+ const lg = (typeof LEAGUES !== "undefined" && LEAGUES ? LEAGUES : []).map(l => l.slug);
+ /* if the leagues have not arrived yet there is nothing worth asking for - answering from the
+    cups alone would report most of the league as idle, which is worse than not answering */
+ return lg.length ? lg.concat(FIXT_EXTRA) : [];
+}
+/* WHAT IS DELIBERATELY LEFT OUT, having been checked rather than overlooked. All 215
+   competitions Goallak knows were swept against last season; these are the only ones our
+   clubs appear in that the list above skips, and each is skipped on purpose:
+
+     club.friendly, esp.joan_gamper, friendly.emirates_cup, jpn.world_challenge (108)
+        friendlies. A fantasy game that scored them would reward a July exhibition the same
+        as a league win, and no major fantasy game counts them.
+     eng.2 esp.2 ita.2 ger.2 fra.2 sco.2 (429)
+        second divisions. These are last season's matches by clubs that have since come up -
+        every club in our list plays top-flight football in 2026-27, so nothing live is here.
+     sco.challenge (3)
+        the SPFL Challenge Cup is entered by colt sides, not first teams.
+
+   Everything else - all 3,023 matches our 126 clubs played in 2025-26 - is covered. */
 async function loadFixtures(gw){
  if(FIXT[gw] || fixtLoading[gw]) return;
  const r = gwRound(gw); if(!r) return;
@@ -1270,8 +1355,10 @@ async function loadFixtures(gw){
  const lastDay = new Date(Date.parse(r[1] + "T00:00:00Z") - 864e5).toISOString().slice(0, 10);
  const range = ymd(r[0]) + "-" + ymd(lastDay);
  try{
-  const lists = await Promise.all((LEAGUES || []).map(l =>
-   fetch(base + l.slug + "/scoreboard?dates=" + range + "&limit=300")
+  const slugs = fixtSlugs();
+  if(!slugs.length){ fixtLoading[gw] = 0; return; }
+  const lists = await Promise.all(slugs.map(sl =>
+   fetch(base + sl + "/scoreboard?dates=" + range + "&limit=300")
     .then(x => x.json()).catch(() => null)));
   /* COUNT the matches, do not just record that there is one. A round is a slice of time, not a
      matchday, and the seven leagues start four weeks apart - Scotland 31 Jul, Turkey 14 Aug,
@@ -1281,11 +1368,16 @@ async function loadFixtures(gw){
      its fixtures fall either side of the window. From round 3 on it is exactly 10 matches,
      nobody idle, nobody doubled. Two matches is worth roughly double, so the number matters
      and the card must be able to say it. */
-  const ids = new Map();
-  lists.forEach(j => ((j && j.events) || []).forEach(e =>
+  /* DEDUPE BY EVENT. A tie can surface in more than one feed - a qualifying round appears in
+     both the qualifier slug and the main one - and counting it twice would tell a manager his
+     club plays a double when it plays once, which is worth roughly double in points. */
+  const ids = new Map(), evs = new Set();
+  lists.forEach(j => ((j && j.events) || []).forEach(e => {
+   if(evs.has(e.id)) return; evs.add(e.id);
    (e.competitions || []).forEach(c => (c.competitors || []).forEach(t => {
      const k = String(t.id); ids.set(k, (ids.get(k) || 0) + 1);
-   }))));
+   }));
+  }));
   /* An empty answer is not proof that nobody plays - it is far more likely the feed
      failed. Only a non-empty result is allowed to become the truth for a round. */
   if(ids.size){
@@ -1304,6 +1396,66 @@ const MONTHS = {
  ar:["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"],
  en:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
 };
+/* ============================================================================
+   TRANSFERS.
+   Until now a manager could rebuild all fifteen clubs every round for nothing, which
+   makes chasing form strictly correct, makes the bench pointless and makes four of the
+   eight chips promises about a system that did not exist - the Wildcard's own shipped
+   copy says "every transfer this round is free, with no -4" in a game that had no -4.
+
+   One free transfer a round, banked up to five, and -4 points for each one beyond that.
+   Those are the Premier League's numbers and its players already know them; our own
+   measurement says a club-round is worth 6.85 points, so -4 is about two thirds of a
+   round - expensive enough to be a decision, cheap enough to be worth it for the right
+   club. Wildcard and Free Hit lift the charge entirely, which is what they were written
+   to do. Before the season opens everything is free: nobody should pay for still
+   making up their mind.
+   ============================================================================ */
+const FT_MAX = 5, HIT_COST = 4;
+function ftLoad(){
+ try{ return JSON.parse(localStorage.getItem("fx_ft") || "null") || {gw: 0, banked: 1, base: [], join: 0}; }
+ catch(_){ return {gw: 0, banked: 1, base: [], join: 0}; }
+}
+function ftSave(v){ try{ localStorage.setItem("fx_ft", JSON.stringify(v)); }catch(_){} }
+/* A round rolls over when the app first renders inside a later round: whatever was not spent
+   is banked, capped at five, and this round's squad becomes the new baseline. */
+function ftSync(){
+ const v = ftLoad();
+ /* THE FREE BUILD IS THE MANAGER'S FIRST ROUND, NOT THE SEASON'S. Somebody who joins at
+    round twelve is building a first squad exactly like somebody who joined in August, and
+    charging him -4 a club for the privilege would make arriving late cost 56 points before
+    he has scored one. His free window is his own first round, and it closes at that round's
+    deadline like everyone else's. */
+ if(!v.join && squad.length) { v.join = CURRENT_GW; }
+ if(v.gw === CURRENT_GW) return v;
+ if(v.gw){
+  const st = transferState(v);
+  /* ONE PER ROUND ELAPSED, not one per visit. Somebody who does not open the app for three
+     rounds has still been allowed three transfers by the rules; crediting only one would
+     punish him for not opening the app, which is not a thing the rules say anywhere. The
+     cap does the limiting. */
+  const rounds = Math.max(1, CURRENT_GW - v.gw);
+  v.banked = Math.min(FT_MAX, Math.max(0, st.free - st.made) + rounds);
+ }
+ v.gw = CURRENT_GW; v.base = squad.slice(); ftSave(v);
+ return v;
+}
+function transferState(v){
+ v = v || ftLoad();
+ const free0 = Math.max(1, Math.min(FT_MAX, v.banked || 1));
+ const chip = typeof activeChipFor === "function" ? activeChipFor(CURRENT_GW) : null;
+ const unlimited = !SEASON_STARTED
+   || !v.join || v.join === CURRENT_GW           /* his own first round */
+   || /wildcard|freehit/.test(String(chip || ""));
+ const base = v.base && v.base.length ? v.base : squad;
+ /* a transfer is a club you now own that you did not own at the start of the round */
+ const made = squad.filter(id => base.indexOf(id) < 0).length;
+ const free = unlimited ? Infinity : free0;
+ const hits = unlimited ? 0 : Math.max(0, made - free);
+ return {made: made, free: free, unlimited: unlimited, hits: hits, cost: hits * HIT_COST};
+}
+function transferCost(){ return transferState().cost; }
+
 /* THE DEADLINE. A fantasy round has to lock, or the game is not a game: without a cut-off
    you could watch a result and then buy the club that produced it. Every serious fantasy
    works this way - the Premier League's own locks 90 minutes before the first kick-off of
@@ -1484,7 +1636,11 @@ function scoreGw(gw){
  res.bench = squad.slice(START_SIZE).map(cid => ({id: cid, m: simMatch(cid, gw)}));
  return applyChip(id, res) || res;
 }
-function gwTotal(gw){ return SEASON_STARTED ? scoreGw(gw).total : 0; }
+function gwTotal(gw){
+ if(!SEASON_STARTED) return 0;
+ /* the hit is part of the round's score, not a footnote beside it */
+ return scoreGw(gw).total - (gw === CURRENT_GW ? transferCost() : 0);
+}
 /* A scrubber, so the whole season can be walked in ten seconds rather than nine months.
    It is a VIEWING control: it never credits the ground ledger and never moves a deadline. */
 /* WHICH ROUND IS IT? Ask the calendar, do not hard-code a number.
@@ -1566,7 +1722,20 @@ function budgetHtml(){
   + '<div class="budtrack"><div class="budfill" style="inline-size:' + pct + '%"></div>'
   + (rpct > 0 ? '<div class="budresv" style="inline-size:' + rpct + '%"></div>' : "") + "</div>"
   + '<div class="budnext"><span>' + esc(t("nextMax")) + ' <b dir="ltr">' + num(maxNextPrice().toFixed(1)) + 'M</b></span>'
-  + '<span>' + esc(t("slotsLeft")) + ' <b dir="ltr">' + num(slotsLeft()) + '</b></span></div></div>';
+  + '<span>' + esc(t("slotsLeft")) + ' <b dir="ltr">' + num(slotsLeft()) + '</b></span></div>'
+  + transferHtml() + "</div>";
+}
+/* WHAT A CHANGE COSTS, ON SCREEN, BEFORE HE MAKES IT. A -4 that only appears in the
+   final score is a punishment; a -4 he can see coming is a decision. */
+function transferHtml(){
+ const st = transferState();
+ if(st.unlimited) return '<div class="ftline ftfree">' + esc(t("ftUnlimited")) + "</div>";
+ const left = Math.max(0, st.free - st.made);
+ return '<div class="ftline' + (st.cost ? " fthit" : "") + '">'
+  + "<span>" + esc(t("ftLeft")) + ' <b dir="ltr">' + num(left) + "</b></span>"
+  + (st.cost ? '<span dir="ltr"><b>-' + num(st.cost) + "</b> " + esc(t("ftPts")) + "</span>"
+             : "<span>" + esc(t("ftNoCost")) + "</span>")
+  + "</div>";
 }
 
 /* ROW_GEOM and ROW_X are GONE. Eleven cards positioned by percentage against a turf that is
@@ -1685,6 +1854,7 @@ function pitchHtml(withPoints, gw){
  const shared = new Set();
  /* only the round you actually arrived at counts, and only from the team screen */
  markRound(gwNow, !withPoints);
+ ftSync();
  const ground = groundOf();
  let h = '<div class="st' + enter + '" data-sky="' + sky + '" data-cup="' + inCup + '"'
   + ' data-full="' + (full ? 1 : 0) + '" data-arm="' + (swapFrom !== null ? 1 : 0) + '"'
@@ -2238,6 +2408,7 @@ function paintPicker(){
    + kitHtml(c, "k34")
    + '<span class="crname"><span class="crn">' + esc(clubName(c)) + "</span>"
    + '<span class="' + (why ? "crwhy" : "crl") + '">' + esc(why || leagueName(c.lg)) + "</span></span>"
+   + fixNote(c.id)
    + '<span class="crprice" dir="ltr">' + num(priceOf(c.id).toFixed(1)) + "M</span>"
    /* a blocked row must NOT show "+": it promises an action that cannot happen, which is
       what made the tester tap Liverpool repeatedly and conclude the app was broken */
@@ -2254,6 +2425,18 @@ function paintPicker(){
      ? '<button type="button" class="btn" onclick="closeSheet();openCaptain()">' + esc(t("confirmSquad")) + "</button>"
      : '<button type="button" class="btn ghost" onclick="autoFill()">' + esc(t("autoPick")) + "</button>");
  centreFilterChip();
+}
+/* A club that does not play this round, or plays twice, is the single most important thing
+   about it THIS week and it was only ever visible after the club was already in the squad.
+   It belongs on the row he is choosing from. Silent while the fixtures are still loading:
+   clubMatchCount returns null for "not known yet", and an unknown must never render as a
+   confirmed absence. */
+function fixNote(id, gw){
+ const n = clubMatchCount(id, gw == null ? CURRENT_GW : gw);
+ if(n === null) return "";
+ if(n === 0)   return '<span class="fxn fxn--blank">' + esc(t("noMatchFull")) + "</span>";
+ if(n > 1)     return '<span class="fxn fxn--dbl">' + esc(t("playsTwice", {n: n})) + "</span>";
+ return "";
 }
 function setFilter(id){ pickFilter = id; paintPicker(); }
 /* paintPicker rewrites the whole sheet, so the filter strip is a NEW element scrolled back to
@@ -2296,6 +2479,7 @@ function openClub(id){
  const c = CLUBS.find(x => x.id === id); if(!c) return;
  openSheet("<h2>" + esc(clubName(c)) + "</h2>"
   + '<div class="muted" style="margin-bottom:12px">' + esc(leagueName(c.lg)) + "</div>"
+  + '<div style="margin-bottom:12px">' + fixNote(c.id) + "</div>"
   + '<div style="display:flex;gap:14px;align-items:center;margin-bottom:14px">' + kitHtml(c, "k60")
   + '<div><div class="dim" style="font-size:12px">' + esc(t("priceLab")) + '</div>'
   + '<div style="font-size:22px;font-weight:900;color:var(--fx-gold)" dir="ltr">' + num(priceOf(id).toFixed(1)) + "M</div></div></div>"
@@ -2425,6 +2609,16 @@ function openHelp(){
     .map(function(r){ return '<div class="ptsrow"><span class="dim">' + esc(t(r[0]))
       + '</span><span class="v" dir="ltr">' + esc(r[1]) + "</span></div>"; }).join("")
   + '<div class="dim" style="font-size:12px;margin-top:10px;line-height:1.7">' + esc(t("scoreNote")) + "</div></div>"
+  /* THE TRANSFER RULE, WRITTEN DOWN. It is the only rule in the game that can take points
+     away from a manager, so it is the one rule he must never meet for the first time in his
+     own score. All three parts are here: the charge, the free first round, and the chips. */
+  + '<div class="card"><h3>' + esc(t("ftTitle")) + "</h3>"
+  + '<div class="dim" style="font-size:13px;line-height:1.7;margin-bottom:10px">' + esc(t("ftRule")) + "</div>"
+  + [["ftRuleFree","1"],["ftRuleBank","5"],["ftRuleHit","−4"]]
+    .map(function(r){ return '<div class="ptsrow"><span class="dim">' + esc(t(r[0]))
+      + '</span><span class="v" dir="ltr">' + esc(r[1]) + "</span></div>"; }).join("")
+  + '<div class="dim" style="font-size:12px;margin-top:10px;line-height:1.7">' + esc(t("ftFirstFree"))
+  + "<br>" + esc(t("ftChipFree")) + "<br>" + esc(t("ftBlankOk")) + "</div></div>"
   + '<div class="card"><h3>' + esc(t("glossTitle")) + "</h3>"
   + GLOSSARY.map(g => '<div class="gloss"><div class="gterm">' + esc(LANG === "ar" ? g[0] : g[1]) + '</div>'
     + '<div class="gen"' + (LANG === "ar" ? ' dir="ltr"' : "") + '>' + esc(LANG === "ar" ? g[1] : g[0]) + "</div>"

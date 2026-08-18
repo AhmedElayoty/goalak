@@ -101,6 +101,42 @@ for (const m of s.matchAll(/id="([A-Za-z][\w-]*)"/g)) idCounts[m[1]] = (idCounts
 const dupes = Object.keys(idCounts).filter(k => idCounts[k] > 1);
 if (dupes.length) fail.push("duplicate ids in the markup: " + dupes.join(", "));
 
+/* 10. THE FIXTURE FEED MUST REACH BEYOND THE LEAGUES.
+      Asking only the seven league scoreboards made ONE MATCH IN FOUR invisible - measured on
+      2025-26, 769 of our clubs' 3,023 matches, including 171 Champions League ties. A club
+      playing in Europe read as "Rest" and scored zero, and the clubs worst affected were the
+      expensive ones. If this list ever shrinks back to the leagues, that returns. */
+for (const need of ["uefa.champions", "uefa.europa", "eng.fa", "esp.copa_del_rey",
+                    "ger.dfb_pokal", "ita.coppa_italia", "fra.coupe_de_france"])
+  if (!body.includes('"' + need + '"'))
+    fail.push("the fixture sweep no longer asks for " + need + " — those matches become invisible");
+/* AND THE LEAGUES THEMSELVES. The first version of that list built the league slugs at parse
+   time from LEAGUES, which clubs.json fills in later, so it evaluated to [] and NINE MATCHES
+   IN TEN vanished - while reading perfectly. The slugs must be gathered when the fetch runs. */
+if (/const FIXT_SLUGS\s*=\s*\(LEAGUES/.test(body))
+  fail.push("the fixture slug list reads LEAGUES at parse time — it is empty then, and every league match disappears");
+if (!/function fixtSlugs\(\)/.test(body))
+  fail.push("fixtSlugs() is gone — the league feeds are no longer gathered at call time");
+
+/* 11. THE TRANSFER ECONOMY MUST STILL BE THERE AND STILL BE WIRED.
+      It is the only rule that can take points off a manager. Present-but-unwired is the worse
+      failure of the two: the charge shows on screen and never reaches the score, or reaches
+      the score and is never shown. Both halves are checked. */
+if (!/const FT_MAX = \d+, HIT_COST = \d+;/.test(body)) fail.push("the transfer economy is gone from index.html");
+/* COUNT THE CALL SITES, DO NOT JUST FIND THE NAME. The first version of this check passed a
+   mutation that deleted the only call, because `function transferHtml(){` contains the very
+   string it was looking for. A helper that exists and is never invoked is exactly the bug. */
+const count = (hay, needle) => hay.split(needle).length - 1;
+for (const fn of ["transferCost", "transferHtml"]) {
+  const total = count(body, fn + "()");
+  const defs  = count(body, "function " + fn + "()");
+  if (total - defs < 1)
+    fail.push(fn + "() is defined but never called — "
+      + (fn === "transferCost" ? "the hit never reaches the score"
+                               : "the manager never sees what a change costs"));
+}
+if (!body.includes('t("ftRule")')) fail.push("the rules screen no longer explains transfers");
+
 if (fail.length) { fail.forEach(f => console.log("  FAIL  " + f)); process.exit(1); }
 console.log("check.mjs: index.html parses, " + called.size + " handlers and "
   + usedKeys.size + " strings resolve, data files intact");

@@ -239,15 +239,18 @@ const TUT_STR = {
 
   /* ---- step 3 · الميزانية ----
      Taught at the moment the number first matters: he has just spent money, so
-     "المتبقي" on the bar above is now a number that moved. The four-superclub
-     line is MEASURED, not rhetoric — the three dearest clubs plus the cheapest
-     legal completion is 112.0M, the four dearest is 125.5M against a 120.0M
-     budget. See design/fantasy-tutorial-v2.md. */
+     "المتبقي" on the bar above is now a number that moved.
+
+     THE PRICING IS NOT EXPLAINED, ON THE OWNER'S INSTRUCTION. The four dearest
+     clubs cost 125.5M against a 120.0M budget, so all four can never fit — that
+     is the single real puzzle the budget sets, and a tutorial that states the
+     answer has taken the game's only secret and given it away on screen three.
+     He finds it himself, at the moment the fourth one will not go in. */
   tutBgTtl:  ["120 مليون، و15 نادي", "120M, and 15 clubs"],
   tutBgBody: ["الميزانية 120 مليون تشتري بيها 15 نادي: 11 في الملعب و4 على الدكة. مش فلوس حقيقية — دي بس اللي بتوزن بيها اختياراتك.",
               "Your budget is 120M and it buys 15 clubs: 11 on the pitch and 4 on the bench. It is not real money — it is what balances your choices."],
-  tutBgBig:  ["الأندية الكبيرة الأربعة متسعّرة بحيث الأربعة مايدخلوش مع بعض أبداً. تلاتة أكتر حاجة تقدر تملكها.",
-              "The four superclubs are priced so that all four can never fit together. Three is the most you can own."],
+  tutBgBig:  ["مش كل حاجة نفسك فيها هتعرف تشتريها. ده بالظبط اللي بيخلّي الاختيار اختيار.",
+              "You will not be able to afford everything you want. That is exactly what makes choosing a choice."],
   tutBgP1:   ["126 نادي من 7 دوريات", "126 clubs from 7 leagues"],
   tutBgP2:   ["3 أندية بالكتير من الدوري الواحد", "Max 3 from any one league"],
   tutBgP3:   ["أرخص نادي 4.5 مليون", "The cheapest club is 4.5M"],
