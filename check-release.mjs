@@ -75,6 +75,19 @@ if (entry && fxV !== entry[3])
 if (/c\.put\("index\.html", cp\)/.test(sw))
   fail.push("sw.js caches every navigation under \"index.html\" — opening /fantasy/ overwrites the app shell");
 
+/* 6. ONE WRITER FOR THE FANTASY TAB.
+      The release gate was deleted from paintFantasyGate and the tab still said "Soon…",
+      because THREE other places - setLang, the tab switch and boot - each wrote t("soon")
+      straight into #fantSoon. Whichever ran last won, so removing the gate from one of four
+      writers changed nothing a user could see. Exactly the failure mode the v4.5 audit named
+      as the most common one here: a fix applied to some surfaces and not all. */
+const soonWrites = (app.match(/\$\("fantSoon"\)\s*\.textContent\s*=/g) || []).length;
+if (soonWrites > 0)
+  fail.push(soonWrites + " place(s) write #fantSoon directly — paintFantasyGate() must be the "
+    + "only writer, or whichever runs last wins and the tab shows the wrong thing");
+if (!/function paintFantasyGate\(\)/.test(app))
+  fail.push("paintFantasyGate() is gone — nothing paints the fantasy tab");
+
 if (fail.length) {
   console.log("release markers are not consistent:");
   fail.forEach(f => console.log("  FAIL  " + f));

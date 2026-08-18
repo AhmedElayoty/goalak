@@ -832,10 +832,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.11";
+const APP_VERSION = "6.12";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-18-v611";
+const FORCE_RELOAD = "2026-08-18-v612";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1381,8 +1381,7 @@ function setLang(x){
  $("footMotto").textContent = t("motto");
  buildRail(); buildStrip(true); refreshSettingsUI(); tickClock();
  paintNavLabels();
- const fs = $("fantSoon");
- if(fs) fs.textContent = t("soon");
+ try{ paintFantasyGate(); }catch(_){}
  /* an open match sheet must follow the language too (it used to keep the old one) */
  if(_mdEid && !$("modal").classList.contains("hide")) renderMatchModal(_mdEid);
  if(_pcPid && !$("playerCard").classList.contains("hide")) openPlayerCard(_pcPid);   /* the player card must follow it too */
@@ -3381,7 +3380,7 @@ function showMain(v, fromPop){
   $("home").classList.add("hide"); $("lg").classList.add("hide");
  }
  if(v === "pred"){ renderPred(); loadPredData(false); syncMyPreds(); }
- if(v === "fant") $("fantSoon").textContent = t("soon");
+ if(v === "fant"){ try{ paintFantasyGate(); }catch(_){} }
  if(v === "chat"){ renderChat(); loadChat(); }
  chatPoll(v === "chat");
  refreshChatBar();
@@ -3786,6 +3785,15 @@ function paintClubHero(){
    with the gk_fx_owner flag and the ?fxowner=1 unlock, because a gate left in place but
    switched off is one accidental edit away from locking everybody out again - which is very
    nearly what happened when an earlier exact-spelling version locked out the owner himself. */
+/* THE ONLY WRITER OF THE FANTASY TAB. It was not, and that is why the tab still said "Soon…"
+   on a build where the gate had already been deleted: THREE other places - setLang, the tab
+   switch and boot - each wrote t("soon") straight into #fantSoon, so whichever ran last won
+   and paintFantasyGate's answer was thrown away every time. Removing the gate from one of
+   four writers changed nothing a user could see.
+
+   This is the same failure the v4.5 audit named as the most common one in this codebase: a
+   fix applied to some surfaces and not all. All three now call this function instead, and
+   check-release.mjs refuses a commit where anything else assigns to #fantSoon. */
 function paintFantasyGate(){
  const cta = $("fantCta"), soon = $("fantSoon"), who = $("fantWho");
  if(!cta || !soon) return;
@@ -4368,7 +4376,7 @@ async function gkVersionCheck(){
  buildRail();
  buildStrip(true);
  paintNavLabels();
- $("fantSoon").textContent = t("soon");
+ try{ paintFantasyGate(); }catch(_){}
  refreshChatNote();
  refreshChatBar();   /* the chat bar shipped hardcoded strings until it was first opened */
  loadDay(false);
