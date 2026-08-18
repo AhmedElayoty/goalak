@@ -1293,49 +1293,25 @@ function ymd(d){ return d.replace(/-/g, ""); }
 
    These are the competitions our leagues' clubs can actually reach. Every one of them was
    confirmed to carry real matches in the audit; none is speculative. */
-/* THE LEAGUE SLUGS ARE ADDED AT CALL TIME, NOT HERE. The first version of this list read
-   `(LEAGUES || []).map(...)` at parse time, and LEAGUES is filled from clubs.json AFTER the
-   script runs - so it evaluated to the empty array and the seven league feeds, the ones that
-   carry nine matches in ten, were silently dropped. Round 1 came back with 42 of 126 clubs
-   playing, all of them from cup ties. It was invisible to every check because the code read
-   correctly; only asking the live feed showed it. */
-const FIXT_EXTRA = [
- "uefa.champions", "uefa.europa", "uefa.europa.conf",            /* Europe, main draws */
- "uefa.champions_qual", "uefa.europa_qual", "uefa.europa.conf_qual",
- "eng.fa", "eng.league_cup", "eng.charity",                      /* England */
- "esp.copa_del_rey", "esp.super_cup",                            /* Spain */
- "ita.coppa_italia", "ita.super_cup",                            /* Italy */
- "ger.dfb_pokal", "ger.super_cup",                               /* Germany */
- "fra.coupe_de_france", "fra.super_cup",                         /* France */
- "sco.tennents", "sco.cis",                                      /* Scotland */
- /* Turkey has NO cup feed. tur.cup, tur.ziraat, tur.kupa, tur.tff_cup and tur.super_cup all
-    answer 400 - ESPN simply does not publish the Turkish Cup, and an invented slug is not a
-    harmless extra: it 400s on every round for every user and fills their console with errors.
-    Known gap, recorded rather than papered over: Super Lig clubs' cup ties are invisible. */
- "uefa.super_cup", "fifa.cwc", "fifa.intercontinental_cup",      /* the one-offs */
- "fra.1.promotion.relegation", "sco.1.promotion.relegation",     /* the play-offs that decide */
- "ger.playoff.relegation"                                        /*   a top-flight place in May */
-];
+/* LEAGUE MATCHES ONLY. THE OWNER'S RULE, AND IT OVERRIDES THE MEASUREMENT.
+   v6.9 swept 32 feeds - the Champions League, the Europa, every domestic cup - because
+   measured against 2025-26 those carried 769 of our clubs' 3,023 matches. The owner's answer
+   was one line: "it should be only the league matches not europa league not champions league
+   nothing! only the league matches." So a club scores for its LEAGUE and for nothing else.
+
+   It is the Premier League game's own rule too - only Premier League matches score there -
+   and it is the more legible one: a manager reads one table, one fixture list, one meaning
+   for "plays this round". The cups made almost nobody blank (6.3% of club-rounds fell to
+   near zero in the busy weeks) which quietly deleted the blank/hold decision this same
+   version had just built the transfer economy around.
+
+   THE SLUGS ARE STILL GATHERED AT CALL TIME, and that part must not be undone. Building the
+   list at parse time from LEAGUES - which clubs.json fills in AFTER the script runs - made it
+   evaluate to the empty array, and every league match vanished while the code read perfectly.
+   Round 1 came back with 42 of 126 clubs playing. Only calling the live feed showed it. */
 function fixtSlugs(){
- const lg = (typeof LEAGUES !== "undefined" && LEAGUES ? LEAGUES : []).map(l => l.slug);
- /* if the leagues have not arrived yet there is nothing worth asking for - answering from the
-    cups alone would report most of the league as idle, which is worse than not answering */
- return lg.length ? lg.concat(FIXT_EXTRA) : [];
+ return (typeof LEAGUES !== "undefined" && LEAGUES ? LEAGUES : []).map(l => l.slug);
 }
-/* WHAT IS DELIBERATELY LEFT OUT, having been checked rather than overlooked. All 215
-   competitions Goallak knows were swept against last season; these are the only ones our
-   clubs appear in that the list above skips, and each is skipped on purpose:
-
-     club.friendly, esp.joan_gamper, friendly.emirates_cup, jpn.world_challenge (108)
-        friendlies. A fantasy game that scored them would reward a July exhibition the same
-        as a league win, and no major fantasy game counts them.
-     eng.2 esp.2 ita.2 ger.2 fra.2 sco.2 (429)
-        second divisions. These are last season's matches by clubs that have since come up -
-        every club in our list plays top-flight football in 2026-27, so nothing live is here.
-     sco.challenge (3)
-        the SPFL Challenge Cup is entered by colt sides, not first teams.
-
-   Everything else - all 3,023 matches our 126 clubs played in 2025-26 - is covered. */
 async function loadFixtures(gw){
  if(FIXT[gw] || fixtLoading[gw]) return;
  const r = gwRound(gw); if(!r) return;
@@ -1368,9 +1344,9 @@ async function loadFixtures(gw){
      its fixtures fall either side of the window. From round 3 on it is exactly 10 matches,
      nobody idle, nobody doubled. Two matches is worth roughly double, so the number matters
      and the card must be able to say it. */
-  /* DEDUPE BY EVENT. A tie can surface in more than one feed - a qualifying round appears in
-     both the qualifier slug and the main one - and counting it twice would tell a manager his
-     club plays a double when it plays once, which is worth roughly double in points. */
+  /* DEDUPE BY EVENT, even though seven league feeds cannot overlap today. Counting one match
+     twice would tell a manager his club plays a double when it plays once, and a double is
+     worth roughly double in points - the most expensive kind of wrong this screen can be. */
   const ids = new Map(), evs = new Set();
   lists.forEach(j => ((j && j.events) || []).forEach(e => {
    if(evs.has(e.id)) return; evs.add(e.id);

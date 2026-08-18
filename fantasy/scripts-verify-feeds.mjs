@@ -6,12 +6,8 @@
  *   node scripts-verify-feeds.mjs
  */
 import fs from "node:fs";
-const src = fs.readFileSync(new URL("./index.html", import.meta.url), "utf8");
-const extra = src.slice(src.indexOf("const FIXT_EXTRA"), src.indexOf("function fixtSlugs"))
-  .match(/"[a-z0-9._]+"/g).map(x => x.slice(1, -1));
-const leagues = JSON.parse(fs.readFileSync(new URL("./clubs.json", import.meta.url), "utf8"))
+const all = JSON.parse(fs.readFileSync(new URL("./clubs.json", import.meta.url), "utf8"))
   .leagues.map(l => l.slug);
-const all = leagues.concat(extra);
 const B = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const bad = [];
 for (const sl of all) {
