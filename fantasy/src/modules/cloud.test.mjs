@@ -155,6 +155,33 @@ console.log("\n2b · THE ONE THAT ACTUALLY HAPPENED");
   eq(w.squad.length, 2, "an empty device still receives a real squad");
 }
 
+console.log("\n2c · THE PHONE THAT LOCKED ITSELF OUT");
+{
+  /* His team WAS on the server and the phone still showed nothing. Not a write failure: the
+     phone had no squad, so every open ran the tutorial, skipping committed an empty squad,
+     save() bumped fx_at to NOW, and the push was correctly refused. The device was then
+     permanently "newer" than the real team and never accepted it again. Replayed with his
+     actual numbers: local 1787132999999 against a server record written at 1787132423953. */
+  for (const localAt of [0, 1787131981700, 1787132999999, 9999999999999]) {
+    const w = world({ squad: [], store: { fx_at: String(localAt) },
+                      server: REC({ at: 1787132423953, squad: ["a", "b", "c"], cap: "a" }) });
+    await w.cloudPull();
+    eq(w.squad.length, 3,
+       "a device with NO team accepts one whatever its clock says (local at=" + localAt + ")");
+  }
+}
+{
+  /* the other half: a save that publishes nothing must not move the local clock either */
+  const w = world({ squad: [], store: { fx_at: "500" } });
+  w.fxTouch();
+  eq(w.__store.fx_at, "500", "an empty squad does not advance the stamp — that is what caused the lockout");
+}
+{
+  const w = world({ squad: ["a"], store: { fx_at: "500" } });
+  w.fxTouch();
+  ok(w.__store.fx_at !== "500", "a real squad still stamps");
+}
+
 console.log("\n3 · whoever is newer wins");
 {
   const w = world({ squad: ["old"], store: { fx_at: "5000" }, server: REC({ at: 9000, squad: ["new1", "new2"] }) });

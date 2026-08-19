@@ -939,7 +939,7 @@ const SEASON_OPENS = "2026-08-21";
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.18";
+const FX_BUILD = "6.19";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -3102,7 +3102,15 @@ function fxStamp(){
  try{ at = +localStorage.getItem("fx_at") || 0; }catch(_){}
  return at;
 }
-function fxTouch(){ try{ localStorage.setItem("fx_at", String(Date.now())); }catch(_){} }
+/* ONLY STAMP WHAT IS WORTH STAMPING. This ran on every save(), including the saves that
+   publish nothing - and that is how a phone locked itself out of its owner's team. It had no
+   squad, so every open ran the tutorial, skipping committed an empty squad, save() bumped
+   fx_at to NOW, and cloudPush correctly refused to publish it. The device was then permanently
+   "newer" than the real team sitting on the server, and never accepted it again. Measured
+   against the shipped logic with his actual timestamps: 1787132999999 local vs 1787132423953
+   on the server - it stayed empty forever. */
+function fxTouch(force){ if(!squad.length && !force) return;
+ try{ localStorage.setItem("fx_at", String(Date.now())); }catch(_){} }
 function fxSnapshot(){
  let team = "", form = "", ledger = null, onboarded = "", skips = "";
  try{ team = localStorage.getItem("fx_team") || ""; }catch(_){}
@@ -3153,11 +3161,18 @@ async function cloudPull(){
  let rec = null;
  try{ rec = await tdbRead(key); }
  catch(_){ fxSyncMark("offline"); return; }      /* a failed read is NOT an empty team */
- /* A NEWER TIMESTAMP IS NOT ENOUGH. A record with no squad in it cannot improve on a device
-    that has one, whatever hour it was written - that comparison is what let a phone that had
-    never built a team overwrite the team on a PC. Fifteen clubs beat nothing, always. */
- const serverHasTeam = !!(rec && Array.isArray(rec.squad) && rec.squad.length);
- if(rec && rec.v === 1 && (rec.at || 0) > fxStamp() && (serverHasTeam || !squad.length)){
+ /* THE TIMESTAMP EXISTS TO PROTECT A LOCAL SQUAD. WITH NOTHING LOCAL THERE IS NOTHING TO
+    PROTECT, so a device holding no team ALWAYS accepts one from the server, whatever the
+    clocks say. That is the rule the owner's phone needed: it had drifted ahead of the server
+    without ever publishing anything, and a pure newer-wins comparison left it staring at an
+    empty pitch while his fifteen clubs sat on the server the whole time.
+
+    And in the other direction, a record with NO squad still cannot land on a device that has
+    one, whatever hour it was written. Fifteen clubs beat nothing, in both directions. */
+ const serverHasTeam = !!(rec && rec.v === 1 && Array.isArray(rec.squad) && rec.squad.length);
+ const nothingToLose = !squad.length;
+ const serverNewer = !!(rec && (rec.at || 0) > fxStamp());
+ if(serverHasTeam && (nothingToLose || serverNewer)){
   if(fxApply(rec)){ paintChrome(); render(); fxSyncMark("saved"); }
   return;
  }
