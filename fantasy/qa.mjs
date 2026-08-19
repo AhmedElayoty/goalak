@@ -845,6 +845,89 @@ async function main() {
   ok("picker: the selected chip is scrolled into view",
      filt.inView, "the chip for " + filt.onLabel + " is off-screen in the strip");
 
+  /* ---- THE VICE-CAPTAIN ---------------------------------------------------------
+     There was no vice-captain in this app at all: no state, no control, and `res.vice = null`
+     hard-coded into the chip engine — while the Triple Captain's shipped copy promised the x3
+     passes to your vice. The owner asked the only question that copy invites, and the honest
+     answer was that he could not choose one. This drives the whole chain through the real
+     resolveSquad rather than checking that a field exists. */
+  for (const lang of ["ar", "en"]) {
+    setCtx("vice " + lang);
+    await setViewport(360, 800);
+    await loadApp({ lang, fresh: false });
+    const v = await evaluate(`(async()=>{
+      autoFill(); assignCaptain(squad[0]); save();
+      const out = {};
+      out.autoVice = { has: !!vice, isStarter: squad.indexOf(vice) < START_SIZE,
+                       notCaptain: vice !== captain };
+      /* the chain, driven through the shipped resolver with a seeded round */
+      const gw = CURRENT_GW;
+      const seed = (playing) => {
+        const ids = squad.map(id => [String(id), playing.indexOf(id) >= 0 ? 1 : 0]).filter(x => x[1]);
+        FIXT = {}; fixtLoading = {}; FIXT[gw] = new Map(ids);
+        try{ localStorage.setItem("fx_fixt_"+gw, JSON.stringify({ids: ids, at: Date.now()})); }catch(e){}
+      };
+      const cap = captain, vc = vice;
+      const others = squad.slice(0, START_SIZE).filter(id => id !== cap && id !== vc);
+      /* 1. captain plays -> captain wears it */
+      seed(squad); let r = resolveSquad(squad, cap, gw, vc);
+      out.capPlays = { wearer: r.wearer === cap, viceTook: r.viceTook };
+      /* 2. captain blanks, vice plays -> VICE wears it */
+      seed(squad.filter(id => id !== cap)); r = resolveSquad(squad, cap, gw, vc);
+      out.capBlanks = { wearer: r.wearer === vc, viceTook: r.viceTook };
+      /* 3. both blank -> falls back to the substitute inheriting it, the older measured rule */
+      seed(squad.filter(id => id !== cap && id !== vc)); r = resolveSquad(squad, cap, gw, vc);
+      out.bothBlank = { viceTook: r.viceTook, armbandExists: !!r.armband, wearerIsCap: r.wearer === cap };
+      /* 4. no vice at all -> old behaviour, nothing throws */
+      seed(squad.filter(id => id !== cap)); r = resolveSquad(squad, cap, gw, null);
+      out.noVice = { viceTook: r.viceTook, ok: typeof r.total === "number" };
+      /* 5. the control exists and enforces its rules */
+      seed(squad);
+      openCaptain(); await new Promise(f => setTimeout(f, 250));
+      const box = document.getElementById("sheetBox");
+      out.ui = { rows: box.querySelectorAll(".caprow").length,
+                 capBtns: box.querySelectorAll(".capbtn:not(.v)").length,
+                 viceBtns: box.querySelectorAll(".capbtn.v").length,
+                 benchHasNoBtns: box.querySelectorAll(".caprow.off .capbtn").length };
+      /* naming the captain as vice must not leave one club holding both */
+      setVice(cap); await new Promise(f => setTimeout(f, 150));
+      out.sameClub = { captain: captain, vice: vice, distinct: captain !== vice };
+      closeSheet();
+      /* 6. the standings must name the manager */
+      try{ localStorage.setItem("gk_user", JSON.stringify({username: "ahmed.elayoty"})); }catch(e){}
+      view = "board"; render(); await new Promise(f => setTimeout(f, 200));
+      const row = document.querySelector("#viewBoard .lbrow.me");
+      out.board = { text: row ? row.innerText.split(String.fromCharCode(10)).join(" ") : "",
+                    hasMgr: !!(row && row.querySelector(".lbmgr")),
+                    mgrSmaller: row && row.querySelector(".lbmgr")
+                      ? parseFloat(getComputedStyle(row.querySelector(".lbmgr")).fontSize)
+                        < parseFloat(getComputedStyle(row.querySelector(".lbname")).fontSize) : false };
+      try{ localStorage.removeItem("gk_user"); }catch(e){}
+      view = "team"; render();
+      return JSON.stringify(out);
+    })()`).then(JSON.parse);
+
+    ok("vice " + lang + ": one is appointed automatically, and it is a legal one",
+       v.autoVice.has && v.autoVice.isStarter && v.autoVice.notCaptain, JSON.stringify(v.autoVice));
+    ok("vice " + lang + ": a captain who plays keeps the armband",
+       v.capPlays.wearer && !v.capPlays.viceTook, JSON.stringify(v.capPlays));
+    ok("vice " + lang + ": a captain who blanks hands it to the VICE",
+       v.capBlanks.wearer && v.capBlanks.viceTook, JSON.stringify(v.capBlanks));
+    ok("vice " + lang + ": both blanking falls back to the substitute rule",
+       !v.bothBlank.viceTook && v.bothBlank.wearerIsCap, JSON.stringify(v.bothBlank));
+    ok("vice " + lang + ": no vice named still resolves, the old way",
+       !v.noVice.viceTook && v.noVice.ok, JSON.stringify(v.noVice));
+    ok("vice " + lang + ": the sheet offers both roles on every starter, none on the bench",
+       v.ui.rows === 15 && v.ui.capBtns === 11 && v.ui.viceBtns === 11 && v.ui.benchHasNoBtns === 0,
+       JSON.stringify(v.ui));
+    ok("vice " + lang + ": one club can never hold both roles",
+       v.sameClub.distinct, JSON.stringify(v.sameClub));
+    ok("standings " + lang + ": the row carries the manager's name beside the team's",
+       v.board.hasMgr && /ahmed\.elayoty/.test(v.board.text), v.board.text);
+    ok("standings " + lang + ": the manager's name is smaller than the team name",
+       v.board.mgrSmaller, "it is not rendered smaller");
+  }
+
   /* ---- "LATER" MUST MEAN LATER -------------------------------------------------
      Skip used to write fx_onboarded, so a first-timer who put the tutorial off spent it
      permanently — while the Arabic button said «بعدين», "later". It postpones now, and this

@@ -149,6 +149,25 @@ if (/getItem\(\s*["']gk_fx_owner["']\s*\)/.test(body))
 if (/function\s+fxAllowed\s*\(/.test(body))
   fail.push("fxAllowed() is back — fantasy is meant to be open to everyone");
 
+/* 13. THE VICE-CAPTAIN MUST STAY WIRED.
+      For its whole life this app hard-coded `res.vice = null` into the chip engine while the
+      Triple Captain's copy promised the x3 passes to your vice-captain — a rule chips.js had
+      implemented and could never once fire. The owner found it by reading the chip and asking
+      how to choose one. A promise in the copy needs a control and a wire, and both are gates
+      now. `assignCaptain` is the single writer, for the same reason #12 exists. */
+/* anchored to a STATEMENT, not the words: the comment above resolveSquad explains the bug by
+   quoting `res.vice = null`, and the first version of this check flagged its own history. */
+if (/^\s*res\.vice\s*=\s*null\s*;/m.test(body))
+  fail.push("res.vice is hard-coded to null again — the Triple Captain's vice fallback can never fire");
+if (!/function setVice\(/.test(body))
+  fail.push("setVice() is gone — there is no way to choose a vice-captain");
+if (!/function ensureVice\(/.test(body))
+  fail.push("ensureVice() is gone — a manager can end up with no vice, and the armband falls to his worst substitute");
+const capWrites = (body.match(/onclick="captain=/g) || []).length;
+if (capWrites > 0)
+  fail.push(capWrites + " inline handler(s) assign `captain` directly — assignCaptain() must be "
+    + "the only writer, or one of them will leave the captain holding the vice role too");
+
 if (fail.length) { fail.forEach(f => console.log("  FAIL  " + f)); process.exit(1); }
 console.log("check.mjs: index.html parses, " + called.size + " handlers and "
   + usedKeys.size + " strings resolve, data files intact");

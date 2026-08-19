@@ -842,6 +842,20 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
  letter-spacing:.02em}
 .fxn--blank{background:color-mix(in srgb,var(--bad,#ff5c5c) 18%,transparent);color:var(--bad,#ff5c5c)}
 .fxn--dbl{background:color-mix(in srgb,var(--ok,#3fca7a) 20%,transparent);color:var(--ok,#3fca7a)}
+/* the captain sheet carries two roles per row now, so the row is a container and the two
+   badges are the controls — a whole-row tap could only ever mean one of them */
+.caprow{display:flex;align-items:center;gap:10px;padding:8px 2px;border-block-end:1px solid var(--line)}
+.caprow.off{opacity:.5}
+.caprow.on{background:color-mix(in srgb,var(--fx-gold,#e8b64c) 10%,transparent)}
+.caprow.onv{background:color-mix(in srgb,var(--ok,#3fca7a) 8%,transparent)}
+.caprole{display:flex;gap:6px;margin-inline-start:auto}
+.capbtn{min-inline-size:34px;padding:6px 8px;border-radius:9px;border:1px solid var(--line);
+ background:transparent;color:var(--dim);font-weight:900;font-size:12px;cursor:pointer}
+.capbtn.on{background:var(--fx-gold,#e8b64c);color:#1a1305;border-color:transparent}
+.capbtn.v.on{background:var(--ok,#3fca7a);color:#06210f}
+/* the manager's name sits inside the team-name cell so the two wrap together and the points
+   column never moves. Smaller and dimmer: it identifies, it does not compete. */
+.lbmgr{font-size:.78em;font-weight:600;color:var(--dim);opacity:.85;white-space:nowrap}
 </style>
 <script>
 /* ---------- THE GATE IS GONE. FANTASY IS OPEN. ----------
@@ -925,7 +939,7 @@ const SEASON_OPENS = "2026-08-21";
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.14";
+const FX_BUILD = "6.15";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -954,7 +968,7 @@ try{
 }catch(_){}
 
 let CLUBS = [], LEAGUES = [], PRICES = {};
-let squad = [], captain = null, view = "team", pickFilter = "all", wizStep = 0;
+let squad = [], captain = null, vice = null, view = "team", pickFilter = "all", wizStep = 0;
 let seenCoach = {};
 try{ seenCoach = JSON.parse(localStorage.getItem("fx_coach") || "{}"); }catch(_){}
 
@@ -1069,6 +1083,16 @@ const STR = {
  leagueFull:["خلاص عندك 3 أندية من الدوري ده","3 clubs from this league already"],
  squadFull:["فريقك كمل — شيل نادي الأول","Your squad is full"],
  reserveWarn:["لازم تسيب فلوس للأماكن الفاضية","You must leave money for the remaining slots"],
+ capBadge:["كابتن","C"],
+ viceBadge:["نائب","V"],
+ viceNote:["الكابتن بياخد ضعف النقط. لو ناديه مالوش ماتش، الشارة بتروح للنائب.",
+           "Your captain scores double. If his club has no match, the armband passes to your vice."],
+ viceNone:["مختارتش نائب. لو الكابتن مالعبش، الشارة هتروح لأول بديل بيلعب — واللي غالباً بيكون أضعف نادي عندك.",
+           "No vice chosen. If your captain does not play, the armband goes to the first substitute who does — usually your weakest club."],
+ viceTakesOver:["الكابتن مالوش ماتش الجولة دي — {c} هياخد الشارة.",
+                "Your captain has no match this round — {c} takes the armband."],
+ viceBothOut:["الكابتن والنائب الاتنين مالهمش ماتش الجولة دي.",
+              "Your captain and your vice both have no match this round."],
  capTitle:["الكابتن","Captain"], capNote:["الكابتن بياخد ضعف نقاطه","Your captain scores double"],
  setCap:["خليه الكابتن","Make captain"],
  gwTitle:["الجولة","Gameweek"], totalPts:["إجمالي النقاط","Total points"],
@@ -1219,6 +1243,7 @@ function save(){
  try{
   localStorage.setItem("fx_squad", JSON.stringify(squad));
   localStorage.setItem("fx_cap", captain || "");
+  localStorage.setItem("fx_vice", vice || "");
  }catch(_){}
 }
 let squadWasRepaired = false;
@@ -1226,7 +1251,8 @@ function load(){
  try{
   squad = JSON.parse(localStorage.getItem("fx_squad") || "[]");
   captain = localStorage.getItem("fx_cap") || null;
- }catch(_){ squad = []; captain = null; }
+  vice = localStorage.getItem("fx_vice") || null;
+ }catch(_){ squad = []; captain = null; vice = null; }
  if(!Array.isArray(squad)) squad = [];
  validateSquad();
 }
@@ -1254,6 +1280,7 @@ function validateSquad(){
  if(kept.length !== before || squad.length !== before) squadWasRepaired = true;
  squad = kept;
  if(captain && !squad.includes(captain)) captain = null;
+ if(vice && (!squad.includes(vice) || vice === captain)) vice = null;
  save();
 }
 
@@ -1498,7 +1525,16 @@ function simMatch(clubId, gw){
     calendar carries a real fixture-coverage figure per round, and the hash-derived blank
     contradicted it flatly: clubs blanked in rounds with 100% coverage and played in the
     61.9% round. The badge was internally consistent with the score and externally a lie. */
- const blank = ((h >> 17) % 1000) / 1000 >= gwCoverage(gw);
+ /* THE REAL FIXTURE LIST WINS. The hash below was the only source of blanks, and it
+    contradicted the fixture feed that the round band, the picker rows and the club sheet all
+    read from - so the app could print "no match this round" on a card and then score that
+    club a win. Both were internally consistent and one of them was a lie.
+    clubHasFixture returns true, false, or NULL for "not known yet"; only a known answer
+    overrides, because an unloaded feed must never be read as an absence. */
+ const known = typeof clubHasFixture === "function" ? clubHasFixture(clubId, gw) : null;
+ const blank = known === null
+   ? ((h >> 17) % 1000) / 1000 >= gwCoverage(gw)
+   : known === false;
  if(blank) return {blank:true, pts:0, opp:null, home:false, oppTier:oppTier};
  /* WHO you play, drawn from the same hash as everything else so it can never contradict the
     result. The card needs this: the price was the one field on it frozen for the whole
@@ -1568,7 +1604,22 @@ function leagueMate(clubId, h){
    engine as the player. They used to be scored over all 15 of their clubs while the player
    scored 11 plus auto-subs — a permanent 20.7%-25.5% handicap that put an ordinary squad
    6th of 6 in 98.7% of measured seasons. A leaderboard nobody can climb is worse than none. */
-function resolveSquad(sq, cap, gw){
+/* THE ARMBAND CHAIN. Until now there was no vice-captain in this app at all: no state, no
+   control, and `res.vice = null` hard-coded on the way into the chip engine — while the Triple
+   Captain's shipped copy promised "if your captain's club has no match, the x3 passes to your
+   vice-captain". chips.js had implemented that fallback since it was written and was handed
+   null every single time, so it could never fire. The owner asked the only question that copy
+   invites: how do I choose the vice-captain. He could not.
+
+   Captain plays        -> the captain doubles.
+   Captain blanks       -> the VICE doubles, if the vice has a match.
+   Both blank           -> the captain's substitute inherits the armband, which is the rule
+                           measured and fixed earlier (935 of 10,800 rounds, 8.66%).
+
+   The vice is strictly better than that last step and that is the whole point: a substitute is
+   the first bench club with a fixture, which is chosen by bench order and is usually the worst
+   club available. The vice is a starter the manager NAMED as his second best. */
+function resolveSquad(sq, cap, gw, vc){
  const starters = sq.slice(0, START_SIZE);
  const bench = sq.slice(START_SIZE);
  const used = {};
@@ -1586,6 +1637,12 @@ function resolveSquad(sq, cap, gw){
   }
   lineup.push({id: id, m: m, sub: replacement});   /* sub === null: nobody could cover it */
  }
+ /* who actually wears it this round, decided before anything is added up */
+ const played = id => { if(!id) return false;
+  const i = starters.indexOf(id); if(i < 0) return false;
+  return !lineup[i].m.blank; };
+ let wearer = cap, viceTook = false;
+ if(cap && !played(cap) && vc && vc !== cap && played(vc)){ wearer = vc; viceTook = true; }
  let total = 0, covered = 0, uncovered = 0, armband = null;
  for(const row of lineup){
   const scorer = row.sub || row;
@@ -1594,16 +1651,16 @@ function resolveSquad(sq, cap, gw){
      at 935 of 10,800 rounds (8.66%), and it wasted a Triple Captain chip outright in 8.70%
      of plays. The captain's replacement now inherits the armband, which is what a manager
      would expect and what the vice-captain rule exists to do elsewhere. */
-  const isCap = row.id === cap;
+  const isCap = row.id === wearer;
   total += scorer.m.pts * (isCap ? 2 : 1);
   if(isCap) armband = scorer.id;
   if(row.sub) covered++;
   else if(row.m.blank) uncovered++;
  }
  return {total: total, lineup: lineup, covered: covered, uncovered: uncovered, used: used,
-         armband: armband};
+         armband: armband, wearer: wearer, viceTook: viceTook};
 }
-function resolveGw(gw){ return resolveSquad(squad, captain, gw); }
+function resolveGw(gw){ return resolveSquad(squad, captain, gw, vice); }
 /* The chip has to reach the SCORE, or the confirm sheet is a lie: it promised the captain
    would score x3 and the points screen still showed x2. applyChip needs three facts
    resolveGw does not carry, so they are attached before it runs. */
@@ -1616,7 +1673,7 @@ function scoreGw(gw){
  const id = activeChipFor(gw);
  if(!id || typeof applyChip !== "function") return res;
  res.captain = captain;
- res.vice = null;
+ res.vice = vice;
  res.bench = squad.slice(START_SIZE).map(cid => ({id: cid, m: simMatch(cid, gw)}));
  return applyChip(id, res) || res;
 }
@@ -2127,6 +2184,18 @@ function openTools(){
 function teamName(){
  try{ return localStorage.getItem("fx_team") || t("teamDefault"); }catch(_){ return t("teamDefault"); }
 }
+/* THE PERSON BEHIND THE TEAM NAME. A standings table of team names alone tells you who is
+   winning and not who they are - two friends in the same table cannot find each other, and a
+   team name is the one field a manager can set to anything. The account lives in the MAIN
+   app, on this same origin, so gk_user is the very record the app wrote; nothing is fetched
+   and nothing new is stored here. Empty when nobody is signed in, and the brackets are then
+   omitted rather than rendered around nothing. */
+function managerName(){
+ try{
+  const u = JSON.parse(localStorage.getItem("gk_user") || "null");
+  return u && u.username ? String(u.username) : "";
+ }catch(_){ return ""; }
+}
 /* Replaying the lesson must not cost you your team. resetDemo wipes everything, which is the
    right behaviour for starting over and the wrong one for wanting to see the walkthrough
    again. This clears only the flag that says you have seen it. Also reachable as
@@ -2262,8 +2331,9 @@ function groundOf(){ return ledger().length >= GROUND_AT ? "clean" : "base"; }
 const rivalSeed = r => r[1];
 function boardRows(){
  return RIVALS.map((r, i) => ({i: i, seed: rivalSeed(r), name: rivalName(r),
-                               s: rivalTotal(rivalSeed(r)), me: false}))
-   .concat([{i: -1, seed: null, name: teamName(), s: seasonTotal(), me: true}])
+                               mgr: r[2] || "", s: rivalTotal(rivalSeed(r)), me: false}))
+   .concat([{i: -1, seed: null, name: teamName(), mgr: managerName(),
+             s: seasonTotal(), me: true}])
    .sort((a, b) => b.s - a.s);
 }
 /* WHICH ROUND, AND WHEN. The owner's words: "i want it clear which game week are we in and
@@ -2368,6 +2438,7 @@ function renderBoard(){
   + esc(t("segBoard")) + "</div>"
   + rows.map((r, i) => '<div class="lbrow' + (r.me ? " me" : "") + '"><span class="lbrank" dir="ltr">'
    + num(i + 1) + '</span><span class="lbname">' + esc(r.name)
+   + (r.mgr ? ' <span class="lbmgr">(' + esc(r.mgr) + ")</span>" : "")
    + '</span><span class="lbpts" dir="ltr">' + num(Math.max(0, r.s)) + "</span></div>").join("")
   + (others ? "" : '<div class="lbempty">' + esc(t("boardAlone")) + "</div>")
   + "</div>";
@@ -2407,6 +2478,8 @@ function swapSlots(a, b){
     club happened to occupy slot 0 - measured 8 silent reassignments in 200 swaps, once
     swinging a round by 17 points. Clear it and say so; the manager chooses. */
  if(captain && squad.indexOf(captain) >= START_SIZE){ captain = null; _capDropped = true; }
+ /* the vice is an ELEVEN role too — a benched vice can never take the armband */
+ if(vice && squad.indexOf(vice) >= START_SIZE){ vice = null; _capDropped = true; }
  save();
 }
 /* promote a substitute straight into the XI, replacing a chosen starter */
@@ -2502,7 +2575,7 @@ function centreFilterChip(){
 }
 function togglePick(id){
  const i = squad.indexOf(id);
- if(i >= 0){ squad.splice(i, 1); if(captain === id) captain = null; }
+ if(i >= 0){ squad.splice(i, 1); if(captain === id) captain = null; if(vice === id) vice = null; }
  else{
   const c = CLUBS.find(x => x.id === id);
   if(blockReason(c)) return;
@@ -2535,7 +2608,7 @@ function openClub(id){
   + '<div><div class="dim" style="font-size:12px">' + esc(t("priceLab")) + '</div>'
   + '<div style="font-size:22px;font-weight:900;color:var(--fx-gold)" dir="ltr">' + num(priceOf(id).toFixed(1)) + "M</div></div></div>"
   + (squad.includes(id) && squad.length === SQUAD_SIZE
-     ? '<button type="button" class="btn" onclick="captain=\'' + esc(id) + '\';save();closeSheet()">' + esc(t("setCap")) + "</button>"
+     ? '<button type="button" class="btn" onclick="assignCaptain(\'' + esc(id) + '\');closeSheet();render()">' + esc(t("setCap")) + "</button>"
      : ""));
 }
 
@@ -2548,18 +2621,77 @@ function openCaptain(){
     captain at all, against 348 for the best legal one. A 46-point loss with the armband
     drawn on the card, telling you it was working. swapSlots already refuses to let the
     captain be benched and says so; this sheet had no such guard. */
+ /* ONE SHEET, TWO ROLES. A separate screen for the vice would be a second thing to find, and
+    the choice only makes sense beside the captain: a vice IS "who takes it if he does not
+    play". Each row shows what that club does THIS round, because that is the fact the
+    decision turns on — naming a vice who also blanks achieves nothing. */
  const rows = squad.map((id, i) => {
   const c = CLUBS.find(x => x.id === id); if(!c) return "";
   const benched = i >= START_SIZE;
-  return '<button type="button" class="clubrow' + (captain === id ? " on" : "") + '"'
-   + (benched ? " disabled" : "")
-   + (benched ? "" : ' onclick="captain=\'' + esc(id) + '\';save();openCaptain()"') + ">"
-   + kitHtml(c, "k34") + '<span class="crname"><span class="crn">' + esc(clubName(c)) + "</span>"
+  const isC = captain === id, isV = vice === id;
+  return '<div class="caprow' + (isC ? " on" : isV ? " onv" : "") + (benched ? " off" : "") + '">'
+   + kitHtml(c, "k34")
+   + '<span class="crname"><span class="crn">' + esc(clubName(c)) + "</span>"
    + '<span class="crl">' + esc(benched ? t("benchedNoCap") : leagueName(c.lg)) + "</span></span>"
-   + '<span class="crpick">' + (captain === id ? "C" : benched ? "–" : "+") + "</span></button>";
+   + (benched ? "" : fixNote(id))
+   + (benched ? '<span class="crpick">–</span>'
+      : '<span class="caprole">'
+        + '<button type="button" class="capbtn' + (isC ? " on" : "") + '" aria-pressed="' + isC + '"'
+        + ' onclick="setCaptain(\'' + esc(id) + '\')">' + esc(t("capBadge")) + "</button>"
+        + '<button type="button" class="capbtn v' + (isV ? " on" : "") + '" aria-pressed="' + isV + '"'
+        + ' onclick="setVice(\'' + esc(id) + '\')">' + esc(t("viceBadge")) + "</button></span>")
+   + "</div>";
  }).join("");
- openSheet("<h2>" + esc(t("capTitle")) + "</h2><div class='muted' style='margin-bottom:12px'>" + esc(t("capNote")) + "</div>"
+ const warn = viceWarning();
+ openSheet("<h2>" + esc(t("capTitle")) + "</h2>"
+  + "<div class='muted' style='margin-bottom:4px'>" + esc(t("capNote")) + "</div>"
+  + "<div class='muted' style='margin-bottom:12px;font-size:12px'>" + esc(t("viceNote")) + "</div>"
+  + (warn ? '<div class="note" style="margin-bottom:10px">⚠️ ' + esc(warn) + "</div>" : "")
   + rows + (captain ? '<button type="button" class="btn" onclick="closeSheet()">' + esc(t("done")) + "</button>" : ""));
+}
+
+/* Tapping C on the club that is already vice (or the reverse) must not leave one club holding
+   both roles — that is a vice-captain that can never take over. The other role is cleared. */
+/* ONE WRITER FOR THE ARMBAND. Three places used to assign `captain` inline — this sheet, the
+   club sheet and the fallback wizard — which is the same shape as the bug that left the
+   Fantasy tab saying "Soon" while one of four writers had been fixed. They all come through
+   here now, so the captain-is-also-vice case cannot be created from any of them. */
+function assignCaptain(id){
+ if(squad.indexOf(id) >= START_SIZE) return;
+ captain = id;
+ if(vice === id) vice = null;
+ ensureVice();
+ save();
+}
+/* NOBODY SHOULD BE SILENTLY WITHOUT A VICE. A null vice is not neutral — it means the armband
+   falls through to the first substitute with a match, which is picked by bench order and is
+   usually the weakest club owned. So a default is appointed: the strongest other starter. It
+   is a starting point, not a decision taken away; the sheet changes it in one tap. */
+function ensureVice(){
+ if(squad.length !== SQUAD_SIZE || !captain) return;
+ if(vice && vice !== captain && squad.indexOf(vice) < START_SIZE) return;
+ vice = squad.slice(0, START_SIZE)
+   .filter(id => id !== captain)
+   .sort((a, b) => (priceOf(b) - priceOf(a)))[0] || null;
+}
+function setCaptain(id){
+ assignCaptain(id);
+ openCaptain(); render();
+}
+function setVice(id){
+ if(squad.indexOf(id) >= START_SIZE) return;
+ vice = vice === id ? null : id;              /* tapping it again clears it */
+ if(captain === vice) captain = null;
+ save(); openCaptain(); render();
+}
+/* the one thing worth saying out loud on this screen */
+function viceWarning(){
+ if(!captain) return "";
+ if(!vice) return t("viceNone");
+ const cn = clubMatchCount(captain, CURRENT_GW), vn = clubMatchCount(vice, CURRENT_GW);
+ if(cn === 0 && vn === 0) return t("viceBothOut");
+ if(cn === 0) return t("viceTakesOver", {c: clubNameShort(CLUBS.find(x => x.id === vice) || {})});
+ return "";
 }
 
 /* the trust screen: never show a total without being able to explain it */
@@ -2766,7 +2898,7 @@ $("wizBox").addEventListener("click", function(e){
      has nothing of its own to commit: TS.squad is exactly what he tapped, in the order he
      tapped it, and Skip commits however much of it existed at the moment he pressed Skip -
      including none at all, which is a state the app already has a first-class screen for. */
-  squad = TS.squad.slice(); captain = TS.captain || null; save();
+  squad = TS.squad.slice(); captain = TS.captain || null; ensureVice(); save();
   /* paintChrome, not just render: the header subtitle becomes the TEAM NAME once a squad
      exists, and the tutorial is the moment a squad first exists. Without this the header
      kept showing the rules recap for the whole session. */
@@ -2848,11 +2980,11 @@ function paintWizard(){
    + '<div class="wizp">' + t("wiz3p") + "</div>" + budgetHtml() + pitchHtml(false)
    + '<button type="button" class="btn ghost" onclick="closeWizard();openPicker()">' + esc(t("changeTeam")) + "</button>";
  } else {
-  if(!captain && squad.length) captain = squad[0];
+  if(!captain && squad.length) assignCaptain(squad[0]);
   body = '<div class="wizart">🎖️</div><div class="wizh">' + esc(t("wiz4h")) + '</div>'
    + '<div class="wizp">' + esc(t("wiz4p")) + "</div>"
    + squad.map(id => { const c = CLUBS.find(x => x.id === id); if(!c) return "";
-      return '<button type="button" class="clubrow' + (captain === id ? " on" : "") + '" onclick="captain=\'' + esc(id) + '\';save();paintWizard()">'
+      return '<button type="button" class="clubrow' + (captain === id ? " on" : "") + '" onclick="assignCaptain(\'' + esc(id) + '\');paintWizard()">'
        + kitHtml(c, "k34") + '<span class="crname"><span class="crn">' + esc(clubName(c)) + "</span></span>"
        + '<span class="crpick">' + (captain === id ? "C" : "+") + "</span></button>"; }).join("");
  }
