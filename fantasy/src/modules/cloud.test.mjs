@@ -122,6 +122,39 @@ console.log("\n2 · the failure rules — where a team gets eaten");
   eq(w.squad[0], "p", "a malformed squad field is refused");
 }
 
+console.log("\n2b · THE ONE THAT ACTUALLY HAPPENED");
+{
+  /* The owner built a team on his PC. His phone had none, was shown the tutorial, and skipping
+     it commits whatever you built — including nothing — so save() published {squad: []} with a
+     fresh timestamp. His real team became the OLDER record, and the newer-wins rule would have
+     destroyed it on the next open. The suite covered an OLD empty record beating a new local
+     squad; it did not cover a NEW one, which is the case that actually happened. */
+  const w = world({ squad: ["real1", "real2", "real3"], store: { fx_at: "1000" },
+                    server: REC({ at: 9999999, squad: [], cap: "", ob: "1" }) });
+  await w.cloudPull();
+  eq(w.squad.length, 3, "A NEWER EMPTY RECORD DOES NOT DESTROY A REAL TEAM — fifteen clubs beat nothing, always");
+  eq(w.captain, null, "and the armband is not cleared either");
+}
+{
+  /* the push side: the phone must never have been able to publish that in the first place */
+  const w = world({ squad: [], store: { fx_at: "1" } });
+  w.cloudPush(true);
+  await new Promise(r => setTimeout(r, 40));
+  eq(w.__writes.length, 0, "an empty squad is never published — emptiness does not travel on its own");
+}
+{
+  const w = world({ squad: [], store: { fx_at: "1" } });
+  w.cloudPush(true, true);
+  await new Promise(r => setTimeout(r, 40));
+  eq(w.__writes.length, 1, "except on an explicit reset, which IS allowed to clear the server");
+}
+{
+  /* a brand-new device with nothing still accepts a real team, which is the whole point */
+  const w = world({ squad: [], server: REC({ at: 9999999, squad: ["x", "y"] }) });
+  await w.cloudPull();
+  eq(w.squad.length, 2, "an empty device still receives a real squad");
+}
+
 console.log("\n3 · whoever is newer wins");
 {
   const w = world({ squad: ["old"], store: { fx_at: "5000" }, server: REC({ at: 9000, squad: ["new1", "new2"] }) });
