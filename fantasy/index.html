@@ -939,7 +939,7 @@ const SEASON_OPENS = "2026-08-21";
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.16";
+const FX_BUILD = "6.17";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -1044,6 +1044,13 @@ const STR = {
  noFixtureThisRound:["مالوش ماتش في الجولة دي","No fixture this round"],
  playsThisRound:["بيلعب","Plays"],
  playsTwice:["بيلعب {n} ماتشات","Plays {n}"],
+ syncSaving:["بيتحفظ…","Saving…"],
+ syncSaved:["متحفظ على حسابك","Saved to your account"],
+ syncOffline:["مش متحفظ — النت فاصل. هيتحفظ أول ما يرجع.",
+              "Not saved — you are offline. It will save when the connection returns."],
+ syncTitle:["فريقك متحفظ فين","Where your team is saved"],
+ syncNote:["فريقك متخزّن على حسابك، مش على الجهاز — تقدر تفتحه من أي موبايل أو كمبيوتر بنفس اليوزر.",
+           "Your team is stored on your account, not on this device — open it from any phone or computer with the same username."],
  rsBlank:["مالهمش ماتش","with no match"],
  rsDouble:["بيلعبوا مرتين","play twice"],
  rsAllPlay:["كل الـ11 بيلعبوا الجولة دي","All eleven of your XI play this round"],
@@ -1244,7 +1251,11 @@ function save(){
   localStorage.setItem("fx_squad", JSON.stringify(squad));
   localStorage.setItem("fx_cap", captain || "");
   localStorage.setItem("fx_vice", vice || "");
+  /* chips were never persisted AT ALL - a reload lost every one that had been played */
+  localStorage.setItem("fx_chips", JSON.stringify(chipPlays));
  }catch(_){}
+ fxTouch();
+ cloudPush();
 }
 let squadWasRepaired = false;
 function load(){
@@ -1252,7 +1263,9 @@ function load(){
   squad = JSON.parse(localStorage.getItem("fx_squad") || "[]");
   captain = localStorage.getItem("fx_cap") || null;
   vice = localStorage.getItem("fx_vice") || null;
- }catch(_){ squad = []; captain = null; vice = null; }
+  chipPlays = JSON.parse(localStorage.getItem("fx_chips") || "[]");
+ }catch(_){ squad = []; captain = null; vice = null; chipPlays = []; }
+ if(!Array.isArray(chipPlays)) chipPlays = [];
  if(!Array.isArray(squad)) squad = [];
  validateSquad();
 }
@@ -2175,6 +2188,13 @@ function openTools(){
   + '<button type="button" class="btn ghost" onclick="closeSheet();openHelp()">' + esc(t("rulesTitle")) + "</button>"
   + '<button type="button" class="btn ghost" onclick="closeSheet();openRename()">' + esc(t("renameTeam")) + "</button>"
   + '<button type="button" class="btn ghost" onclick="resetDemo()">' + esc(t("resetDemo")) + "</button>"
+  /* WHERE IS MY TEAM. The whole reason this line exists is that the owner built a squad on one
+     device and found nothing on another; a game that saves to an account has to be able to say
+     so, and to say when it could not. */
+  + '<div class="dim" style="margin-block-start:16px;font-size:12px;line-height:1.7">'
+  + "<b>" + esc(t("syncTitle")) + "</b><br>" + esc(t("syncNote"))
+  + '<div id="fxSync" style="margin-block-start:6px;font-weight:800;color:var(--fg)">'
+  + esc(fxSyncText()) + "</div></div>"
   + '<div class="dim" style="text-align:center;font-size:11px;margin-block-start:14px" dir="ltr">'
   + "Goallak Fantasy · v" + esc(FX_BUILD) + "</div>"
   );
@@ -2998,6 +3018,11 @@ function resetDemo(){
  squad = []; captain = null; swapFrom = null;
  try{ localStorage.removeItem("fx_squad"); localStorage.removeItem("fx_cap");
       localStorage.removeItem("fx_onboarded"); localStorage.removeItem("fx_coach");
+      /* and push the empty state UP, or the next open on another device restores the very
+         team that was just deleted - the reset would look like it had silently failed */
+      squad = []; captain = null; vice = null; chipPlays = [];
+      try{ localStorage.setItem("fx_at", String(Date.now())); }catch(__){}
+      try{ cloudPush(true); }catch(__){}
       localStorage.removeItem("fx_tut_skips");
       try{ sessionStorage.removeItem("fx_tut_hold"); }catch(__){}
       localStorage.removeItem("fx_team"); localStorage.removeItem("fx_ledger"); }catch(_){}
@@ -3015,6 +3040,141 @@ function toggleLang(){
 }
 
 /* ---------------- boot ---------------- */
+/* ============================================================================
+   THE TEAM LIVES ON THE SERVER, NOT ON THE DEVICE.
+   The owner built a squad on his PC, opened the app on his phone signed in as himself, and
+   found nothing. Everything this game owns - the fifteen clubs, the armband, the transfer
+   ledger, the team name, the chips - was in localStorage, which is per-device and per-browser.
+   A signed-in account that does not follow you is not an account.
+
+   Predictions solved this on day one and this is deliberately the SAME mechanism, not a new
+   one: textdb keyed per user, with the push worker proxying the same store for the networks
+   whose DNS cannot resolve textdb.online - a real case found in QA. One store, one failure
+   mode, one thing to operate.
+
+   THE RULES THAT MATTER ARE THE FAILURE RULES, because the WC app's own audit found the very
+   same bug in three separate places: "failed" being rendered as "empty".
+     - a read that FAILS is not an empty team. The local squad stands and nothing is written.
+     - a server record that is genuinely empty does not wipe a local squad: ours is newer in
+       that case, so it is pushed up instead.
+     - every record carries `at`, and the newer side wins. That makes a second device a
+       resume rather than a race.
+   localStorage stays as the offline cache. The server is the truth. */
+const TDB_READ = "https://textdb.online/";
+const TDB_WRITE = "https://api.textdb.online/update/";
+const TDB_PROXY = "https://goalak-push.ahmed-ayoty.workers.dev/tdb";
+function fxCloudKey(){
+ try{
+  const u = JSON.parse(localStorage.getItem("gk_user") || "null");
+  return u && u.uid ? "goalak_fx_" + u.uid : null;
+ }catch(_){ return null; }
+}
+async function tdbRead(key){
+ let txt = null;
+ try{
+  const r = await fetch(TDB_READ + key + "?t=" + Date.now(), {cache:"no-store"});
+  if(!r.ok) throw new Error("http " + r.status);
+  txt = (await r.text()).trim();
+ }catch(_){
+  const r2 = await fetch(TDB_PROXY + "/" + key + "?t=" + Date.now(), {cache:"no-store"});
+  if(!r2.ok) throw new Error("proxy " + r2.status);
+  txt = (await r2.text()).trim();
+ }
+ if(!txt) return null;
+ try{ return JSON.parse(txt); }catch(_){ return null; }
+}
+async function tdbWrite(key, val){
+ const body = "key=" + encodeURIComponent(key) + "&value=" + encodeURIComponent(JSON.stringify(val));
+ const opts = {method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"}, body};
+ try{
+  const r = await fetch(TDB_WRITE, opts);
+  if(!r.ok) throw new Error("write " + r.status);
+ }catch(_){
+  const r2 = await fetch(TDB_PROXY, opts);
+  if(!r2.ok) throw new Error("proxy write " + r2.status);
+ }
+}
+/* EVERYTHING THAT IS THE TEAM. If a field is not in here it does not follow you to another
+   device, so this list is the contract. Deliberately NOT included: fx_lang, fx_gw and
+   fx_coach, which are about this device and this session rather than about the team. */
+function fxStamp(){
+ let at = 0;
+ try{ at = +localStorage.getItem("fx_at") || 0; }catch(_){}
+ return at;
+}
+function fxTouch(){ try{ localStorage.setItem("fx_at", String(Date.now())); }catch(_){} }
+function fxSnapshot(){
+ let team = "", form = "", ledger = null, onboarded = "", skips = "";
+ try{ team = localStorage.getItem("fx_team") || ""; }catch(_){}
+ try{ form = localStorage.getItem("fx_form") || ""; }catch(_){}
+ try{ ledger = JSON.parse(localStorage.getItem("fx_ledger") || "null"); }catch(_){}
+ try{ onboarded = localStorage.getItem("fx_onboarded") || ""; }catch(_){}
+ try{ skips = localStorage.getItem("fx_tut_skips") || ""; }catch(_){}
+ return {v: 1, at: fxStamp() || Date.now(), squad: squad.slice(),
+         cap: captain || "", vice: vice || "", team: team, form: form, ledger: ledger,
+         chips: chipPlays.slice(), ft: ftLoad(), ob: onboarded, sk: skips};
+}
+function fxApply(rec){
+ if(!rec || rec.v !== 1 || !Array.isArray(rec.squad)) return false;
+ squad = rec.squad.slice();
+ captain = rec.cap || null;
+ vice = rec.vice || null;
+ chipPlays = Array.isArray(rec.chips) ? rec.chips.slice() : [];
+ try{
+  if(rec.team) localStorage.setItem("fx_team", rec.team); else localStorage.removeItem("fx_team");
+  if(rec.form) localStorage.setItem("fx_form", rec.form);
+  if(rec.ledger) localStorage.setItem("fx_ledger", JSON.stringify(rec.ledger));
+  if(rec.ft) localStorage.setItem("fx_ft", JSON.stringify(rec.ft));
+  if(rec.ob) localStorage.setItem("fx_onboarded", rec.ob); else localStorage.removeItem("fx_onboarded");
+  if(rec.sk) localStorage.setItem("fx_tut_skips", rec.sk); else localStorage.removeItem("fx_tut_skips");
+  localStorage.setItem("fx_at", String(rec.at || Date.now()));
+  localStorage.setItem("fx_squad", JSON.stringify(squad));
+  localStorage.setItem("fx_cap", captain || "");
+  localStorage.setItem("fx_vice", vice || "");
+  localStorage.setItem("fx_chips", JSON.stringify(chipPlays));
+ }catch(_){}
+ validateSquad();
+ return true;
+}
+let FX_SYNC = "idle";                    /* idle | saving | saved | offline */
+function fxSyncText(){
+ return FX_SYNC === "saving" ? t("syncSaving")
+      : FX_SYNC === "saved" ? t("syncSaved")
+      : FX_SYNC === "offline" ? t("syncOffline") : "";
+}
+function fxSyncMark(v){
+ FX_SYNC = v;
+ const el = $("fxSync");
+ if(el) el.textContent = fxSyncText();
+}
+/* ON OPEN: whichever side is newer wins, and a failure changes nothing. */
+async function cloudPull(){
+ const key = fxCloudKey(); if(!key) return;
+ let rec = null;
+ try{ rec = await tdbRead(key); }
+ catch(_){ fxSyncMark("offline"); return; }      /* a failed read is NOT an empty team */
+ if(rec && rec.v === 1 && (rec.at || 0) > fxStamp()){
+  if(fxApply(rec)){ paintChrome(); render(); fxSyncMark("saved"); }
+  return;
+ }
+ /* nothing there, or ours is newer - put ours up so the other device can have it */
+ if(squad.length) cloudPush(true);
+}
+let _pushT = null, _pushing = false;
+function cloudPush(now){
+ const key = fxCloudKey(); if(!key) return;
+ clearTimeout(_pushT);
+ const go = async () => {
+  if(_pushing) return;
+  _pushing = true; fxSyncMark("saving");
+  try{ await tdbWrite(key, fxSnapshot()); fxSyncMark("saved"); }
+  catch(_){ fxSyncMark("offline"); }
+  finally{ _pushing = false; }
+ };
+ /* debounced, because save() runs on every tap while a squad is being built */
+ if(now) go(); else _pushT = setTimeout(go, 1200);
+}
+
 /* AN ACCOUNT IS REQUIRED HERE TOO, or the nav gate in the app is a formality anybody skips by
    typing the URL. The account lives in the MAIN app on this same origin, so gk_user is the very
    record it wrote; this page never asks for a password and never creates anything — it sends
@@ -3084,6 +3244,10 @@ function fxAskSignIn(){
  loadFixtures(CURRENT_GW);
  /* Offered until he has a squad. `hold` is sessionStorage, so "later" means later - the
     next time he opens the game, not the next time this page happens to reload. */
+ /* PULL BEFORE DECIDING ANYTHING. If the tutorial gate ran first, a manager whose squad is
+    still arriving from the server would be offered onboarding he finished weeks ago on
+    another device - and then his empty local state would be pushed up over the real one. */
+ await cloudPull();
  let onboarded = "", hold = "";
  try{ onboarded = localStorage.getItem("fx_onboarded") || ""; }catch(_){}
  try{ hold = sessionStorage.getItem("fx_tut_hold") || ""; }catch(_){}

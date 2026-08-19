@@ -168,6 +168,21 @@ if (capWrites > 0)
   fail.push(capWrites + " inline handler(s) assign `captain` directly — assignCaptain() must be "
     + "the only writer, or one of them will leave the captain holding the vice role too");
 
+/* 14. THE TEAM MUST STAY ON THE ACCOUNT, NOT ON THE DEVICE.
+      A squad built on a PC was invisible on a phone signed in as the same person, because
+      everything this game owns lived in localStorage. It syncs through the same textdb store
+      predictions use. The gate is on the WIRING, because a sync layer that exists and is never
+      called is exactly the failure this file was written for. */
+if (!/function cloudPull\(/.test(body) || !/function cloudPush\(/.test(body))
+  fail.push("the cloud sync is gone — a team would live on one device again");
+if (!/await cloudPull\(\)/.test(body))
+  fail.push("cloudPull() is never awaited in boot — a second device would show an empty team");
+if (!/cloudPush\(\);/.test(body))
+  fail.push("cloudPush() is never called from save() — changes would never leave the device");
+/* and the one rule that decides whether this destroys teams or not */
+if (!/a failed read is NOT an empty team/.test(body))
+  fail.push("the failed-read guard is gone from cloudPull — an offline open would wipe the squad");
+
 if (fail.length) { fail.forEach(f => console.log("  FAIL  " + f)); process.exit(1); }
 console.log("check.mjs: index.html parses, " + called.size + " handlers and "
   + usedKeys.size + " strings resolve, data files intact");
