@@ -1,15 +1,18 @@
-/* WHAT DOES THE FANTASY TAB ACTUALLY SAY?
+/* THE FANTASY TAB AND THE SIGNED-IN TABS.
  *
- * The release gate was deleted and the tab still read "Soon…", because paintFantasyGate was
- * one of FOUR places writing that line and the other three hard-wrote t("soon"). The static
- * guard in check-release.mjs stops a second writer coming back. This runs the real function
- * against the real string table and asserts what a user would read — because "no other writer
- * exists" and "the right words appear" are two different claims, and only the second one is
- * the thing the owner opened the app and did not see.
+ * This file used to assert what the fantasy SPLASH said, because that splash once shipped
+ * reading "Soon…" on a build where the release gate had already been deleted — four different
+ * places wrote its subtitle and fixing one changed nothing a user could see.
  *
- * No browser: the function and the string table are lifted out of the shipped index.html and
- * run against a stub DOM, the same way transfers.test.mjs does it. If somebody edits
- * index.html, this moves with it.
+ * The splash is gone (v6.16, the owner: "no need for this page at all"). So the thing worth
+ * pinning changed with it, and this now asserts the two rules that replaced it:
+ *
+ *   1. the Fantasy nav item goes to the GAME, not to a screen holding a button
+ *   2. Predictions, Fantasy and Chat all require an account — in the app AND on the fantasy
+ *      page itself, because a gate only on the nav is one typed URL away from nothing
+ *
+ * No browser: the real functions and the real string table are lifted out of the shipped files
+ * and run against a stub, the same way transfers.test.mjs does it.
  *
  *   node check-fantasy-tab.mjs
  */
@@ -19,67 +22,64 @@ import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const HTML = fs.readFileSync(path.join(HERE, "index.html"), "utf8");
+const APP = fs.readFileSync(path.join(HERE, "index.html"), "utf8");
+const FX = fs.readFileSync(path.join(HERE, "fantasy", "index.html"), "utf8");
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("  FAIL  " + m); } };
 
-/* the string table, verbatim from the shipped file */
-const strStart = HTML.indexOf("const STR = {");
-const strEnd = HTML.indexOf("\n};", strStart) + 3;
-if (strStart < 0 || strEnd < 3) { console.log("  FAIL  cannot find STR in index.html"); process.exit(1); }
-const STR_SRC = HTML.slice(strStart, strEnd);
+console.log("\nthe fantasy tab");
 
-/* and the function under test */
-const fnStart = HTML.indexOf("function paintFantasyGate(){");
-const fnEnd = HTML.indexOf("\n}", fnStart) + 2;
-if (fnStart < 0) { console.log("  FAIL  paintFantasyGate() is not in index.html"); process.exit(1); }
-const FN_SRC = HTML.slice(fnStart, fnEnd);
+/* 1. the splash is really gone, not merely unreachable */
+ok(!/id="fantPane"/.test(APP), "the fantasy splash section is still in the markup");
+ok(!/id="fantSoon"/.test(APP), "#fantSoon still exists — that was the splash subtitle");
+ok(!/function paintFantasyGate/.test(APP), "paintFantasyGate() still exists — it painted the splash");
+ok(!/fantasyTag|fantasyCta|fantasyBrand/.test(APP), "the splash strings are still in STR");
 
-function run(lang) {
-  const els = {
-    fantCta:  { textContent: "", classList: { _s: new Set(["hide"]),
-      remove(c) { this._s.delete(c); }, add(c) { this._s.add(c); },
-      contains(c) { return this._s.has(c); } } },
-    fantSoon: { textContent: "" },
-    fantWho:  { textContent: "" }
-  };
-  const ctx = {
-    LANG: lang,
-    $: id => els[id] || null,
-    console, JSON, String, Object, Array
-  };
+/* 2. the nav item goes to the game */
+ok(/id="bnFant"[^>]*onclick="goFantasy\(\)"/.test(APP),
+   "the Fantasy nav button no longer calls goFantasy()");
+ok(/function goFantasy\(\)/.test(APP), "goFantasy() is gone");
+ok(/location\.href\s*=\s*"fantasy\/"/.test(APP), "goFantasy() does not navigate to fantasy/");
+
+/* 3. the three tabs that need an account — driven through the real function */
+console.log("\nthe signed-in tabs");
+const need = APP.slice(APP.indexOf("const NEEDS_ACCOUNT"), APP.indexOf("function goFantasy"));
+if (!need) { console.log("  FAIL  NEEDS_ACCOUNT / requireAccount are missing"); process.exit(1); }
+function gate(signedIn) {
+  const calls = [];
+  const ctx = { gkUser: signedIn ? { uid: 1, username: "someone" } : null,
+                openAuth: m => calls.push(m), console };
   ctx.globalThis = ctx;
   vm.createContext(ctx);
-  vm.runInContext(STR_SRC, ctx);
-  /* t() in the app resolves LANG against STR; recreate exactly that contract */
-  vm.runInContext(`function t(k, p){ const r = STR[k]; if(!r) return k;
-    let s = r[LANG === "ar" ? 0 : 1];
-    if(p) for(const x in p) s = s.split("{" + x + "}").join(p[x]);
-    return s; }`, ctx);
-  vm.runInContext(FN_SRC, ctx);
-  vm.runInContext("paintFantasyGate()", ctx);
-  return els;
+  vm.runInContext(need, ctx);
+  const out = {};
+  for (const v of ["scores", "pred", "fant", "chat", "set"])
+    out[v] = vm.runInContext(`requireAccount(${JSON.stringify(v)})`, ctx);
+  out.prompts = calls.length;
+  return out;
 }
+const out = gate(false), inn = gate(true);
+for (const v of ["pred", "fant", "chat"])
+  ok(out[v] === false, `a signed-out visitor is let into "${v}"`);
+for (const v of ["scores", "set"])
+  ok(out[v] === true, `"${v}" asks for an account — reading scores should never require one`);
+ok(out.prompts === 3, "a refused tab does not open the sign-in sheet (" + out.prompts + " of 3 did)");
+for (const v of ["scores", "pred", "fant", "chat", "set"])
+  ok(inn[v] === true, `a signed-in user is refused "${v}"`);
 
-console.log("\nthe fantasy tab, as a user reads it");
-for (const lang of ["ar", "en"]) {
-  const e = run(lang);
-  const line = e.fantSoon.textContent;
-  const cta = e.fantCta.textContent;
-  console.log("  " + lang + "   \"" + line + "\"   [" + cta + "]");
+/* 4. and showMain itself is gated, not just the buttons — a deep link is a caller too */
+ok(/if\(!requireAccount\(v\)\) return;/.test(APP),
+   "showMain() does not call requireAccount() — ?go=chat would walk straight in");
+ok(/NEEDS_ACCOUNT\[mainView\]/.test(APP),
+   "signing out leaves you sitting on a tab that now needs an account");
 
-  ok(!e.fantCta.classList.contains("hide"),
-     lang + ": the way into the game is hidden — fantasy is open, the button must show");
-  ok(!!cta, lang + ": the button has no label");
-  ok(!!line, lang + ": the tab line is empty");
-  /* the actual regression: a live game advertising itself as unreleased */
-  ok(!/soon|قريب/i.test(line),
-     lang + ': the tab still says "' + line + '" — fantasy is open, that is not true any more');
-  ok(!/soon|قريب/i.test(cta),
-     lang + ': the button says "' + cta + '"');
-  ok(!e.fantWho.textContent,
-     lang + ": the account line is populated — that belonged to the deleted gate");
-}
+/* 5. the fantasy PAGE guards itself, or the nav gate is one typed URL away from nothing */
+console.log("\nthe fantasy page");
+ok(/function fxSignedIn\(\)/.test(FX), "the fantasy page does not check for an account");
+ok(/if\(!fxSignedIn\(\)\)/.test(FX), "boot() does not act on fxSignedIn()");
+ok(/gk_user/.test(FX), "the fantasy page does not read the app's account record");
+ok(!/<input[^>]*type="password"/.test(FX),
+   "the fantasy page has a password field — sign-in belongs to the app, this page must never collect one");
 
 console.log("\n" + "=".repeat(64));
 console.log(fail ? "FAILED  " + fail + " of " + (pass + fail)

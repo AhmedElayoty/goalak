@@ -939,7 +939,7 @@ const SEASON_OPENS = "2026-08-21";
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.15";
+const FX_BUILD = "6.16";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -3015,7 +3015,40 @@ function toggleLang(){
 }
 
 /* ---------------- boot ---------------- */
+/* AN ACCOUNT IS REQUIRED HERE TOO, or the nav gate in the app is a formality anybody skips by
+   typing the URL. The account lives in the MAIN app on this same origin, so gk_user is the very
+   record it wrote; this page never asks for a password and never creates anything — it sends
+   you to the app, which owns sign-in, and you come back.
+
+   HONEST ABOUT WHAT THIS IS: a door, not a lock. The check runs in the page and reads
+   localStorage, so anybody determined to get past it will. It stops a squad being built with
+   no name to attach it to, which is the actual problem — a standings table needs a manager.
+   Real enforcement belongs in the worker, where chat's session token is already verified. */
+function fxSignedIn(){
+ try{ const u = JSON.parse(localStorage.getItem("gk_user") || "null"); return !!(u && u.username); }
+ catch(_){ return false; }
+}
+function fxAskSignIn(){
+ const ar = LANG !== "en";
+ document.body.innerHTML =
+  '<div style="min-height:100dvh;display:flex;flex-direction:column;align-items:center;'
+  + 'justify-content:center;gap:14px;padding:28px;text-align:center;color:#F2F5FF;'
+  + 'background:#070B1A;font-family:system-ui,sans-serif">'
+  + '<div style="font-size:54px">⭐</div>'
+  + '<div style="font-size:22px;font-weight:900;letter-spacing:1.5px;color:#FFC53D">'
+  + (ar ? "فانتازي جولك" : "GOALLAK FANTASY") + "</div>"
+  + '<div style="font-size:15px;font-weight:700;color:#A9B7E4;max-inline-size:34ch;line-height:1.7">'
+  + (ar ? "لازم تسجّل دخول الأول — فريقك واسمك في الترتيب متربطين بحسابك."
+        : "Sign in first — your squad and your name in the standings belong to your account.") + "</div>"
+  + '<a href="/" style="margin-top:18px;padding:12px 26px;border-radius:12px;'
+  + 'background:#FFC53D;color:#1a1305;text-decoration:none;font-weight:900">'
+  + (ar ? "سجّل دخول" : "Sign in") + "</a>"
+  + '<a href="/" style="padding:10px 22px;border-radius:12px;background:#182246;color:#F2F5FF;'
+  + 'text-decoration:none;font-weight:700">'
+  + (ar ? "رجوع لتطبيق جولك" : "Back to the Goallak app") + "</a></div>";
+}
 (async function boot(){
+ if(!fxSignedIn()){ document.addEventListener("DOMContentLoaded", fxAskSignIn); fxAskSignIn(); return; }
  /* the owner gate above replaced the page; there is no app DOM to paint */
  try{
   const [cj, pj, kj, xj] = await Promise.all([

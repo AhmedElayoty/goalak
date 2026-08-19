@@ -219,7 +219,14 @@ async function loadApp({ lang, fresh }) {
           reaches the game. If a holding screen ever comes back, every case below fails at
           the first wait rather than passing behind an unlock the public does not have. */
   await navigate(BASE + "/index.html");
-  await evaluate(`(()=>{try{localStorage.clear();sessionStorage.clear();}catch(e){}return 1})()`).catch(() => {});
+  /* AN ACCOUNT IS NOW REQUIRED to reach the game at all (v6.16). The suite signs itself in the
+     way the app does — by writing the same gk_user record the app writes — rather than routing
+     through the auth sheet, which lives in the OTHER page and would make every case here
+     depend on a network the sandbox does not have. Storage is still cleared first, so the
+     onboarding cases keep meeting a genuine first-run state. */
+  await evaluate(`(()=>{try{localStorage.clear();sessionStorage.clear();
+    localStorage.setItem("gk_user", JSON.stringify({uid: 1, username: "qa.tester"}));
+  }catch(e){}return 1})()`).catch(() => {});
   await navigate(BASE + "/index.html");
   try {
     await waitFor(`typeof CLUBS !== "undefined" && CLUBS && CLUBS.length > 0`, 15000, "club data");
@@ -844,6 +851,32 @@ async function main() {
      !filt.sameBg, "selected chip has the same background as an unselected one");
   ok("picker: the selected chip is scrolled into view",
      filt.inView, "the chip for " + filt.onLabel + " is off-screen in the strip");
+
+  /* ---- THE GAME NEEDS AN ACCOUNT ----------------------------------------------
+     The nav gate in the app is only half of it: /fantasy/ is a public path and a gate that
+     only guards a button is one typed URL away from nothing. This loads the game with NO
+     account and asserts it refuses, then with one and asserts it runs. */
+  setCtx("account gate");
+  await setViewport(360, 800);
+  await navigate(BASE + "/index.html");
+  await evaluate(`(()=>{try{localStorage.clear();sessionStorage.clear();}catch(e){}return 1})()`).catch(() => {});
+  await navigate(BASE + "/index.html");
+  await new Promise(r => setTimeout(r, 700));
+  const gated = await evaluate(`JSON.stringify({
+    booted: typeof CLUBS !== "undefined" && CLUBS && CLUBS.length > 0,
+    body: document.body.innerText.replace(/\s+/g, " ").trim().slice(0, 90),
+    hasPitch: !!document.querySelector(".st__row"),
+    hasPasswordField: !!document.querySelector('input[type="password"]'),
+    wayBack: [...document.querySelectorAll("a")].filter(a => a.getAttribute("href") === "/").length
+  })`).then(JSON.parse);
+  ok("account gate: a signed-out visitor does not get the game",
+     !gated.hasPitch, "the pitch rendered for somebody with no account");
+  ok("account gate: it says why, rather than showing an empty app",
+     /sign in|سجّل|تسجّل/i.test(gated.body), gated.body);
+  ok("account gate: it never asks for a password here — sign-in belongs to the app",
+     !gated.hasPasswordField, "the fantasy page rendered a password field");
+  ok("account gate: it offers a way back to the app",
+     gated.wayBack >= 1, "no link back to the app");
 
   /* ---- THE VICE-CAPTAIN ---------------------------------------------------------
      There was no vice-captain in this app at all: no state, no control, and `res.vice = null`

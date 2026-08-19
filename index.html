@@ -732,18 +732,9 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    <div id="chatLog"><div class="skel"><span class="spinner"></span></div></div>
   </section>
 
-  <section id="fantPane" class="hide">
-   <div class="fantsoon">
-    <div class="fbig">⭐</div>
-    <div class="fttl" id="fantBrand">فانتازي جولك</div>
-    <!-- The CTA no longer ships hidden and #fantSoon no longer says "قريبًا". Both are
-         painted by paintFantasyGate on every language change; the markup carries the open
-         state so a first paint never flashes a holding screen that is not true any more. -->
-    <div class="fsoon" id="fantSoon">اختار 15 نادي · 120 مليون · 36 جولة</div>
-    <a class="fantcta" id="fantCta" href="fantasy/">إبدأ فريقك</a>
-    <div class="fantwho" id="fantWho"></div>
-   </div>
-  </section>
+  <!-- THE FANTASY SPLASH IS GONE. It was a whole screen whose only job was to hold a button
+       that went to /fantasy/, and the owner's verdict was the right one: "no need for this
+       page at all". The nav item goes to the game. -->
 
   <section id="lg" class="hide">
    <div class="lgphead">
@@ -807,7 +798,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 
 <nav class="bnav" id="bnav">
  <button type="button" id="bnPred" onclick="showMain('pred')"><span class="bnic"><svg viewBox="0 0 24 24" aria-hidden="true"><use class="gki" href="#gk3d-pred-i"/><use class="gka" href="#gk3d-pred-a"/></svg></span><span id="bnPredL">التوقعات</span></button>
- <button type="button" id="bnFant" onclick="showMain('fant')"><span class="bnic"><svg viewBox="0 0 24 24" aria-hidden="true"><use class="gki" href="#gk3d-fant-i"/><use class="gka" href="#gk3d-fant-a"/></svg></span><span id="bnFantL">فانتازي</span></button>
+ <button type="button" id="bnFant" onclick="goFantasy()"><span class="bnic"><svg viewBox="0 0 24 24" aria-hidden="true"><use class="gki" href="#gk3d-fant-i"/><use class="gka" href="#gk3d-fant-a"/></svg></span><span id="bnFantL">فانتازي</span></button>
  <button type="button" id="bnScores" class="on ctr" onclick="showMain('scores')"><span class="bnorb"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#gk3d-ball-orb"/></svg></span><span id="bnScoresL">المباريات</span></button>
  <button type="button" id="bnChat" onclick="showMain('chat')"><span class="bnic"><svg viewBox="0 0 24 24" aria-hidden="true"><use class="gki" href="#gk3d-chat-i"/><use class="gka" href="#gk3d-chat-a"/></svg></span><span id="bnChatL">دردشة</span><span class="navbadge hide" id="chatBadge"></span></button>
  <button type="button" id="bnSet" onclick="showMain('set')"><span class="bnic"><svg viewBox="0 0 24 24" aria-hidden="true"><use class="gki" href="#gk3d-set-i"/><use class="gka" href="#gk3d-set-a"/></svg></span><span id="bnSetL">الإعدادات</span></button>
@@ -832,10 +823,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.15";
+const APP_VERSION = "6.16";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-18-v615";
+const FORCE_RELOAD = "2026-08-18-v616";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1046,7 +1037,6 @@ let H12 = (function(){ try{ return localStorage.getItem("gk_h12") !== "0"; }catc
 let THEME = (function(){ try{ return localStorage.getItem("gk_theme") || "dark"; }catch(_){ return "dark"; } })();
 const STR = {
  brand:["جولك","GOALLAK"],
- fantasyBrand:["فانتازي جولك","GOALLAK FANTASY"],
  motto:["الجول جولك","El Goal Goallak"],
  loading:["جارٍ التحميل…","Loading…"],
  all:["الكل","All"],
@@ -1147,8 +1137,6 @@ const STR = {
  pushKeepOne:["اختر بطولة واحدة على الأقل أو أوقف التنبيهات","Keep at least one league or turn alerts off"],
  alreadyPicked:["سبق أن توقعت هذه المباراة من جهاز آخر","You already predicted this match on another device"],
  fantasyNav:["فانتازي","Fantasy"],
- fantasyTag:["اختار 15 نادي · 120 مليون · 36 جولة","Pick 15 clubs · 120M · 36 rounds"],
- fantasyCta:["إبدأ فريقك","Build your team"],
  soon:["قريبًا…","Soon…"],
  details:["التفاصيل","Details"],
  account:["الحساب","Account"],
@@ -1364,8 +1352,6 @@ function refreshBrandUI(){
  $("footBrand").textContent = t("brand");
  $("shVer").textContent = t("brand") + " · v" + APP_VERSION + " · " + t("motto");
  $("appVer").textContent = "v" + APP_VERSION;   /* never hand-typed: the marker the owner reads must follow APP_VERSION */
- $("fantBrand").textContent = t("fantasyBrand");
- try{ paintFantasyGate(); }catch(_){}
  document.title = t("brand") + " · " + t("motto");
 }
 function setLang(x){
@@ -1381,7 +1367,6 @@ function setLang(x){
  $("footMotto").textContent = t("motto");
  buildRail(); buildStrip(true); refreshSettingsUI(); tickClock();
  paintNavLabels();
- try{ paintFantasyGate(); }catch(_){}
  /* an open match sheet must follow the language too (it used to keep the old one) */
  if(_mdEid && !$("modal").classList.contains("hide")) renderMatchModal(_mdEid);
  if(_pcPid && !$("playerCard").classList.contains("hide")) openPlayerCard(_pcPid);   /* the player card must follow it too */
@@ -1402,6 +1387,27 @@ function paintNavLabels(){
 }
 
 /* ============ settings (ported from the WC app: sheet + grouped zones + theme + clock) ============ */
+/* PREDICTIONS, FANTASY AND CHAT NEED AN ACCOUNT. All three write something that belongs to a
+   person - a prediction, a squad, a message - so a signed-out visitor has nowhere to put it
+   and no name to appear under. Matches and Settings stay open, because reading scores should
+   never ask anything of anybody.
+
+   THIS IS A DOOR, NOT A LOCK, and it is worth being honest about which: the check reads
+   localStorage in the page, so anybody who wants past it can get past it. It stops the app
+   offering a screen that cannot work, and nothing more. Real protection belongs in the
+   worker, which is where chat's own session token is already verified. */
+const NEEDS_ACCOUNT = {pred: 1, fant: 1, chat: 1};
+function requireAccount(v){
+ if(!NEEDS_ACCOUNT[v]) return true;
+ if(gkUser) return true;
+ openAuth("L");
+ return false;
+}
+/* THE FANTASY TAB IS A DOOR TO ANOTHER PAGE, not a pane in this one. */
+function goFantasy(){
+ if(!requireAccount("fant")) return;
+ location.href = "fantasy/";
+}
 function toggleSettings(){ showMain(mainView === "set" ? "scores" : "set"); }
 function closeSettings(){ if(mainView === "set") showMain("scores", true); }
 /* (settings used to be a dropdown that closed on an outside tap — it is a full nav page now,
@@ -3298,7 +3304,6 @@ async function doAuth(){
 async function finishAuth(a, password){
  gkUser = {uid:a.uid, username:a.username};
  try{ localStorage.setItem("gk_user", JSON.stringify(gkUser)); }catch(_){}
- try{ paintFantasyGate(); }catch(_){}
  const chatReady = await createChatSession(a.username, password);
  myPreds = {};
  try{ localStorage.removeItem("gk_preds"); }catch(_){}
@@ -3326,7 +3331,8 @@ function signOut(){
  clearChatSession();
  closeChatSocket();
  try{ localStorage.removeItem("gk_user"); localStorage.removeItem("gk_preds"); }catch(_){}
- try{ paintFantasyGate(); }catch(_){}
+ /* signing out of a tab that needs an account must not leave that tab on screen */
+ if(NEEDS_ACCOUNT[mainView]) showMain("scores");
  refreshHdrAuth();
  refreshChatBar();
  if(mainView === "chat") renderChat();
@@ -3361,6 +3367,7 @@ function showMain(v, fromPop){
    else if(onTabEntry){ history.back(); return; }
   }catch(_){}
  }
+ if(!requireAccount(v)) return;
  mainView = v;
  $("bnScores").classList.toggle("on", v === "scores");
  $("bnPred").classList.toggle("on", v === "pred");
@@ -3369,7 +3376,6 @@ function showMain(v, fromPop){
  $("bnSet").classList.toggle("on", v === "set");
  $("rail").classList.toggle("hide", v !== "scores");
  $("predPane").classList.toggle("hide", v !== "pred");
- $("fantPane").classList.toggle("hide", v !== "fant");
  $("chatPane").classList.toggle("hide", v !== "chat");
  $("setSheet").classList.toggle("hide", v !== "set");
  $("infobar") && $("infobar").classList.toggle("hide", v !== "scores");
@@ -3380,7 +3386,6 @@ function showMain(v, fromPop){
   $("home").classList.add("hide"); $("lg").classList.add("hide");
  }
  if(v === "pred"){ renderPred(); loadPredData(false); syncMyPreds(); }
- if(v === "fant"){ try{ paintFantasyGate(); }catch(_){} }
  if(v === "chat"){ renderChat(); loadChat(); }
  chatPoll(v === "chat");
  refreshChatBar();
@@ -3785,23 +3790,11 @@ function paintClubHero(){
    with the gk_fx_owner flag and the ?fxowner=1 unlock, because a gate left in place but
    switched off is one accidental edit away from locking everybody out again - which is very
    nearly what happened when an earlier exact-spelling version locked out the owner himself. */
-/* THE ONLY WRITER OF THE FANTASY TAB. It was not, and that is why the tab still said "Soon…"
-   on a build where the gate had already been deleted: THREE other places - setLang, the tab
-   switch and boot - each wrote t("soon") straight into #fantSoon, so whichever ran last won
-   and paintFantasyGate's answer was thrown away every time. Removing the gate from one of
-   four writers changed nothing a user could see.
-
-   This is the same failure the v4.5 audit named as the most common one in this codebase: a
-   fix applied to some surfaces and not all. All three now call this function instead, and
-   check-release.mjs refuses a commit where anything else assigns to #fantSoon. */
-function paintFantasyGate(){
- const cta = $("fantCta"), soon = $("fantSoon"), who = $("fantWho");
- if(!cta || !soon) return;
- cta.classList.remove("hide");
- cta.textContent = t("fantasyCta");
- soon.textContent = t("fantasyTag");
- if(who) who.textContent = "";
-}
+/* THE FANTASY SPLASH AND ITS PAINTER ARE BOTH GONE (v6.16). The screen existed to hold one
+   button, and four different places used to write its subtitle - which is how it came to say
+   "Soon…" on a build where the release gate had already been deleted, since fixing one of the
+   four changed nothing a user could see. There is no subtitle now because there is no screen:
+   the nav item goes straight to the game. */
 function hdrAuthTap(){ if(gkUser) showMain("pred"); else openAuth("L"); }
 function refreshHdrAuth(){
  const b = $("hdrAuth");
@@ -4376,7 +4369,6 @@ async function gkVersionCheck(){
  buildRail();
  buildStrip(true);
  paintNavLabels();
- try{ paintFantasyGate(); }catch(_){}
  refreshChatNote();
  refreshChatBar();   /* the chat bar shipped hardcoded strings until it was first opened */
  loadDay(false);
@@ -4388,7 +4380,7 @@ async function gkVersionCheck(){
   const q = new URLSearchParams(location.search);
   const lgq = q.get("lg");
   if(q.get("go") === "pred") showMain("pred");
-  else if(q.get("go") === "fant") showMain("fant");
+  else if(q.get("go") === "fant") goFantasy();
   else if(q.get("go") === "chat") showMain("chat");
   else if(lgq && LEAGUES.some(l => l.id === lgq)) gotoLeague(lgq);
  }catch(_){}
