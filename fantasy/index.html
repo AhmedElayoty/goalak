@@ -947,7 +947,7 @@ const SEASON_OPENS = "2026-08-21";
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.25";
+const FX_BUILD = "6.26";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -1260,6 +1260,18 @@ function blockReason(c){
  return null;
 }
 
+/* EVERY CHANGE TO A SYNCED FIELD GOES THROUGH HERE.
+   An audit of all ten fields fxSnapshot carries found SIX that were written straight to
+   localStorage and never published: the team name, the formation, the transfer ledger, the
+   ground ledger and both onboarding flags. The owner renamed his team on his PC and the phone
+   kept showing the old name — the rename wrote to storage, repainted, and stopped. It only
+   ever reached the server later, by accident, because some UNRELATED action called save() and
+   swept the name up in its snapshot.
+
+   syncNow() is the single verb for "I changed something that belongs to the account". It marks
+   the device dirty, stamps it, and pushes — and check-release.mjs now refuses a commit where a
+   synced key is written by a function that does not call it. */
+function syncNow(){ fxTouch(); cloudPush(); }
 function save(){
  try{
   localStorage.setItem("fx_squad", JSON.stringify(squad));
@@ -1454,7 +1466,10 @@ function ftLoad(){
  try{ return JSON.parse(localStorage.getItem("fx_ft") || "null") || {gw: 0, banked: 1, base: [], join: 0}; }
  catch(_){ return {gw: 0, banked: 1, base: [], join: 0}; }
 }
-function ftSave(v){ try{ localStorage.setItem("fx_ft", JSON.stringify(v)); }catch(_){} }
+function ftSave(v){ try{ localStorage.setItem("fx_ft", JSON.stringify(v)); }catch(_){}
+ /* the transfer ledger is worth POINTS — a device that forgets its banked transfers is a
+    device that charges you -4 you had already paid for */
+ syncNow(); }
 /* A round rolls over when the app first renders inside a later round: whatever was not spent
    is banked, capped at five, and this round's squad becomes the new baseline. */
 function ftSync(){
@@ -2009,6 +2024,7 @@ function setFormation(f){
  clearArm();
  formation = f;
  try{ localStorage.setItem("fx_form", f); }catch(_){}
+ syncNow();
  render();
 }
 
@@ -2264,6 +2280,7 @@ function replayTutorial(){
   localStorage.removeItem("fx_tut_skips");      /* an explicit replay resets the count */
   sessionStorage.removeItem("fx_tut_hold");
  }catch(_){}
+ syncNow();
  closeSheet();
  openWizard();
 }
@@ -2277,6 +2294,7 @@ function openRename(){
  if(v === null) return;
  const name = v.trim().slice(0, 24);
  try{ if(name) localStorage.setItem("fx_team", name); else localStorage.removeItem("fx_team"); }catch(_){}
+ syncNow();
  paintChrome(); render();
 }
 
@@ -2306,6 +2324,7 @@ function markRound(gw, deliberate){
  if(L.indexOf(gw) >= 0) return;
  L.push(gw);
  try{ localStorage.setItem("fx_ledger", JSON.stringify(L)); }catch(_){}
+ syncNow();
 }
 function groundOf(){ return ledger().length >= GROUND_AT ? "clean" : "base"; }
 /* THE SEED IS NEVER A DISPLAY NAME.
@@ -3056,6 +3075,8 @@ function closeWizard(){
    try{ sessionStorage.setItem("fx_tut_hold", "1"); }catch(__){}
   }
  }catch(_){}
+ /* or a second device re-runs onboarding somebody already finished */
+ syncNow();
  render();
 }
 function wizNext(){ wizStep++; if(wizStep > 3) return closeWizard(); paintWizard(); }

@@ -655,6 +655,15 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 .rxchip span{font-size:11px;font-weight:800;font-variant-numeric:tabular-nums}
 .rxchip.mine{border-color:var(--fx-gold,#e8b64c);background:color-mix(in srgb,var(--fx-gold,#e8b64c) 18%,transparent)}
 .rxchip:active{transform:scale(.94)}
+/* the lightbox sits above everything, including the reaction bar and the nav */
+#lightbox{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.93);display:flex;
+ align-items:center;justify-content:center;padding:16px}
+#lightbox img{max-inline-size:100%;max-block-size:100%;object-fit:contain;border-radius:6px}
+#lightbox .lbx{position:absolute;inset-block-start:calc(12px + env(safe-area-inset-top));
+ inset-inline-end:14px;inline-size:44px;block-size:44px;border-radius:50%;background:rgba(0,0,0,.5);
+ border:1px solid rgba(255,255,255,.28);color:#fff;font-size:26px;line-height:1;cursor:pointer;
+ display:flex;align-items:center;justify-content:center}
+#chatLog .cmedia img{cursor:zoom-in}
 </style>
 </head>
 <body>
@@ -813,7 +822,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <button type="button" class="chattool emojibtn" id="chatEmoji" onclick="toggleEmojiPanel(event)" aria-label="Emoji" title="Emoji">🙂</button>
   <div class="vnprev hide" id="vnPrev"></div>
  </div>
- <textarea id="chatIn" rows="1" maxlength="500" placeholder="اكتب رسالة…"></textarea>
+ <textarea id="chatIn" rows="1" maxlength="500" placeholder="اكتب رسالة…" oninput="chatGrow(this)" onkeydown="chatKey(event)"></textarea>
  <button type="button" id="chatSend" onclick="sendChat()" aria-label="Send">➤</button>
  <div class="chatstatus hide" id="chatStatus"></div>
  <input type="file" class="hide" id="chatFile" onchange="chatFilePicked(this)">
@@ -853,10 +862,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.25";
+const APP_VERSION = "6.26";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-20-v625";
+const FORCE_RELOAD = "2026-08-20-v626";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1198,7 +1207,8 @@ const STR = {
   chatPhoto:["صورة","Photo"],
   chatVideo:["فيديو","Video"],
   chatVoice:["رسالة صوتية","Voice note"],
-  chatReact:["تفاعل","React"],
+  close:["إغلاق","Close"],
+ chatReact:["تفاعل","React"],
  chatDelete:["حذف الرسالة","Delete message"],
   chatDeleteConfirm:["حذف هذه الرسالة للجميع؟","Delete this message for everyone?"],
   chatDeleteFail:["تعذر حذف الرسالة · حاول مرة أخرى","Could not delete the message · try again"],
@@ -3940,10 +3950,65 @@ async function loadChat(){
  if(mainView === "chat") renderChat();
  updateChatBadge();
 }
+/* THE LIGHTBOX, WHICH THIS CHAT NEVER HAD.
+   A photo here had no click handler at all, so tapping one did whatever the browser felt like
+   — on a phone that means the OS viewer or nothing. The WC app opened it in-app, over the
+   room, with a close button and Escape. Same here now. Video keeps its native controls, but
+   the poster tap no longer throws you out of the app. */
+let _lbEsc = null;
+/* THE COMPOSER GROWS WITH WHAT YOU TYPE, as it does in the WC app. Without it a long message
+   scrolls inside a one-line box and you cannot see what you wrote before sending it — and
+   insertEmoji already called chatGrow, which simply did not exist here. */
+function chatGrow(el){
+ if(!el) return;
+ el.style.height = "auto";
+ el.style.height = Math.max(42, Math.min(el.scrollHeight, 132)) + "px";
+}
+/* Enter sends on a real keyboard; on a touch screen it inserts a newline, because there the
+   send button is right there and Enter is how people break a line. */
+function chatKey(ev){
+ if(ev.key !== "Enter" || ev.shiftKey) return;
+ if(window.matchMedia && window.matchMedia("(pointer:coarse)").matches) return;
+ ev.preventDefault();
+ sendChat();
+}
+function openLightbox(url){
+ closeLightbox();
+ const o = document.createElement("div");
+ o.id = "lightbox";
+ o.innerHTML = '<button type="button" class="lbx" aria-label="' + esc(t("close")) + '">&#215;</button>'
+   + '<img src="' + esc(url) + '" alt="">';
+ o.addEventListener("click", function(e){
+  if(e.target === o || (e.target.classList && e.target.classList.contains("lbx"))) closeLightbox();
+ });
+ document.body.appendChild(o);
+ _lbEsc = function(e){ if(e.key === "Escape") closeLightbox(); };
+ document.addEventListener("keydown", _lbEsc);
+ try{ document.body.style.overflow = "hidden"; }catch(_){}
+}
+function closeLightbox(){
+ const o = $("lightbox");
+ if(o) o.remove();
+ if(_lbEsc) document.removeEventListener("keydown", _lbEsc);
+ _lbEsc = null;
+ try{ document.body.style.overflow = ""; }catch(_){}
+}
+/* A VIDEO LEFT PLAYING IN A BACKGROUNDED TAB is the other half of this: the WC app stopped
+   every clip when the app was hidden, and this one carried on talking. */
+function stopAllChatMedia(){
+ try{
+  document.querySelectorAll("#chatLog video, #chatLog audio").forEach(function(m){
+   try{ m.pause(); }catch(_){}
+  });
+ }catch(_){}
+}
+document.addEventListener("visibilitychange", function(){ if(document.hidden) stopAllChatMedia(); });
+window.addEventListener("pagehide", stopAllChatMedia);
+
 function renderChatMedia(m){
  if(!m.mediaUrl) return "";
  const url = esc(m.mediaUrl), key = esc(m.mediaKey || "");
- if(m.kind === "image") return '<div class="cmedia"><img loading="lazy" src="' + url + '" data-media-key="' + key + '" alt="' + esc(t("chatPhoto")) + '" onerror="refreshChatMedia(this)"></div>';
+ if(m.kind === "image") return '<div class="cmedia"><img loading="lazy" src="' + url + '" data-media-key="' + key + '" alt="' + esc(t("chatPhoto")) + '" onerror="refreshChatMedia(this)" onclick="event.stopPropagation();openLightbox(this.src)"></div>';
  if(m.kind === "video") return '<div class="cmedia"><video controls playsinline preload="metadata" src="' + url + '" data-media-key="' + key + '" onerror="refreshChatMedia(this)"></video></div>';
  if(m.kind === "audio") return '<div class="cmedia"><audio controls preload="metadata" src="' + url + '" data-media-key="' + key + '" onerror="refreshChatMedia(this)"></audio></div>';
  return "";
