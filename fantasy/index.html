@@ -619,6 +619,9 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
 .rndb__w{flex:1;min-inline-size:0}
 .rndb__d{font-size:12px;font-weight:800;color:var(--fx-ink);font-variant-numeric:tabular-nums}
 .rndb__s{font-size:10.5px;font-weight:700;color:var(--fx-ink-dim);margin-block-start:1px}
+/* the local deadline sits under the round line, quieter than the round name but readable */
+.rndb__open{margin-block-start:3px;font-size:11.5px;font-weight:800;color:var(--fx-dim,#9aa7bd);
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rndb__bar{margin-block-start:4px;block-size:3px;border-radius:2px;background:var(--fx-line-2);
  overflow:hidden}
 .rndb__fill{block-size:100%;background:linear-gradient(90deg,var(--fx-acc),var(--fx-gold))}
@@ -958,7 +961,7 @@ function seasonStarted(){ return Date.now() >= SEASON_OPENS_MS; }
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.34";
+const FX_BUILD = "6.35";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -1105,6 +1108,7 @@ const STR = {
             "You may keep a club that has no match this round — sometimes that is cheaper than selling it and buying it back."],
  lockedNow:["مقفول","Locked"],
  roundInPlay:["بتتلعب دلوقتي","Being played now"],
+ opensAt:["بتقفل عندك: {when}","Locks for you: {when}"],
  roundPicking:["بتختار للجولة دي","You are picking for this one"],
  roundDone:["خلصت","Finished"],
  lockedTtl:["الجولة اتقفلت","This round is locked"],
@@ -1481,8 +1485,12 @@ async function loadFixtures(gw){
     4.28% to 5.05%, and it is the whole difference between what round 1 appeared to show
     (15 matches, 11 clubs doubled) and what is actually there (13 and 8). The window is
     half-open everywhere else in this app; the request now matches it. */
- const lastDay = new Date(Date.parse(r[1] + "T00:00:00Z") - 864e5).toISOString().slice(0, 10);
- const range = ymd(r[0]) + "-" + ymd(lastDay);
+ /* ASK WIDE, COUNT EXACTLY. The request is padded by a day at each end so no fixture near a
+    boundary can be missing from the answer; the filter below is what decides membership. */
+ const openMs = gwLockMs(gw), endMs = gwEndMs(gw);
+ if(!isFinite(openMs) || !isFinite(endMs)){ fixtLoading[gw] = 0; return; }
+ const range = ymd(new Date(openMs - 864e5).toISOString().slice(0, 10))
+             + "-" + ymd(new Date(endMs + 864e5).toISOString().slice(0, 10));
  try{
   const slugs = fixtSlugs();
   if(!slugs.length){ fixtLoading[gw] = 0; return; }
@@ -1516,6 +1524,9 @@ async function loadFixtures(gw){
   lists.forEach(j => ((j && j.events) || []).forEach(e => {
    if(evs.has(e.id)) return; evs.add(e.id);
    if(off(e)) return;
+   /* THE ONE TEST THAT MEANS THE SAME THING EVERYWHERE */
+   const ko = Date.parse(e.date) || 0;
+   if(!ko || ko < openMs || ko >= endMs) return;
    (e.competitions || []).forEach(c => (c.competitors || []).forEach(t => {
      const k = String(t.id); ids.set(k, (ids.get(k) || 0) + 1);
    }));
@@ -1629,6 +1640,24 @@ function transferCost(){ return transferState().cost; }
    We hold dates, not kick-off times, so the lock is the moment the round's window opens.
    That is stricter than a 90-minute cushion and never later than the first match, which is
    the safe direction to be wrong in. */
+/* A ROUND OPENS AT ONE MOMENT FOR EVERYBODY.
+   The boundary is an absolute instant - midnight UTC on the calendar's start date - and it
+   always was. What was not absolute was MEMBERSHIP: fixtures were counted by asking ESPN for a
+   range of DATES and taking whatever came back, and a date is a different slice of time
+   depending on where you stand. The Scores tab buckets by Asia/Dubai, this bucketed by the
+   dates ESPN was handed, and the two disagreed about 475 of the season's 2256 fixtures - a
+   fifth of them. Every round boundary from GW7 is a Monday, and a European Sunday-night
+   kick-off at 20:00 UTC is already Monday in the Gulf. So a match a Gulf manager watched on
+   Monday scored for the round that ended on Sunday.
+   Membership is now the only thing it can honestly be: is this fixture's kick-off instant
+   inside [roundOpens, nextRoundOpens)? Same answer in every timezone on earth. The date range
+   is still what we ASK ESPN for, widened by a day at each end so nothing near a boundary can
+   fall outside the request, and then every event is filtered on its own timestamp. */
+function gwEndMs(gw){
+ const n = gwCount();
+ if(gw >= n){ const r = gwRound(gw); return r ? Date.parse(r[1] + "T00:00:00Z") : NaN; }
+ return gwLockMs(gw + 1);
+}
 function gwLockMs(gw){
  const r = gwRound(gw);
  return r ? Date.parse(r[0] + "T00:00:00Z") : NaN;
@@ -1642,6 +1671,35 @@ function roundLocked(gw){
    handed a frozen [ar, en] pair at open time and then only re-renders from that
    pair, so without this the English tutorial printed Arabic month names for the
    whole session. */
+/* THE SAME INSTANT, IN THE READER'S OWN CLOCK.
+   The deadline is one moment worldwide, so the only honest way to show it is in whatever
+   timezone the device is actually in, named, so nobody has to guess whether "midnight" is
+   theirs or somebody else's. A manager in Dubai is told 04:00 Friday; a manager in London is
+   told 01:00 Friday; it is the same instant and neither has to do the arithmetic. */
+function tzName(){
+ try{ return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; }catch(_){ return "UTC"; }
+}
+function tzAbbr(){
+ try{
+  const p = new Intl.DateTimeFormat(LANG === "ar" ? "ar" : "en-GB", {timeZoneName: "short"})
+    .formatToParts(new Date()).find(x => x.type === "timeZoneName");
+  return p ? p.value : "";
+ }catch(_){ return ""; }
+}
+function localMoment(ms){
+ if(!isFinite(ms)) return "";
+ try{
+  const loc = LANG === "ar" ? "ar-EG-u-nu-latn" : "en-GB";
+  return new Intl.DateTimeFormat(loc, {weekday:"long", day:"numeric", month:"long",
+                                       hour:"2-digit", minute:"2-digit", hour12:false}).format(new Date(ms));
+ }catch(_){ return new Date(ms).toISOString().slice(0, 16).replace("T", " "); }
+}
+function gwOpensLocal(gw){
+ const ms = gwLockMs(gw);
+ if(!isFinite(ms)) return "";
+ const ab = tzAbbr();
+ return localMoment(ms) + (ab ? " (" + ab + ")" : "");
+}
 function gwDates(gw, lang){
  const r = gwRound(gw); if(!r) return "";
  const L = (lang || LANG) === "ar" ? "ar" : "en";
@@ -2582,7 +2640,7 @@ function boardRows(){
    when it will start and when it will finish." */
 function roundBarHtml(){
  const gw = CURRENT_GW, r = gwRound(gw);
- const pct = Math.round((gw / 36) * 100);
+ const pct = Math.round((gw / gwCount()) * 100);
  return '<div class="rndb">'
   + '<span class="rndb__n"><b dir="ltr">' + num(gw) + "</b><span>" + esc(t("gwWord")) + "</span></span>"
   + '<span class="rndb__w">'
@@ -2599,6 +2657,15 @@ function roundBarHtml(){
               : roundLocked(gw) ? t("roundDone")
               : t("locksOn", {d: gwDates(gw).split(" – ")[0]}))
           + "</b>" : "") + "</div>"
+  /* THE DEADLINE IS ONE MOMENT WORLDWIDE, SHOWN IN YOUR OWN CLOCK.
+     The round opens at a fixed instant - midnight UTC on the calendar date - which is 04:00 in
+     the Gulf, 01:00 in London and 20:00 the previous evening in New York. Printing the calendar
+     date and leaving everyone to work out whether it is theirs is how a manager misses a
+     deadline he thought he had a day for. It says the weekday, the date, the time and the zone,
+     resolved by the device, so it is right wherever it is read. */
+  +  (isFinite(gwLockMs(gw)) && !roundLocked(gw)
+      ? '<div class="rndb__open">' + esc(t("opensAt", {when: gwOpensLocal(gw)})) + "</div>"
+      : "")
   +  '<div class="rndb__bar"><div class="rndb__fill" style="inline-size:' + pct + '%"></div></div>'
   + "</span></div>";
 }
