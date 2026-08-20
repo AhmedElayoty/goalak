@@ -3,6 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script>
+/* BEFORE ANYTHING PAINTS. The document is hardcoded Arabic/RTL and the palette is dark, and
+   both were only corrected at the very END of a 300KB single-file script - so an English
+   reader watched the whole page flip from Arabic RTL on every single load, and anybody on the
+   light theme got a dark flash first. Four lines at the top of the head, ahead of the fonts
+   and ahead of the body, and neither flash can happen. */
+(function(){
+ try{
+  var l = localStorage.getItem("gk_lang");
+  if(l === "en" || l === "ar"){
+   document.documentElement.lang = l;
+   document.documentElement.dir = l === "ar" ? "rtl" : "ltr";
+  }
+  var t = localStorage.getItem("gk_theme");
+  if(t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+ }catch(_){}
+})();
+</script>
 <title>Goallak · الجول جولك</title>
 <meta name="description" content="Live scores and predictions for top leagues and the UEFA Champions League, plus Goallak Fantasy — pick 15 clubs and play every round.">
 <link rel="canonical" href="https://goallak.com/">
@@ -672,6 +690,9 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
  color:var(--fg);font-weight:800;font-size:13.5px;cursor:pointer}
 .mshare:active{transform:scale(.98)}
 .mcd{display:inline-block;margin-block-start:4px;font-weight:800;color:var(--acc,#FF7A45)}
+/* a text link, not a button that looks like the confirm button */
+.aulink{display:block;inline-size:100%;margin-block-start:2px;padding:6px 2px;background:none;border:0;
+ color:var(--acc,#FF7A45);font:inherit;font-size:12.5px;font-weight:800;text-align:center;cursor:pointer}
 </style>
 </head>
 <body>
@@ -815,7 +836,9 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   </div>
   <input class="auinp" id="auUser" autocomplete="username" maxlength="18">
   <input class="auinp" id="auPass" type="password" autocomplete="current-password" maxlength="40">
+  <input class="auinp hide" id="auMail" type="email" autocomplete="email" maxlength="160" inputmode="email">
   <select class="auinp" id="auClub"></select>
+  <button type="button" class="aulink hide" id="auForgot" onclick="doForgot()"></button>
    <div class="auerr hide" id="auErrBox" role="alert" aria-live="polite"></div>
   <button type="button" class="retrybtn aubtn" id="auGo" onclick="doAuth()">تأكيد</button>
   <div class="aunote" id="auNote"></div>
@@ -870,10 +893,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.32";
+const APP_VERSION = "6.33";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-20-v632";
+const FORCE_RELOAD = "2026-08-20-v633";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1155,12 +1178,21 @@ const STR = {
  username:["اسم المستخدم","Username"],
  password:["كلمة السر","Password"],
  goBtn:["تأكيد","Confirm"],
- authNote:["حساب بسيط بدون بريد إلكتروني · لا تستخدم كلمة سر تستعملها في مكان آخر","Simple account, no email · don't reuse an important password"],
+ authNote:["لا تستخدم كلمة سر بتستعملها في مكان تاني","Don't reuse a password from anywhere important"],
+ emailOpt:["إيميل (اختياري) — عشان تقدر ترجّع كلمة السر","Email (optional) — the only way to reset your password"],
+ forgotQ:["نسيت كلمة السر؟","Forgot your password?"],
+ forgotSent:["لو الإيميل مسجّل، هيوصلك لينك دلوقتي","If that address is registered, a link is on its way"],
+ forgotNeed:["اكتب اسم المستخدم الأول","Type your username first"],
+ authBadEmail:["الإيميل ده مش مظبوط أو مستخدم قبل كده","That email is not valid, or is already in use"],
  authBadUser:["اسم المستخدم من 2 إلى 18 حرفًا","Username must be 2-18 characters"],
  authBadPass:["كلمة السر 4 أحرف على الأقل","Password: at least 4 characters"],
  authNet:["تعذر الوصول للخادم · حاول مرة أخرى","Can't reach the server · try again"],
  authNoUser:["اسم المستخدم غير صحيح · حاول مرة أخرى","Wrong username · try again"],
  authWrongPass:["كلمة السر غير صحيحة","Wrong password · try again"],
+ playedLabel:["توقعات","predicted"],
+ abandoned:["الماتش اتلغى","Abandoned"],
+ aet:["بعد الوقت الإضافي","After extra time"],
+ agg:["المجموع","Agg"],
  authTaken:["الاسم مستخدم · جرّب تسجيل الدخول","Username taken · try logging in"],
  authSaveFail:["تعذر الحفظ · حاول مرة أخرى","Save failed · try again"],
  yourPick:["توقعك","Your pick"],
@@ -1332,7 +1364,12 @@ function rangeParam(k, before, after){ return addDaysKey(k, -(before)) + "-" + a
 /* WC v3.31: ESPN SILENTLY caps a scoreboard at 100 events when no limit is sent — a truncated
    response is indistinguishable from a real one. That bug hid an entire knockout round.
    Every scoreboard call in this app goes through here. Never build the URL by hand. */
-function sbUrl(slug, range){ return API + slug + "/scoreboard?dates=" + range + "&limit=300"; }
+/* `limit=300` used to be enough and is not any more: measured on 23 Aug, a plain call returns
+   100, `limit=300` returns exactly 300, and `limit=1000` returns 333 — the cap IS the limit we
+   asked for, so a busy day silently loses everything past the three-hundredth match. That is
+   the same silent truncation that once hid a whole knockout round. The league feeds could
+   never approach it; `all/` reaches it most Saturdays. */
+function sbUrl(slug, range){ return API + slug + "/scoreboard?dates=" + range + "&limit=" + (slug === "all" ? 1000 : 300); }
 /* European season runs Aug->May. Derived, never hardcoded, so it stays correct after every
    July rollover (standing rule 13: no baked-in dates). */
 function curSeasonYear(){ const d = new Date(); return d.getUTCMonth() >= 6 ? d.getUTCFullYear() : d.getUTCFullYear() - 1; }
@@ -1353,12 +1390,23 @@ function voidedKey(e){
  const n = statusName(e);
  if(n === "STATUS_POSTPONED" || n === "STATUS_SUSPENDED") return "postponed";
  if(n === "STATUS_CANCELED" || n === "STATUS_CANCELLED") return "canceled";
+ /* ABANDONED comes through with state=post and a partial score, so it was rendering as an
+    ordinary full-time result — and the worker fired a "full time" push for it. */
+ if(n === "STATUS_ABANDONED") return "abandoned";
  return "";
 }
 /* left digit always belongs to the left-rendered team (home is on the RIGHT in RTL) */
 function scoreTxt(H, A){
  const h = esc(H.score == null ? "0" : H.score), a = esc(A.score == null ? "0" : A.score);
  return LANG === "ar" ? a + " - " + h : h + " - " + a;
+}
+/* the two-legged tie: shown only when the aggregate actually differs from this leg, so a
+   one-off match never grows a meaningless second scoreline */
+function aggTxt(H, A){
+ const hs = H.aggregateScore, as = A.aggregateScore;
+ if(hs == null || as == null) return "";
+ if(String(hs) === String(H.score) && String(as) === String(A.score)) return "";
+ return LANG === "ar" ? as + " - " + hs : hs + " - " + as;
 }
 function shootTxt(H, A){
  const hs = H.shootoutScore, as = A.shootoutScore;
@@ -1409,6 +1457,11 @@ function setLang(x){
  if(x !== "ar" && x !== "en") return;
  LANG = x;
  try{ localStorage.setItem("gk_lang", x); }catch(_){}
+ /* The push record carries the language and the worker splits ar/en on it, but nothing ever
+    re-saved it when the language changed - so somebody who switched to English went on
+    getting Arabic goal alerts for ever. (The WC app got this right by accident: it reloaded
+    the whole page on a language change, which re-ran the whole subscribe flow.) */
+ try{ if(typeof savePushSub === "function") savePushSub(); }catch(_){}
  document.documentElement.lang = x;
  document.documentElement.dir = x === "ar" ? "rtl" : "ltr";
  $("lgEn").classList.toggle("on", x === "en");
@@ -2058,9 +2111,14 @@ function mrow(e, lg){
   sub = '<span class="lvm"><span class="lvdot"></span><span dir="ltr">' + esc(clock) + "</span></span>";
  } else {
   mid = '<span class="msc" dir="ltr">' + scoreTxt(H, A) + "</span>";
-  sub = esc(t("ft"));
+  /* EXTRA TIME AND THE AGGREGATE ARE BOTH IN THE FEED AND NEITHER WAS EVER SHOWN. A 1-1
+     labelled "FT" was in fact a tie won 2-1 over two legs, and nothing on the row told the
+     reader who had actually gone through. */
+  sub = esc(statusName(e) === "STATUS_FINAL_AET" ? t("aet") : t("ft"));
   const sh = shootTxt(H, A);
   if(sh) sub += " · " + esc(t("pens")) + ' <span dir="ltr">' + sh + "</span>";
+  const ag = aggTxt(H, A);
+  if(ag) sub += " · " + esc(t("agg")) + ' <span dir="ltr">' + ag + "</span>";
  }
  if(e._gkQual) sub += " · " + esc(t("qualTag"));
  const extraCompetition = eventCompetitionName(e);
@@ -3400,6 +3458,13 @@ function updateAuthUI(){
  $("auUser").placeholder = t("username");
  $("auPass").placeholder = t("password");
  $("auPass").setAttribute("autocomplete", _am === "C" ? "new-password" : "current-password");
+ /* OPTIONAL, AND SAID SO. Without an address a forgotten password is a lost account, a lost
+    squad and a lost prediction history, with nothing anybody can do about it — but making it
+    compulsory is what kept the app off the real accounts endpoint in the first place. */
+ const mail = $("auMail");
+ if(mail){ mail.classList.toggle("hide", _am !== "C"); mail.placeholder = t("emailOpt"); }
+ const fg = $("auForgot");
+ if(fg){ fg.classList.toggle("hide", _am !== "L"); fg.textContent = t("forgotQ"); }
  const cSel = $("auClub");
  if(cSel){
   cSel.style.display = _am === "C" ? "" : "none";
@@ -3410,11 +3475,71 @@ function updateAuthUI(){
  $("auErrBox").classList.add("hide");
 }
 function auShowErr(msg){ const e = $("auErrBox"); e.textContent = msg; e.classList.remove("hide"); }
+/* The worker has had a full reset flow — single-use hashed token, expiry, mail — since the
+   account store was built, and the app never exposed it, so a forgotten password meant a
+   permanently lost account. The reply is deliberately the same whether or not the address is
+   on file: anything else turns this box into a "does this person have an account" oracle. */
+async function doForgot(){
+ const u = ($("auUser").value || "").trim();
+ if(u.length < 2) return auShowErr(t("forgotNeed"));
+ try{ await apiAuth("request-reset", {username:u}); }catch(_){}
+ auShowErr(t("forgotSent"));
+}
+/* THE ACCOUNT LIVES IN ONE PLACE NOW.
+   It used to live in two, and they had drifted. Sign-up wrote to textdb and decided the
+   password in the browser; the chat session, the fantasy save and everything else behind a
+   login were minted by the worker, which reads its own table and had no idea those people
+   existed. Anyone who signed up after the one-off import appeared signed in and then could
+   not chat, could not sync a squad and could not be told why — and anyone who used the email
+   password reset changed it in the worker only, which locked them out of the browser check.
+   Sign-up and sign-in both go to the worker. Existing textdb accounts are adopted by the
+   worker the first time their owner proves the old password, so nobody has to do anything. */
+async function apiAuth(op, body){
+ const r = await fetch(CHAT_API + "/api/auth/" + op, {
+  method:"POST", headers:{"Content-Type":"application/json"}, cache:"no-store",
+  body:JSON.stringify(body || {})
+ });
+ const j = await r.json().catch(() => ({}));
+ return {status:r.status, ok:r.ok && j.ok, j:j};
+}
+function authErrText(code){
+ return code === "username-taken" ? t("authTaken")
+      : code === "invalid-credentials" ? t("authWrongPass")
+      : code === "weak-password" ? t("authBadPass")
+      : code === "bad-username" ? t("authBadUser")
+      : code === "bad-email" || code === "email-taken" ? t("authBadEmail")
+      : t("authSaveFail");
+}
 async function doAuth(){
  const u = ($("auUser").value || "").trim();
  const p = $("auPass").value || "";
+ const em = (($("auMail") || {}).value || "").trim();
  if(u.length < 2 || u.length > 18) return auShowErr(t("authBadUser"));
  if(p.length < 4) return auShowErr(t("authBadPass"));
+ const go = $("auGo");
+ go.disabled = true;
+ try{
+  if(_am === "L"){
+   let res;
+   try{ res = await apiAuth("login", {username:u, password:p}); }
+   catch(_){ return auShowErr(t("authNet")); }
+   if(!res.ok) return auShowErr(res.status === 401 ? t("authWrongPass") : authErrText(res.j && res.j.error));
+   await finishAuth({uid:res.j.user.uid, username:res.j.user.username, club:res.j.user.club}, p);
+  } else {
+   const pickedClub = clubFromSelValue(($("auClub") || {}).value || "");
+   let res;
+   try{ res = await apiAuth("signup", {username:u, password:p, email:em || undefined, club:pickedClub || undefined}); }
+   catch(_){ return auShowErr(t("authNet")); }
+   if(!res.ok) return auShowErr(authErrText(res.j && res.j.error));
+   await finishAuth({uid:res.j.user.uid, username:res.j.user.username, club:res.j.user.club || pickedClub}, p);
+  }
+ } finally { go.disabled = false; }
+}
+/* kept only so an existing device with a half-finished sign-up is not stranded; nothing
+   calls it on the normal path any more */
+async function doAuthLegacy(){
+ const u = ($("auUser").value || "").trim();
+ const p = $("auPass").value || "";
  const go = $("auGo");
  go.disabled = true;
  try{
@@ -3484,10 +3609,25 @@ async function finishAuth(a, password){
  renderPred();
 }
 function signOut(){
- gkUser = null; myPreds = {};
+ const goneUid = gkUser && gkUser.uid;
+ gkUser = null; myPreds = {}; myClub = null; _clubSched = null;
  clearChatSession();
  closeChatSocket();
- try{ localStorage.removeItem("gk_user"); localStorage.removeItem("gk_preds"); }catch(_){}
+ /* EVERYTHING, OR IT IS THE NEXT PERSON'S. Two people share a phone all the time. This used
+    to clear the user record and the predictions and nothing else, so the person who signed in
+    afterwards inherited the previous one's favourite club, their chat cache, their unread
+    marker — and, worst of all, their whole fantasy squad, which the game then PUBLISHED to
+    the server under the new account. */
+ try{
+  ["gk_user","gk_preds","gk_club","gk_chat_cache","gk_chat_seents","gk_acct_seen",
+   "fx_squad","fx_cap","fx_vice","fx_chips","fx_team","fx_form","fx_ledger","fx_ft","fx_snap",
+   "fx_at","fx_dirty","fx_onboarded","fx_tut_skips","fx_coach"]
+   .forEach(function(k){ localStorage.removeItem(k); });
+ }catch(_){}
+ /* and the push record must stop naming somebody who has left, or the live match card keeps
+    following their favourite club onto this device */
+ try{ savePushSub(); }catch(_){}
+ if(goneUid) chatClubMap = {};
  /* signing out of a tab that needs an account must not leave that tab on screen */
  if(NEEDS_ACCOUNT[mainView]) showMain("scores");
  refreshHdrAuth();
@@ -3496,10 +3636,16 @@ function signOut(){
  updateChatBadge();
  renderPred();
 }
+async function predAuthHeadersReady(){ return validChatSession(); }
+function predAuthHeaders(){
+ return Object.assign({"Content-Type":"application/json"}, chatAuthHeaders());
+}
 async function syncMyPreds(){
  if(!gkUser) return;
  try{
-  const mine = await tdbRead(predKeyFor(gkUser.uid), null);
+  const r = await fetch(CHAT_API + "/api/pred/get", {headers:chatAuthHeaders(), cache:"no-store"});
+  const j = await r.json().catch(() => ({}));
+  const mine = (r.ok && j.ok) ? j.pred : null;
   if(mine && mine.p){
    myPreds = mine.p;
    try{ localStorage.setItem("gk_preds", JSON.stringify(myPreds)); }catch(_){}
@@ -3521,6 +3667,10 @@ function showMain(v, fromPop){
  try{ closeLightbox(); closeReact(); closeEmojiPanel(); }catch(_){}
  /* push a history entry for every non-Matches tab so Android Back returns to Matches
     instead of leaving the app (QA: Back exited from Predictions/Fantasy/Chat/Settings) */
+ /* THE DOOR IS CHECKED BEFORE THE STEP IS TAKEN. The history entry was pushed first and the
+    account gate ran after it, so a signed-out tap on Predictions left an orphan entry behind
+    with the view unchanged — and the next Back press was silently swallowed. */
+ if(!requireAccount(v)) return;
  if(!fromPop && v !== mainView){
   try{
    const onTabEntry = history.state && history.state.gkv === "tab";
@@ -3529,7 +3679,6 @@ function showMain(v, fromPop){
    else if(onTabEntry){ history.back(); return; }
   }catch(_){}
  }
- if(!requireAccount(v)) return;
  mainView = v;
  $("bnScores").classList.toggle("on", v === "scores");
  $("bnPred").classList.toggle("on", v === "pred");
@@ -3697,23 +3846,29 @@ async function submitPredGk(eid, btn){
  if(!(h >= 0 && h <= 20) || !(a >= 0 && a <= 20)) return toastMsg(t("badScore"));
  if(myPreds[eid]) return renderPredMatches();
  btn.disabled = true;
- const key = predKeyFor(gkUser.uid);
- let ok = false;
+ /* THE PICK IS SENT ON ITS OWN AND THE SERVER MERGES IT.
+    This used to read the whole blob, edit it in the browser and write the whole thing back.
+    tdbRead does not throw on an empty or garbled body — it RESOLVES with the fallback — so a
+    rate-limited response turned into `{}`, and the write then replaced a season of picks with
+    the single one just made. The verify only checked that the new pick was there, which it
+    was, so it reported success and repainted the tab with everything else gone. Two devices
+    racing lost a pick the same way. Now one pick goes up, the server adds it to what it
+    already holds, and it is the server that refuses to overwrite an existing one. */
+ let ok = false, landedAll = null;
  for(let i = 0; i < 3 && !ok; i++){
   try{
-   const mineR = await tdbRead(key, null);
-   const mine = mineR && typeof mineR === "object" ? mineR : {};
-   mine.n = gkUser.username;
-   mine.p = mine.p || {};
-   if(!mine.p[eid]) mine.p[eid] = {h:h, a:a, ts:Date.now()};   /* one submission per match, never overwritten */
-   await tdbWrite(key, mine);
-   await sleep(300);
-   const chk = await tdbRead(key, null);
-   if(chk && chk.p && chk.p[eid]){ ok = true; myPreds = chk.p; }
+   const r = await fetch(CHAT_API + "/api/pred/set", {
+    method:"POST", headers:predAuthHeaders(), cache:"no-store",
+    body:JSON.stringify({pred:{n:gkUser.username, p:{[eid]:{h:h, a:a}}}})
+   });
+   const j = await r.json().catch(() => ({}));
+   if(r.ok && j.ok && j.pred && j.pred.p){ ok = true; landedAll = j.pred.p; }
+   else if(r.status === 401){ btn.disabled = false; return toastMsg(t("chatSessionExpired")); }
   }catch(_){ await sleep(350); }
  }
  btn.disabled = false;
  if(!ok) return toastMsg(t("authSaveFail"));
+ myPreds = landedAll;
  try{ localStorage.setItem("gk_preds", JSON.stringify(myPreds)); }catch(_){}
  const landed = myPreds[eid];
  toastMsg(landed && (landed.h !== h || landed.a !== a) ? t("alreadyPicked") : t("savedOk"));
@@ -3726,9 +3881,16 @@ async function renderLeaderboard(){
  /* keep last-good rows on screen while refreshing; skeleton only on first ever load */
  body.innerHTML = lbCache.rows ? lbHtml(lbCache.rows) : '<div class="skel"><span class="spinner"></span>' + esc(t("loading")) + "</div>";
  try{
-  const acctsR = await tdbRead(ACCT_KEY, null);
-  const accts = acctsR && typeof acctsR === "object" ? acctsR : {};
-  const users = Object.values(accts).slice(0, 100);
+  /* ONE REQUEST FOR THE WHOLE BOARD. It used to read the accounts blob and then fire one
+     request per player straight from the browser — a hundred in parallel, every sixty
+     seconds, at a free store — which is precisely the load that produces the rate-limited
+     bodies that then scored everybody zero. It was also capped at the hundred OLDEST
+     accounts, so the hundred-and-first player could never appear on it however well they
+     predicted. */
+  const lbR = await fetch(CHAT_API + "/api/pred/leaderboard", {headers:chatAuthHeaders(), cache:"no-store"});
+  const lbJ = await lbR.json().catch(() => ({}));
+  if(!lbR.ok || !lbJ.ok || !Array.isArray(lbJ.users)) throw new Error("board");
+  const users = lbJ.users;
   if(!users.length){ body.innerHTML = '<div class="empty"><div class="big">🏆</div>' + esc(t("lbEmpty")) + "</div>"; return; }
   if(!predCache.at) await loadPredData(true);
   /* results feed down: say so specifically instead of a generic "could not load" over a healthy board */
@@ -3741,24 +3903,31 @@ async function renderLeaderboard(){
   (predCache.res || []).forEach(e => { doneMap[e.id] = e; });
   /* A read that FAILED is not a player who scored zero. Keep the two apart: a flaky request must
      never drop a real player to the bottom of the board. WC lesson 2.2. */
-  const packs = await Promise.all(users.map(u => tdbRead(predKeyFor(u.uid), null).then(v => ({ok:true, v:v})).catch(() => ({ok:false, v:null}))));
   const rows = [];
-  let unread = 0;
-  packs.forEach((pack, i) => {
-   const u = users[i];
-   if(!pack.ok){ unread++; return; }
-   const pk = pack.v;
+  users.forEach(u => {
+   const pk = u.picks || {};
    let pts = 0, exact = 0;
-   if(pk && pk.p) for(const eid in pk.p){ const e = doneMap[eid]; if(!e) continue; const s = scorePredGk(pk.p[eid], e); pts += s; if(s === 3) exact++; }
-   rows.push({name:u.username, uid:u.uid, pts, exact, club:u.club || null});
+   for(const eid in pk){ const e = doneMap[eid]; if(!e) continue; const s = scorePredGk(pk[eid], e); pts += s; if(s === 3) exact++; }
+   rows.push({name:u.username, uid:u.uid, pts, exact, played:u.played || 0, club:u.club || null});
   });
-  rows.sort((a, b) => b.pts - a.pts || b.exact - a.exact || String(a.name).localeCompare(String(b.name)));
-  if(!unread) lbCache = {at:Date.now(), rows};   /* never cache a partial board */
-  if(mainView === "pred" && predTab === "L") body.innerHTML = (unread ? '<div class="stale">⚠️ ' + esc(t("lbPartial")) + "</div>" : "") + lbHtml(rows);
+  /* A BOARD IS PEOPLE WHO HAVE PLAYED. Every registered account was pushed onto it at zero,
+     which put somebody who has never made a prediction on the podium with a crown on. */
+  const scored = rows.filter(r => r.played > 0);
+  const shown = scored.length ? scored : rows;
+  shown.sort((a, b) => b.pts - a.pts || b.exact - a.exact || b.played - a.played || String(a.name).localeCompare(String(b.name)));
+  lbCache = {at:Date.now(), rows:shown};
+  if(mainView === "pred" && predTab === "L") body.innerHTML = lbHtml(shown);
  }catch(_){
   if(lbCache.rows){ body.innerHTML = '<div class="stale">⚠️ ' + esc(t("staleNote")) + "</div>" + lbHtml(lbCache.rows); }
   else body.innerHTML = '<div class="errbox"><div class="big">📡</div>' + esc(t("loadFail")) + '<br><button type="button" class="retrybtn" onclick="lbCache.at=0;renderLeaderboard()">' + esc(t("retry")) + "</button></div>";
  }
+}
+/* SHARED POINTS ARE A SHARED RANK. Printing the array index crowned whoever's name happened
+   to sort first out of two players on identical scores. */
+function rankOf(rows, r){
+ let n = 1;
+ for(const x of rows){ if(x === r) break; if(x.pts !== r.pts || x.exact !== r.exact) n++; }
+ return n;
 }
 function lbHtml(rows){
  let h = "";
@@ -3766,7 +3935,7 @@ function lbHtml(rows){
  if(rows.length >= 2){
   const top = [rows[1], rows[0], rows[2]].filter(Boolean);
   h += '<div class="podium">' + top.map(r => {
-   const rank = rows.indexOf(r) + 1;
+   const rank = rankOf(rows, r);
    return '<div class="pod p' + rank + '"><span class="pava">' + (rank === 1 ? '<span class="pcrown">👑</span>' : "") + esc(String(r.name || "?").charAt(0).toUpperCase()) +
     '</span><span class="prank" dir="ltr">#' + rank + '</span><span class="pname">' + esc(r.name) + "</span>" +
     (r.club ? '<span class="pclub">⭐ ' + esc(clubAr({shortDisplayName:r.club.s, displayName:r.club.n})) + "</span>" : "") +
@@ -3778,9 +3947,9 @@ function lbHtml(rows){
  if(rest.length || !podiumUsed){
   h += '<div class="statcard"><div class="stath"><span class="ic">🏆</span>' + esc(t("leaderboard")) + "</div>";
   (podiumUsed ? rest : rows).slice(0, 50).forEach((r, i) => {
-   const rank = (podiumUsed ? i + 4 : i + 1);
+   const rank = rankOf(rows, r);
    h += '<div class="srow' + (gkUser && r.uid === gkUser.uid ? " meRow" : "") + '"><span class="srank">' + (podiumUsed ? rank : (["🥇", "🥈", "🥉"][i] || rank)) + "</span>" +
-    '<span class="sname"><b>' + esc(r.name) + "</b><span>" + (r.club ? "⭐ " + esc(clubAr({shortDisplayName:r.club.s, displayName:r.club.n})) + " · " : "") + esc(t("exactLabel")) + ' <span dir="ltr">' + r.exact + "</span></span></span>" +
+    '<span class="sname"><b>' + esc(r.name) + "</b><span>" + (r.club ? "⭐ " + esc(clubAr({shortDisplayName:r.club.s, displayName:r.club.n})) + " · " : "") + esc(t("exactLabel")) + ' <span dir="ltr">' + r.exact + "</span> · " + esc(t("playedLabel")) + ' <span dir="ltr">' + (r.played || 0) + "</span></span></span>" +
     '<span class="sval" dir="ltr">' + r.pts + "</span></div>";
   });
   h += "</div>";
@@ -4222,7 +4391,12 @@ function rxRow(m){
   const arr = m.rx[e], mine = gkUser && arr.indexOf(gkUser.uid) >= 0;
   return '<button type="button" class="rxchip' + (mine ? " mine" : "") + '" data-mid="' + esc(m.id)
    + '" data-emo="' + esc(e) + '" onclick="event.stopPropagation();toggleReaction(this.dataset.mid,this.dataset.emo)">'
-   + e + "<span>" + arr.length + "</span></button>";   /* NOT num(): that helper lives in the fantasy page, and calling it here threw inside renderChat map, so ONE reaction blanked the whole room */
+   /* esc() like every other sink in this file. The server allow-lists six emoji so it is not
+      reachable today, but the value round-trips through localStorage and is re-rendered from
+      there on boot, which makes one loosened server check the difference between safe and
+      stored XSS. NOT num(): that helper lives in the fantasy page, and calling it here threw
+      inside the renderChat map, so ONE reaction blanked the whole room. */
+   + esc(e) + "<span>" + arr.length + "</span></button>";
  }).join("");
  return chips ? '<div class="rxrow">' + chips + "</div>" : "";
 }
@@ -4257,9 +4431,30 @@ function toggleReaction(id, emoji){
   if(!Object.keys(m.rx).length) delete m.rx;
   if(mainView === "chat") renderChat();
  }
- try{
-  if(chatSocket && chatSocket.readyState === 1) chatSocket.send(JSON.stringify({type:"react", id: id, emoji: emoji}));
- }catch(_){}
+ /* THE SOCKET IS NOT THE ONLY WAY IN. This had no else branch: with the connection down the
+    chip was painted, the count went up, nothing was ever sent, and the reaction disappeared
+    on the next history load. iOS Safari closes the socket every time the app is backgrounded,
+    so it was not a rare case. */
+ const sent = (function(){
+  try{
+   if(chatSocket && chatSocket.readyState === 1){
+    chatSocket.send(JSON.stringify({type:"react", id: id, emoji: emoji}));
+    return true;
+   }
+  }catch(_){}
+  return false;
+ })();
+ if(sent) return;
+ fetch(CHAT_API + "/api/chat/react", {
+  method:"POST", headers:Object.assign({"Content-Type":"application/json"}, chatAuthHeaders()),
+  cache:"no-store", body:JSON.stringify({id: id, emoji: emoji})
+ }).then(function(r){ return r.json().catch(function(){ return {}; }); })
+   .then(function(j){
+    if(j && j.ok && j.rx && m){ m.rx = j.rx; if(mainView === "chat") renderChat(); return; }
+    /* it did not land: put the message back the way the server still has it */
+    loadChatHistoryOnly();
+   })
+   .catch(function(){ loadChatHistoryOnly(); });
 }
 function renderChat(){
  const log = $("chatLog");
@@ -4336,7 +4531,15 @@ function connectChat(){
  setChatConnection("connecting");
  try{
   chatSocket = new WebSocket(CHAT_API.replace(/^http/, "ws") + "/api/chat/ws", ["goallak-chat", chatSession.token]);
-  chatSocket.onopen = function(){ chatReconnectAttempt = 0; setChatConnection("online"); };
+  chatSocket.onopen = function(){
+   chatReconnectAttempt = 0;
+   setChatConnection("online");
+   /* A RECONNECT WITHOUT A RE-SYNC IS A HOLE IN THE ROOM. Anything sent while the socket was
+      down was simply never received: the poll only re-fetches when it finds the socket dead
+      at tick time, and the backoff starts at one second, so an ordinary network blip
+      reconnected long before the poll and nothing ever filled the gap. */
+   loadChatHistoryOnly();
+  };
   chatSocket.onmessage = function(event){
    if(event.data === "pong") return;
    try{
@@ -4655,9 +4858,21 @@ function togglePushLg(id){
   pushLgs = pushLgs.filter(x => x !== id);
  } else pushLgs = pushLgs.concat([id]);
  if(pushLgs.length === all.length) pushLgs = [];
- try{ localStorage.setItem("gk_push_lgs", JSON.stringify(pushLgs)); }catch(_){}
+ const before = pushLgs.slice();
  renderPushLgs();
- savePushSub();
+ /* THE CHIP USED TO COMMIT BEFORE THE SAVE WAS KNOWN TO HAVE WORKED — localStorage written,
+    UI repainted, and then savePushSub() fired and its result thrown away. All three attempts
+    could fail and the chip would still read "off" while the server kept sending. */
+ savePushSub().then(function(saved){
+  if(saved){ try{ localStorage.setItem("gk_push_lgs", JSON.stringify(before)); }catch(_){} return; }
+  pushLgs = JSON.parse(localStorage.getItem("gk_push_lgs") || "[]");
+  renderPushLgs();
+  toastMsg(t("authSaveFail"));
+ }).catch(function(){
+  pushLgs = JSON.parse(localStorage.getItem("gk_push_lgs") || "[]");
+  renderPushLgs();
+  toastMsg(t("authSaveFail"));
+ });
 }
 function b64urlKey(s){
  const b64 = s.replace(/-/g, "+").replace(/_/g, "/");
@@ -4780,6 +4995,9 @@ setInterval(function(){
 document.addEventListener("visibilitychange", function(){
  if(document.hidden) return;
  followToday();          /* resumed after midnight: move to today before anything repaints */
+ /* the OS permission can be revoked while the app is in the background, and the switch went
+    on reading ON until a full reload */
+ try{ refreshPushUI(); }catch(_){}
  buildStrip(false);
  if(gkUser && validChatSession()){ connectChat(); loadChat(); }
  if(mainView === "pred"){ loadPredData(false); return; }

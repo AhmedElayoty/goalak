@@ -37,9 +37,16 @@ function world(o) {
       setItem: (k, v) => { store[k] = String(v); }
     },
     CURRENT_GW: o.gw != null ? o.gw : 5,
+    /* liveGw is the round edits count for; the harness pins it, exactly as it pins CURRENT_GW */
+    liveGw: () => (o.gw != null ? o.gw : 5),
+    gwCount: () => 36,
     squad: (o.squad || []).slice(),
     SEASON_STARTED: o.seasonStarted !== false,
     activeChipFor: () => o.chip || null,
+    /* ftSave publishes to the account since v6.26. Without a stub the whole suite threw on
+       its FIRST assertion and ran ZERO of them - which is how the transfer economy, the one
+       rule that can take points away, went uncovered while the file reported "pass". */
+    syncNow: () => {},
     Math, JSON, String, Number, Array, isFinite
   };
   ctx.globalThis = ctx;

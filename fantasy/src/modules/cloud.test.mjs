@@ -52,6 +52,8 @@ function world(o) {
     vice: o.vice || null,
     chipPlays: (o.chips || []).slice(),
     ftLoad: () => ({ gw: 1, banked: 1, base: [], join: 1 }),
+    /* the record carries each locked round's lineup since v6.33 */
+    snapLoad: () => ({}),
     validateSquad: () => {},
     paintChrome: () => {},
     render: () => {},

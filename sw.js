@@ -1,5 +1,6 @@
 /* Goallak service worker
    CACHE changelog (bump on EVERY deploy, newest first):
+   goalak-v87  2026-08-20  v6.33 SIX AGENTS QA'd THE WHOLE SITE AND FOUND WHAT I HAD NOT. One each for predictions, fantasy, chat, settings, notifications and data, every finding verified against the code before it was accepted. THE ROOT ONE, FOUND INDEPENDENTLY BY TWO OF THEM: the app had TWO account stores and authenticated against the wrong one. Sign-up wrote to textdb and checked the password in the browser; the chat session, the fantasy save and everything else behind a login were minted by the worker, which reads its own table and had never heard of those people. Anybody who signed up after the one-off import appeared signed in and then could not chat, could not sync a squad and could not be told why - and the email password reset changed it in the worker only, which locked you out of the browser check entirely. Sign-up and sign-in now go to the worker, which adopts a legacy account the first time its owner proves the old password. The email is optional, which is what kept the app off that endpoint in the first place, and Forgot Password is finally reachable. THE SEASON OPENS TOMORROW AND THE GAME WOULD NOT HAVE STARTED: SEASON_STARTED was a hardcoded false beside a SEASON_OPENS date that nothing read, so every score, every -4 and every standing would have stayed at zero for the whole season. It is derived from the date now. THE DEADLINE ASKED THE WRONG QUESTION: the lock read the round the SCRUBBER was on, and the rounds are back-to-back, so from the moment the season started the team could never be edited again - while tapping the next round on the scrubber unlocked everything and let a live squad be rewritten. Deadlines ask liveGw() now, edits count for the next open round, and each round's lineup is snapshotted at its deadline so editing for round 2 cannot rewrite round 1's score. A POSTPONED MATCH WAS A FIXTURE: Scotland's whole opening card was called off and ten clubs were still shown as playing, then scored for matches nobody played. A PREDICTION COULD DELETE A SEASON: the save read the blob, edited it in the browser and wrote it back, and tdbRead RESOLVES with its fallback on a rate-limited body rather than throwing - so one bad read replaced every pick with the one just made, verified as fine, and said Saved. Predictions moved to the worker: one pick goes up, the server merges it, the server refuses to overwrite one, and the server keeps the kick-off deadline using kick-off times the cron already had. THE LIVE CARD CARRIED THE KICK-OFF NOTIFICATION'S TAG, so it destroyed the kick-off alert - and for a sleeping phone the push topic collapsed the two and only the card arrived. It also never cleared: every match left a frozen 90th-minute score pinned in the shade for ever. TWO GOALS IN ONE MINUTE BECAME ONE, because the pending goal was a slot and not a queue. And a squad could leak between two people on one phone: the local cache carried no identity, so signing in as somebody else loaded the previous person's fifteen clubs and PUBLISHED them under the new account. Also: sign-out now clears everything rather than four keys, the account gate is checked before the history entry, the language and theme are set before the page paints instead of after 300KB of script, reactions work with the socket down, a reconnect refills the gap, abandoned matches and aggregate scores are shown, and the subscriber list can no longer be truncated to 500 and saved. 33 transfer assertions ran for the first time since syncNow was added - the suite had been throwing on its first line and reporting nothing.
    goalak-v86  2026-08-20  v6.32 THE SHARE BUTTON WAS INVISIBLE, AND A BARE ARROW SAYS NOTHING ANYWAY. It shipped as a floating icon with position:absolute inside a container that is not positioned - #mbox has no position, and the close button beside it uses float and sticky rather than absolute - so the browser resolved it against a distant ancestor and drew it somewhere the owner could not find. Two mistakes in one control: the wrong positioning scheme, and an icon-only affordance for an action nobody would guess. It is a real button now, full width, in the flow directly under the match meta where the eye already is, reading «شارك الماتش» / 'Share match' next to the glyph instead of relying on it. THE LESSON IS THE SAME ONE AS THE SMILEY: I keep shipping controls without looking at where they land. The chat suite already asserts that a control is on screen and hit-testable; the match sheet has no such suite, which is exactly why this one got through.
    goalak-v85  2026-08-20  v6.31 FOUR NEW NOTIFICATIONS, INCLUDING A LIVE MATCH CARD. GOALS ARE HELD BACK ONE MINUTE on the owner's instruction: a push that beats the television spoils the goal for anybody on a stream that runs behind. The goal is recorded when it is seen and sent on the NEXT cron tick - the job runs every minute, so the delay is exactly the minute asked for and needs no timer at all. FANTASY ROUND DEADLINES at 24 hours and 3 hours before a round locks, read from the app's OWN calendar.json rather than a second copy in the worker that could drift out of step with the game. CHAMPIONS LEAGUE PREDICTIONS a day before each match, once. AND THE LIVE CARD from the owner's screenshot: one silent, self-replacing notification per live match, re-sent every minute with the current score and clock, same tag so Android replaces it in place instead of stacking, requireInteraction so it stays pinned in the shade. Honest about the limit: Android's rich Live Updates are not exposed to web push at all and iOS shows nothing like it, so this is a normal notification that updates itself rather than the Google card - as close as the web goes. It is PERSONAL, not per-league: it goes only to somebody whose favourite club is one of the two playing, because league interest would pin a card for every match at once. It also never joins the sent ledger, since it is meant to repeat and recording it would both bloat the file and dedupe the repeat. Verified with a dry run against the live worker, and the round-1 three-hour reminder fires tonight.
    goalak-v84  2026-08-20  v6.30 THE LAST FIVE WC CAPABILITIES, AND THE NOTIFICATIONS ARE PROVEN. Share a match: navigator.share on a phone, clipboard everywhere else, because a desktop without the Web Share API would otherwise get nothing at all. Countdown to kick-off on any match that has not started, and the Arabic side is not a translation - the units are written out and each number-unit pair is wrapped so it reads days-hours-minutes right to left instead of the browser reordering it. Text auto-fit shrinks a long club name until it fits, down to a floor so it never becomes unreadable, scheduled once a frame rather than per render. Haptics on every tab change, silently absent on desktop and on iPhone where Safari has never implemented vibrate. ANALYTICS IS DELIBERATELY NOT A PORT: the WC version generated a visitor id and asked a THIRD-PARTY GEO SERVICE about the visitor, then wrote the result into the world-readable textdb store - two things this session has spent hours removing. This counts what was actually asked, how many people and how often, and nothing that identifies anybody: one row per day/version/language/installed-or-browser, one POST per device per day, to our own worker, no id, no IP lookup, no path, no referrer. Verified end to end against the live worker. AND THE NOTIFICATIONS WORK - not assumed: one subscription registered, a real test push sent, delivered 1 failed 0. Six of the nine audit gaps are now closed; head-to-head is the one left, and it was already on the accepted list.
@@ -84,7 +85,7 @@
    goalak-v2   2026-08-14  QA pass: WCup navy palette; precise shell matching vs SW scope; non-ok responses fall back to cached shell; redirected responses re-wrapped before use/caching; cache writes tied to event lifetime.
    goalak-v1   2026-08-14  v1.0 initial build: 7 leagues, all-leagues day view, league pages (matches / table / stats), AR/EN RTL.
 */
-const CACHE = "goalak-v86";
+const CACHE = "goalak-v87";
 /* top-clubs.js is a static DATA file (last season's top five per league + the ESPN competition-id
    map). It is cache-first like every other asset here, so it refreshes on the next CACHE bump —
    which is the right cadence: the club list only changes once a season. */
@@ -139,7 +140,42 @@ self.addEventListener("push", e => {
     data: { url: d.url || "./" },
     vibrate: d.silent ? undefined : [80, 40, 80]
   };
-  e.waitUntil(self.registration.showNotification(d.title || "Goallak", opts));
+  e.waitUntil((async () => {
+    /* FULL TIME CLOSES THE LIVE CARD. A pinned card carries requireInteraction, so Android
+       keeps it in the shade until somebody swipes it - without this every match a user
+       follows left a frozen 90th-minute score behind for ever. */
+    try {
+      const shown = await self.registration.getNotifications();
+      if (d.close) for (const n of shown) if (n.tag === d.close) n.close();
+      /* and a belt-and-braces sweep: any card older than three hours belongs to a match that
+         finished while the phone was off, whose closing push has long since expired */
+      const cut = Date.now() - 3 * 3600000;
+      for (const n of shown) {
+        if (n.tag && n.tag.indexOf("card-") === 0 && (n.timestamp || 0) < cut) n.close();
+      }
+    } catch (_) { /* getNotifications is not everywhere; the card is still replaced by tag */ }
+    await self.registration.showNotification(d.title || "Goallak", opts);
+  })());
+});
+
+/* THE ENDPOINT CAN BE ROTATED OUT FROM UNDER US. When a push service reissues a subscription
+   there is no user-visible event: the old endpoint starts returning 410, the worker prunes it,
+   and the person is silently unsubscribed with the switch in Settings still reading ON. This
+   re-subscribes with the same key and tells the page to save the new record. */
+self.addEventListener("pushsubscriptionchange", e => {
+  e.waitUntil((async () => {
+    try {
+      const old = e.oldSubscription || await self.registration.pushManager.getSubscription();
+      const key = (e.newSubscription && e.newSubscription.options && e.newSubscription.options.applicationServerKey)
+               || (old && old.options && old.options.applicationServerKey);
+      if (!key) return;
+      const sub = e.newSubscription || await self.registration.pushManager.subscribe({
+        userVisibleOnly: true, applicationServerKey: key
+      });
+      const wins = await clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const c of wins) c.postMessage({ gk: "pushsub", sub: sub.toJSON(), old: old ? old.endpoint : null });
+    } catch (_) { /* nothing more the worker can do alone; the page re-saves on next open */ }
+  })());
 });
 self.addEventListener("notificationclick", e => {
   e.notification.close();
@@ -177,10 +213,33 @@ self.addEventListener("fetch", e => {
         e.waitUntil(caches.open(CACHE).then(c => c.put(key, cp)).catch(() => {}));
         return r;
       } catch (_) {
-        /* offline: its own cached copy first, then the app shell so something loads */
+        /* offline: its own cached copy first. The app shell used to be the last resort for
+           EVERY navigation, so a first-ever offline open of /fantasy/ served the main app's
+           HTML at the /fantasy/ URL, where its relative sw.js, top-clubs.js and manifest all
+           resolve to the wrong files. Only the root falls back to the root. */
         const m = await caches.match(key);
-        return m || (await caches.match("index.html")) || caches.match("./");
+        if (m) return m;
+        return isRoot ? ((await caches.match("index.html")) || caches.match("./"))
+                      : new Response("<!doctype html><meta charset=utf-8><title>Goallak</title><body style=\"font:16px system-ui;padding:24px;background:#0a1230;color:#fff\">Offline.</body>",
+                                     { headers: { "Content-Type": "text/html; charset=utf-8" } });
       }
+    })());
+    return;
+  }
+  /* THE GAME'S DATA IS NOT A STATIC ASSET. clubs.json, prices.json, calendar.json and
+     crests.json took the cache-first path, so a returning player ran today's fantasy code
+     against the PREVIOUS deploy's rosters and round windows - and shipping a corrected
+     calendar reached nobody until the cache name happened to change. They revalidate now:
+     the cached copy answers instantly and is replaced in the background. */
+  if (/\/fantasy\/[a-z-]+\.json(\?|$)/.test(url)) {
+    e.respondWith((async () => {
+      const c = await caches.open(CACHE);
+      const m = await c.match(e.request);
+      const net = fetch(e.request, { cache: "no-store" })
+        .then(r => { if (r && r.ok && !r.redirected) c.put(e.request, r.clone()); return r; })
+        .catch(() => null);
+      if (m) { e.waitUntil(net); return m; }
+      return (await net) || Response.error();
     })());
     return;
   }
