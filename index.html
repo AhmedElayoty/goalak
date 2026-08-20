@@ -626,6 +626,26 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
  .chattool.recording{animation:none}
  .spinner{animation-duration:1.8s}
 }
+/* the emoji panel sits above the composer, the reaction bar floats at the finger */
+.emojipanel{position:fixed;z-index:120;display:flex;flex-wrap:wrap;gap:2px;padding:8px;
+ max-block-size:44vh;overflow:auto;border-radius:14px;background:var(--card,#111a3a);
+ border:1px solid var(--line,#243056);box-shadow:0 18px 40px -18px rgba(0,0,0,.7)}
+.emojipanel button{font-size:22px;line-height:1;background:none;border:0;padding:6px;cursor:pointer;
+ border-radius:8px}
+.emojipanel button:active{transform:scale(.9);background:rgba(255,255,255,.08)}
+.reactbar{position:fixed;z-index:130;display:flex;gap:2px;padding:6px 8px;border-radius:999px;
+ background:var(--card,#111a3a);border:1px solid var(--line,#243056);
+ box-shadow:0 14px 30px -14px rgba(0,0,0,.7)}
+.reactbar button{font-size:22px;line-height:1;background:none;border:0;padding:4px 6px;cursor:pointer;
+ border-radius:999px}
+.reactbar button:active{transform:scale(.88)}
+.rxrow{display:flex;flex-wrap:wrap;gap:4px;margin-block-start:6px}
+.rxchip{display:inline-flex;align-items:center;gap:3px;font-size:12px;line-height:1;padding:3px 7px;
+ border-radius:999px;border:1px solid var(--line,#243056);background:rgba(255,255,255,.05);
+ color:var(--fg,#f2f5ff);cursor:pointer}
+.rxchip span{font-size:11px;font-weight:800;font-variant-numeric:tabular-nums}
+.rxchip.mine{border-color:var(--fx-gold,#e8b64c);background:color-mix(in srgb,var(--fx-gold,#e8b64c) 18%,transparent)}
+.rxchip:active{transform:scale(.94)}
 </style>
 </head>
 <body>
@@ -781,6 +801,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <button type="button" class="chattool" id="chatPhoto" onclick="pickChatMedia('image')" aria-label="Photo" title="Photo">📷</button>
   <button type="button" class="chattool" id="chatVideo" onclick="pickChatMedia('video')" aria-label="Video" title="Video">🎬</button>
   <button type="button" class="chattool" id="chatVoice" onclick="toggleVoiceNote()" aria-label="Voice note" title="Voice note">🎙️</button>
+  <button type="button" class="chattool emojibtn" id="chatEmoji" onclick="toggleEmojiPanel(event)" aria-label="Emoji" title="Emoji">🙂</button>
   <div class="vnprev hide" id="vnPrev"></div>
  </div>
  <textarea id="chatIn" rows="1" maxlength="500" placeholder="اكتب رسالة…"></textarea>
@@ -823,10 +844,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.23";
+const APP_VERSION = "6.24";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-20-v623";
+const FORCE_RELOAD = "2026-08-20-v624";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -3926,6 +3947,96 @@ async function refreshChatMedia(element){
   if(r.ok && j.url) element.src = j.url;
  }catch(_){}
 }
+/* ============================================================================
+   EMOJIS AND REACTIONS.
+   The WC app had both and this chat had neither — no picker, and no way to react to anything.
+   The lists are the WC app's own, so the two products feel like one.
+
+   The REACTION plumbing is deliberately not the WC app's. That version stored reactions by
+   reading the whole room, merging, writing it back, then verifying with a retry loop and a
+   random backoff — because two people reacting at the same moment could silently lose one.
+   Here the room is a Durable Object with a single writer, so a reaction is one row keyed by
+   (message, person, emoji): toggling is idempotent, and nothing can be counted twice.
+   ============================================================================ */
+const CHAT_EMOJIS = ["😀","😃","😄","😁","😅","😂","🤣","😊","😍","😘","😎","🤩","🤔","😴","🙄","😜","😢","😭","😡","🥳","🥶","😱","🤝","🙏","👍","👎","👏","🙌","💪","🤞","👀","🔥","⚽","🥅","🏆","🎉","🎊","❤️","💔","💯","⭐","🚩","🟨","🟥"];
+const CHAT_REACTS = ["❤️","😂","👏","😮","😢","🔥"];
+
+function toggleEmojiPanel(ev){
+ ev.stopPropagation();
+ if($("emojiPanel")){ closeEmojiPanel(); return; }
+ const p = document.createElement("div");
+ p.id = "emojiPanel"; p.className = "emojipanel";
+ p.innerHTML = CHAT_EMOJIS.map(e => '<button type="button" onclick="insertEmoji(' + JSON.stringify(e).replace(/"/g, "&quot;") + ')">' + e + "</button>").join("");
+ document.body.appendChild(p);
+ const bar = $("chatBar").getBoundingClientRect();
+ p.style.insetInlineStart = Math.max(8, bar.left) + "px";
+ p.style.inlineSize = Math.min(bar.width, window.innerWidth - 16) + "px";
+ p.style.insetBlockEnd = (window.innerHeight - bar.top + 6) + "px";
+ setTimeout(() => document.addEventListener("click", closeEmojiPanel), 0);
+}
+function closeEmojiPanel(e){
+ const p = $("emojiPanel");
+ if(e && p && (p.contains(e.target) || (e.target.classList && e.target.classList.contains("emojibtn")))) return;
+ if(p) p.remove();
+ document.removeEventListener("click", closeEmojiPanel);
+}
+function insertEmoji(e){
+ const inp = $("chatIn"); if(!inp) return;
+ const a = inp.selectionStart != null ? inp.selectionStart : inp.value.length;
+ const b = inp.selectionEnd != null ? inp.selectionEnd : inp.value.length;
+ inp.value = inp.value.slice(0, a) + e + inp.value.slice(b);
+ const n = a + e.length;
+ inp.focus();
+ try{ inp.setSelectionRange(n, n); }catch(_){}
+ if(typeof chatGrow === "function") chatGrow(inp);
+}
+
+/* the chips under a message: emoji, count, gold when it is one of mine */
+function rxRow(m){
+ if(!m.rx) return "";
+ const chips = Object.keys(m.rx).filter(e => m.rx[e] && m.rx[e].length).map(e => {
+  const arr = m.rx[e], mine = gkUser && arr.indexOf(gkUser.uid) >= 0;
+  return '<button type="button" class="rxchip' + (mine ? " mine" : "") + '" data-mid="' + esc(m.id)
+   + '" data-emo="' + esc(e) + '" onclick="event.stopPropagation();toggleReaction(this.dataset.mid,this.dataset.emo)">'
+   + e + "<span>" + num(arr.length) + "</span></button>";
+ }).join("");
+ return chips ? '<div class="rxrow">' + chips + "</div>" : "";
+}
+function closeReact(){ const b = $("reactbar"); if(b) b.remove(); }
+function openReact(ev, id){
+ ev.stopPropagation();
+ if(!gkUser || !id) return;
+ closeReact();
+ const bar = document.createElement("div");
+ bar.id = "reactbar"; bar.className = "reactbar";
+ bar.innerHTML = CHAT_REACTS.map(e => '<button type="button" data-mid="' + esc(id) + '" data-emo="' + esc(e)
+  + '" onclick="event.stopPropagation();toggleReaction(this.dataset.mid,this.dataset.emo);closeReact()">' + e + "</button>").join("");
+ document.body.appendChild(bar);
+ const bw = bar.offsetWidth || 250, bh = bar.offsetHeight || 44;
+ const x = ev.clientX || (window.innerWidth / 2), y = ev.clientY || (window.innerHeight / 2);
+ bar.style.insetInlineStart = Math.min(Math.max(8, x - bw / 2), window.innerWidth - bw - 8) + "px";
+ bar.style.insetBlockStart = (y - bh - 10 < 56 ? y + 16 : y - bh - 10) + "px";
+ setTimeout(() => document.addEventListener("click", closeReact, {once: true}), 0);
+}
+/* OPTIMISTIC, then the socket says what really happened. The server owns the count; this only
+   makes the tap feel instant, and the broadcast that follows overwrites it either way. */
+function toggleReaction(id, emoji){
+ if(!gkUser || !id) return;
+ closeReact();
+ const m = chatMsgs.find(x => x.id === id);
+ if(m){
+  m.rx = m.rx || {};
+  const a = m.rx[emoji] = m.rx[emoji] || [];
+  const i = a.indexOf(gkUser.uid);
+  if(i >= 0) a.splice(i, 1); else a.push(gkUser.uid);
+  if(!a.length) delete m.rx[emoji];
+  if(!Object.keys(m.rx).length) delete m.rx;
+  if(mainView === "chat") renderChat();
+ }
+ try{
+  if(chatSocket && chatSocket.readyState === 1) chatSocket.send(JSON.stringify({type:"react", id: id, emoji: emoji}));
+ }catch(_){}
+}
 function renderChat(){
  const log = $("chatLog");
  if(!log) return;
@@ -3948,7 +4059,11 @@ function renderChat(){
     const club = chatClubFor(m);
     const clubHtml = club ? '<span class="cclub">⭐ ' + esc(clubLabel(club)) + "</span>" : "";
     const del = own ? '<button type="button" class="cdel" title="' + esc(t("chatDelete")) + '" aria-label="' + esc(t("chatDelete")) + '" data-mid="' + esc(m.id) + '" onclick="deleteChatMsg(this.dataset.mid)"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>' : "";
-    return '<div class="cmsg' + (own ? " own" : "") + '">' + del + '<div class="cname"><span class="cuser">' + esc(m.name || "?") + "</span>" + clubHtml + "</div>" + text + renderChatMedia(m) + '<div class="ctime" dir="ltr">' + esc(fmtTime(new Date(m.ts || 0).toISOString())) + "</div></div>";
+    return '<div class="cmsg' + (own ? " own" : "") + '" data-mid="' + esc(m.id) + '" onclick="openReact(event,this.dataset.mid)">'
+     + del + '<div class="cname"><span class="cuser">' + esc(m.name || "?") + "</span>" + clubHtml + "</div>"
+     + text + renderChatMedia(m)
+     + '<div class="ctime" dir="ltr">' + esc(fmtTime(new Date(m.ts || 0).toISOString())) + "</div>"
+     + rxRow(m) + "</div>";
   }).join("");
   if(nearBottom) setTimeout(function(){ window.scrollTo(0, document.body.scrollHeight); }, 0);
  }
@@ -3990,6 +4105,14 @@ function connectChat(){
    try{
     const value = JSON.parse(event.data);
     if(value.type === "message") addChatMessage(value.message, true);
+    else if(value.type === "react"){   /* the server's count is the truth, whatever we guessed */
+     const m = chatMsgs.find(x => x.id === value.id);
+     if(m){
+      if(value.rx && Object.keys(value.rx).length) m.rx = value.rx; else delete m.rx;
+      try{ localStorage.setItem("gk_chat_cache", JSON.stringify(chatMsgs.slice(-60))); }catch(_){}
+      if(mainView === "chat") renderChat();
+     }
+    }
     else if(value.type === "delete"){   /* someone removed their own message: drop it everywhere */
      chatMsgs = chatMsgs.filter(m => m.id !== value.id);
      try{ localStorage.setItem("gk_chat_cache", JSON.stringify(chatMsgs.slice(-60))); }catch(_){}

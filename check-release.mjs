@@ -90,6 +90,20 @@ if (!/function requireAccount\(/.test(app))
 if (!/function goFantasy\(/.test(app))
   fail.push("goFantasy() is gone — the Fantasy tab has nowhere to send anybody");
 
+/* 7. THE CHAT HAS EMOJIS AND REACTIONS, because the WC app did and this did not.
+      Guarded on the WIRING, not the presence of a list: a picker nobody can open and a
+      reaction that never reaches the socket are the two ways this quietly stops working. */
+for (const [re, why] of [
+  [/function toggleEmojiPanel\(/, "the emoji picker is gone"],
+  [/function insertEmoji\(/, "insertEmoji() is gone — the picker would open and do nothing"],
+  [/id="chatEmoji"/, "the emoji button is not in the composer, so nothing opens the picker"],
+  [/function toggleReaction\(/, "reactions are gone"],
+  [/function rxRow\(/, "rxRow() is gone — reactions would be invisible under messages"],
+  [/onclick="openReact\(event/, "tapping a message no longer opens the reaction bar"],
+  [/type:"react"/, "toggleReaction never sends to the socket — nobody else would see it"],
+  [/value\.type === "react"/, "the react frame is ignored, so the server's count never lands"]
+]) if (!re.test(app)) fail.push(why);
+
 if (fail.length) {
   console.log("release markers are not consistent:");
   fail.forEach(f => console.log("  FAIL  " + f));
