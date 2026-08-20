@@ -933,7 +933,11 @@ async function main() {
       out.hasLoader = typeof loadBoard === "function";
       /* renderBoard directly, not render(): render() now calls loadBoard(), which serves the
          cached (empty) table and would wipe the row this case just injected. */
+      /* seed the CACHE as well as the array: loadBoard() may already be in flight from an
+         earlier render(), and it would land on RIVAL_ROWS mid-case. With the cache holding the
+         same row, whichever finishes last agrees with the other. */
       RIVAL_ROWS = [{name: "Rival FC", mgr: "someone", squad: squad.slice(), cap: squad[0], vice: squad[1]}];
+      try{ localStorage.setItem(boardCacheKey(), JSON.stringify({at: Date.now(), rows: RIVAL_ROWS})); }catch(e){}
       view = "board";
       document.getElementById("viewBoard").classList.remove("hide");
       renderBoard();

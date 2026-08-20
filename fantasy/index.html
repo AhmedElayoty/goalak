@@ -947,7 +947,7 @@ const SEASON_OPENS = "2026-08-21";
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.22";
+const FX_BUILD = "6.23";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -2350,6 +2350,17 @@ async function loadBoard(force){
  }catch(_){}
  _boardBusy = true;
  try{
+  /* ONE REQUEST FOR THE WHOLE TABLE. The per-manager walk below is the fallback, and it is the
+     thing that does not scale: right at four managers, hopeless at four hundred. */
+  try{
+   const j = await fxApi("/api/fx/board");
+   let me = null; try{ me = JSON.parse(localStorage.getItem("gk_user") || "null"); }catch(_){}
+   RIVAL_ROWS = (j.managers || [])
+     .filter(m => !me || m.uid !== me.uid)
+     .map(m => ({name: m.name || m.mgr, mgr: m.mgr, squad: m.squad, cap: m.cap, vice: m.vice}));
+   try{ localStorage.setItem(boardCacheKey(), JSON.stringify({at: Date.now(), rows: RIVAL_ROWS})); }catch(_){}
+   render(); return;
+  }catch(_){ /* the API is not live yet — fall through to reading each record */ }
   const accounts = await tdbRead("goalak_accounts");
   if(!accounts || typeof accounts !== "object") return;
   let me = null;
@@ -3121,6 +3132,46 @@ function toggleLang(){
      - every record carries `at`, and the newer side wins. That makes a second device a
        resume rather than a race.
    localStorage stays as the offline cache. The server is the truth. */
+/* ============================================================================
+   THE SQUAD MOVES BEHIND THE WORKER.
+   textdb.online is world-readable AND world-writable, and the app posts to it DIRECTLY - the
+   worker's Origin check never protected anything, because nothing forced a client through the
+   worker at all. Verified rather than assumed: a forged Origin header from curl wrote to a
+   goalak_* key first go. Every uid is listed in the world-readable goalak_accounts, so anyone
+   could read and overwrite anyone's team. A season of points cannot live there.
+
+   /api/fx/{get,set,board} is the same shape the accounts store already uses for predictions:
+   one row per manager inside a Durable Object, and THE UID COMES FROM A SIGNED SESSION, never
+   from the request body. A manager can only write their own squad because the server decides
+   whose it is.
+
+   TEXTDB REMAINS AS A FALLBACK, deliberately and temporarily. The worker change and the site
+   change deploy separately, so for a short window one may be live without the other; falling
+   back means fantasy keeps working in either order rather than breaking in one of them. The
+   fallback comes out once the API has been live for a season-safe period - it is the last
+   thing keeping the old hole open. */
+const FX_API = "https://goalak-push.ahmed-ayoty.workers.dev";
+function fxToken(){
+ try{
+  const u = JSON.parse(localStorage.getItem("gk_user") || "null");
+  const c = JSON.parse(localStorage.getItem("gk_chat_session") || "null");
+  if(!u || !c || !c.token || c.uid !== u.uid) return null;
+  return Number(c.exp) > Date.now() + 60000 ? c.token : null;
+ }catch(_){ return null; }
+}
+async function fxApi(path, body){
+ const tok = fxToken();
+ const headers = {"Content-Type": "application/json"};
+ if(tok) headers.Authorization = "Bearer " + tok;
+ const r = await fetch(FX_API + path, {
+  method: body ? "POST" : "GET", cache: "no-store", headers,
+  body: body ? JSON.stringify(body) : undefined
+ });
+ if(!r.ok) throw new Error("api " + r.status);
+ const j = await r.json();
+ if(!j || j.ok !== true) throw new Error((j && j.error) || "api");
+ return j;
+}
 const TDB_READ = "https://textdb.online/";
 const TDB_WRITE = "https://api.textdb.online/update/";
 const TDB_PROXY = "https://goalak-push.ahmed-ayoty.workers.dev/tdb";
@@ -3235,9 +3286,13 @@ function fxSyncMark(v){
 /* ON OPEN: whichever side is newer wins, and a failure changes nothing. */
 async function cloudPull(){
  const key = fxCloudKey(); if(!key) return;
- let rec = null;
- try{ rec = await tdbRead(key); }
- catch(_){ fxSyncMark("offline"); return; }      /* a failed read is NOT an empty team */
+ let rec = null, viaApi = false;
+ /* the authenticated store first; textdb only if it is not reachable yet */
+ try{ rec = (await fxApi("/api/fx/get")).fx; viaApi = true; }
+ catch(_){
+  try{ rec = await tdbRead(key); }
+  catch(__){ fxSyncMark("offline"); return; }    /* a failed read is NOT an empty team */
+ }
  /* THE TIMESTAMP EXISTS TO PROTECT A LOCAL SQUAD. WITH NOTHING LOCAL THERE IS NOTHING TO
     PROTECT, so a device holding no team ALWAYS accepts one from the server, whatever the
     clocks say. That is the rule the owner's phone needed: it had drifted ahead of the server
@@ -3278,8 +3333,18 @@ function cloudPush(now, wipe){
  const go = async () => {
   if(_pushing) return;
   _pushing = true; fxSyncMark("saving");
-  try{ await tdbWrite(key, fxSnapshot()); fxClean(); fxSyncMark("saved"); }
-  catch(_){ fxSyncMark("offline"); }
+  const snap = fxSnapshot();
+  if(wipe) snap.wipe = 1;                        /* the server refuses an empty squad without it */
+  try{
+   try{ await fxApi("/api/fx/set", {fx: snap}); }
+   catch(e){
+    /* 409 is the server refusing to blank a real team - that is the rule working, not a
+       network problem, and it must not fall through to the unauthenticated store */
+    if(/\b409\b/.test(String(e && e.message))) throw e;
+    await tdbWrite(key, snap);
+   }
+   fxClean(); fxSyncMark("saved");
+  }catch(_){ fxSyncMark("offline"); }
   finally{ _pushing = false; }
  };
  /* debounced, because save() runs on every tap while a squad is being built */

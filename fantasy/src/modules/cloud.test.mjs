@@ -17,7 +17,11 @@ import vm from "node:vm";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const HTML = fs.readFileSync(path.join(HERE, "..", "..", "index.html"), "utf8");
-const from = HTML.indexOf("const TDB_READ");
+/* start at FX_API, not TDB_READ: the authenticated client sits ABOVE the textdb helpers, and
+   slicing from TDB_READ left fxApi outside the extract — every API case then hit a
+   ReferenceError, fell back to textdb, and "failed" looked exactly like "the API was not
+   used". The same shape as the bug this whole file exists for. */
+const from = HTML.indexOf("const FX_API");
 const to = HTML.indexOf("/* AN ACCOUNT IS REQUIRED HERE TOO");
 if (from < 0 || to < 0) { console.log("FAIL  cannot find the cloud block in index.html"); process.exit(1); }
 const SRC = HTML.slice(from, to);
@@ -33,7 +37,7 @@ const REC = o => Object.assign({ v: 1, at: 1000, squad: ["a", "b"], cap: "a", vi
 function world(o) {
   o = o || {};
   const store = Object.assign({ gk_user: JSON.stringify({ uid: 7, username: "ahmed" }) }, o.store || {});
-  const writes = [];
+  const writes = [], apiWrites = [];
   const ctx = {
     localStorage: {
       getItem: k => (k in store ? store[k] : null),
@@ -51,6 +55,18 @@ function world(o) {
     t: k => k,
     $: () => null,
     fetch: async (url, opts) => {
+      const u = String(url);
+      /* THE AUTHENTICATED API. `api:false` models a worker not deployed yet, which is exactly
+         the window between the two deploys and must keep working. */
+      if (u.includes("/api/fx/")) {
+        if (!o.api) throw new Error("api 404");
+        if (u.endsWith("/set")) {
+          if (o.apiRefuses) return { ok: false, status: 409, json: async () => ({ ok: false, error: "refused-empty" }) };
+          apiWrites.push(JSON.parse(String(opts.body)).fx);
+          return { ok: true, status: 200, json: async () => ({ ok: true }) };
+        }
+        return { ok: true, status: 200, json: async () => ({ ok: true, fx: o.server === undefined ? null : o.server }) };
+      }
       if (opts && opts.method === "POST") {
         if (o.writeFails) throw new Error("network");
         writes.push(String(opts.body)); return { ok: true, status: 200 };
@@ -63,7 +79,7 @@ function world(o) {
   ctx.globalThis = ctx;
   vm.createContext(ctx);
   vm.runInContext(SRC, ctx);
-  ctx.__store = store; ctx.__writes = writes;
+  ctx.__store = store; ctx.__writes = writes; ctx.__apiWrites = apiWrites;
   /* FX_SYNC is a `let`, so it is a lexical binding and never a property of the context —
      reading ctx.FX_SYNC returns undefined and every assertion on it passes vacuously. */
   ctx.__sync = () => vm.runInContext("FX_SYNC", ctx);
@@ -88,6 +104,9 @@ console.log("\n1 · the thing the owner actually hit");
   /* and the reverse: built here, server empty */
   const w = world({ squad: ["p", "q"], store: { fx_at: "9000" }, server: undefined });
   await w.cloudPull();
+  /* cloudPull fires the push without awaiting it, and the push now TRIES the API before
+     falling back — one extra tick before the write lands */
+  await new Promise(r => setTimeout(r, 30));
   const rec = lastWrite(w);
   ok(rec && rec.squad.length === 2, "an empty server gets OUR team pushed up, not the other way round");
 }
@@ -195,6 +214,7 @@ console.log("\n3 · whoever is newer wins");
   const w = world({ squad: ["mine"], store: { fx_at: "9000", fx_dirty: "1" },
                     server: REC({ at: 5000, squad: ["theirs"] }) });
   await w.cloudPull();
+  await new Promise(r => setTimeout(r, 30));
   eq(w.squad.join(), "mine", "an older server record does not beat MY UNSENT edit");
   ok(w.__writes.length === 1, "and mine is pushed up instead");
 }
@@ -237,6 +257,40 @@ console.log("\n3b · THE CHIP THAT WOULD NOT CROSS");
   w.cloudPush(true);
   await new Promise(r => setTimeout(r, 40));
   eq(w.__store.fx_dirty, "1", "a FAILED push does not — the edit is still unsent");
+}
+
+console.log("\n3c · THE AUTHENTICATED STORE");
+{
+  /* The squad goes through the worker now, where the uid comes from a signed session and a
+     manager can only ever write their own row. textdb stays only as a deploy-order fallback. */
+  const w = world({ api: true, squad: ["a", "b"], captain: "a", store: { fx_at: "1" } });
+  w.cloudPush(true);
+  await new Promise(r => setTimeout(r, 40));
+  eq(w.__apiWrites.length, 1, "a push goes to the authenticated API");
+  eq(w.__writes.length, 0, "and NOT to the world-writable store when the API works");
+}
+{
+  const w = world({ api: true, squad: [], server: REC({ at: 5, squad: ["x", "y"] }) });
+  await w.cloudPull();
+  eq(w.squad.length, 2, "a pull reads the team from the API");
+}
+{
+  /* the window between the two deploys: the worker may not be live yet, and fantasy must keep
+     working in either order rather than breaking in one of them */
+  const w = world({ api: false, squad: ["a"], store: { fx_at: "1" } });
+  w.cloudPush(true);
+  await new Promise(r => setTimeout(r, 40));
+  eq(w.__writes.length, 1, "with the API absent it falls back so nothing breaks mid-deploy");
+}
+{
+  /* THE ONE THAT MATTERS. A 409 is the SERVER refusing to blank a real team. Falling back to
+     the unauthenticated store on that would walk straight around the guard — the fallback must
+     be for "the worker is not there", never for "the worker said no". */
+  const w = world({ api: true, apiRefuses: true, squad: ["a"], store: { fx_at: "1" } });
+  w.cloudPush(true);
+  await new Promise(r => setTimeout(r, 40));
+  eq(w.__writes.length, 0, "a server REFUSAL never falls back to the world-writable store");
+  eq(w.__sync(), "offline", "and it is reported rather than silently swallowed");
 }
 
 console.log("\n4 · what actually travels");
