@@ -516,6 +516,10 @@ html[data-theme="light"] .bnav{background:linear-gradient(180deg,#ffffff,#e8edf8
 .userchip{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 14px;margin-bottom:12px;font-size:14px}
 .userchip .signout{margin-inline-start:auto;font-size:11.5px;color:var(--red);font-weight:700}
 .userchip .uclub{font-size:11.5px;color:var(--gold);font-weight:700}
+/* the recovery nudge: quieter than an error, louder than a footnote */
+.mailnudge{display:block;inline-size:100%;margin-block-end:12px;padding:10px 14px;text-align:start;
+ border-radius:12px;border:1px dashed var(--gold);background:transparent;color:var(--gold);
+ font:inherit;font-size:12.5px;font-weight:800;cursor:pointer}
 .pin{display:flex;align-items:center;gap:6px;justify-content:center}
 .pinp{width:44px;height:38px;text-align:center;font-size:17px;font-weight:900;background:var(--card2);border:1px solid var(--line2);border-radius:9px;color:var(--txt);font-family:inherit}
 .pdash{color:var(--dim2);font-weight:900}
@@ -894,10 +898,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.35";
+const APP_VERSION = "6.36";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-20-v635";
+const FORCE_RELOAD = "2026-08-20-v636";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1182,6 +1186,20 @@ const STR = {
  authNote:["لا تستخدم كلمة سر بتستعملها في مكان تاني","Don't reuse a password from anywhere important"],
  emailOpt:["إيميل (اختياري) — عشان تقدر ترجّع كلمة السر","Email (optional) — the only way to reset your password"],
  forgotQ:["نسيت كلمة السر؟","Forgot your password?"],
+ forgotTitle:["استرجاع كلمة السر","Reset your password"],
+ forgotWho:["اسم المستخدم أو الإيميل","Username or email"],
+ forgotGo:["ابعت لينك الاسترجاع","Send the reset link"],
+ forgotNote:["الاسترجاع بيشتغل بس لو حسابك عليه إيميل. لو مضفتش إيميل، سجّل دخول وأضفه من تبويب التوقعات.",
+             "Resets only work if your account has an email. If you never added one, sign in and add it from the Predictions tab."],
+ addEmailTitle:["إيميل الاسترجاع","Recovery email"],
+ addEmailBtn:["أضف إيميل — عشان تقدر ترجّع كلمة السر","Add an email so you can recover your password"],
+ confirmEmailBtn:["أكّد إيميلك ({m}) — ابعت اللينك تاني","Confirm {m} — resend the link"],
+ addEmailNote:["ده الطريق الوحيد لاسترجاع الحساب لو نسيت كلمة السر. هيوصلك لينك تأكيد.",
+               "This is the only way back if you forget your password. A confirmation link will be sent."],
+ saveEmailGo:["احفظ الإيميل","Save email"],
+ emailPh:["الإيميل","Email"],
+ checkInbox:["اتبعت! افتح بريدك واضغط اللينك","Sent — open your inbox and tap the link"],
+ tooManyTries:["محاولات كتير — استنى دقيقة وجرّب تاني","Too many attempts — wait a minute and try again"],
  resetTitle:["كلمة سر جديدة","Set a new password"],
  resetNew:["كلمة السر الجديدة","New password"],
  resetGo:["احفظ كلمة السر","Save password"],
@@ -3485,9 +3503,10 @@ function updateAuthUI(){
   cSel.style.display = _am === "C" ? "" : "none";
   if(_am === "C") buildClubOptions(cSel);
  }
- /* openReset repurposes this modal, so authMode has to put every piece of it back or the
-    login form stays stuck on the reset screen */
+ /* openReset, doForgot and openEmailSheet all repurpose this modal, so authMode has to put
+    every piece of it back or the login form stays stuck on whichever screen came last */
  $("auUser").classList.remove("hide");
+ $("auPass").classList.remove("hide");
  $("atC").classList.remove("hide"); $("atL").classList.remove("hide");
  $("auGo").setAttribute("onclick", "doAuth()");
  $("auGo").textContent = _am === "C" ? t("createAcc") : t("login");
@@ -3503,8 +3522,11 @@ function auShowErr(msg){ const e = $("auErrBox"); e.textContent = msg; e.classLi
 let _resetTok = "";
 function openReset(tok){
  _resetTok = tok;
+ /* openAuth first: it owns the history entry, the scroll lock and the sheet plumbing - and the
+    id this used to reach for ("auWrap") does not exist, so the reset link THREW before the
+    form ever appeared. A deep link that crashes is indistinguishable from a dead one. */
+ openAuth("L");
  _am = "R";
- $("auWrap").classList.remove("hide");
  $("auTitle").textContent = t("resetTitle");
  $("auUser").classList.add("hide");
  const mail = $("auMail"); if(mail) mail.classList.add("hide");
@@ -3535,18 +3557,125 @@ async function doReset(){
   closeAuth();
   toastMsg(t("resetDone"));
   openAuth("L");
+  /* the reset response names the account it belonged to, so somebody who arrived here from an
+     email because they had forgotten their USERNAME leaves with it filled in */
+  if(res.j && res.j.user && res.j.user.username) $("auUser").value = res.j.user.username;
+  acctInfoStore(res.j && res.j.user);
  } finally { go.disabled = false; }
 }
 async function doVerify(tok){
- try{ await apiAuth("verify", {token:tok}); }catch(_){}
+ let res = null;
+ try{ res = await apiAuth("verify", {token:tok}); }catch(_){}
  try{ history.replaceState({}, "", location.pathname); }catch(_){}
- toastMsg(t("verifyDone"));
+ if(res && res.ok){ acctInfoStore(res.j.user); toastMsg(t("verifyDone")); }
+ else toastMsg(t("resetBad"));
 }
-async function doForgot(){
- const u = ($("auUser").value || "").trim();
- if(u.length < 2) return auShowErr(t("forgotNeed"));
- try{ await apiAuth("request-reset", {username:u}); }catch(_){}
- auShowErr(t("forgotSent"));
+
+/* WHAT THE SERVER KNOWS ABOUT THIS ACCOUNT'S EMAIL - cached, so the chip that says "add a
+   recovery email" does not cost a request per paint. Refreshed from every response that
+   carries the user record, and fetched once per session otherwise. */
+let _acctInfo = null;
+function acctInfoStore(u){
+ if(!u || !u.uid) return;
+ _acctInfo = {uid:u.uid, email:u.email || null, verified:!!u.verified,
+              pendingEmail:u.pendingEmail || null, needsEmail:!!u.needsEmail};
+ try{ localStorage.setItem("gk_acct_info", JSON.stringify(_acctInfo)); }catch(_){}
+ if(mainView === "pred") renderPred();
+}
+function acctInfo(){
+ if(_acctInfo && gkUser && _acctInfo.uid === gkUser.uid) return _acctInfo;
+ try{
+  const c = JSON.parse(localStorage.getItem("gk_acct_info") || "null");
+  if(c && gkUser && c.uid === gkUser.uid){ _acctInfo = c; return c; }
+ }catch(_){}
+ return null;
+}
+let _acctInfoAsked = false;
+function acctInfoEnsure(){
+ if(acctInfo() || _acctInfoAsked || !gkUser || !validChatSession()) return;
+ _acctInfoAsked = true;
+ apiAuthAuthed("me").then(function(res){ if(res.ok) acctInfoStore(res.j.user); }).catch(function(){});
+}
+
+/* THE ONLY WAY BACK FROM A FORGOTTEN PASSWORD IS AN ADDRESS ON FILE, and until now the app
+   offered no way to put one there: set-email has existed on the server since the account store
+   was built and was never called by any client, so every existing account - all of them - had
+   no recovery path at all. The chip appears exactly for those accounts and disappears once the
+   address is confirmed. */
+function openEmailSheet(){
+ openAuth("L");
+ _am = "E";
+ $("auTitle").textContent = t("addEmailTitle");
+ $("atC").classList.add("hide"); $("atL").classList.add("hide");
+ $("auUser").classList.add("hide");
+ const mail = $("auMail");
+ if(mail){ mail.classList.remove("hide"); mail.placeholder = t("emailPh"); mail.value = ""; }
+ $("auPass").classList.remove("hide");
+ $("auPass").value = "";
+ $("auPass").placeholder = t("password");
+ $("auPass").setAttribute("autocomplete", "current-password");
+ const club = $("auClub"); if(club) club.style.display = "none";
+ const fg = $("auForgot"); if(fg) fg.classList.add("hide");
+ $("auGo").textContent = t("saveEmailGo");
+ $("auGo").setAttribute("onclick", "doSetEmail()");
+ $("auNote").textContent = t("addEmailNote");
+ $("auErrBox").classList.add("hide");
+}
+async function doSetEmail(){
+ const em = (($("auMail") || {}).value || "").trim();
+ const p = $("auPass").value || "";
+ if(em.indexOf("@") < 1) return auShowErr(t("authBadEmail"));
+ if(p.length < 4) return auShowErr(t("authBadPass"));
+ const go = $("auGo");
+ go.disabled = true;
+ try{
+  let res;
+  try{ res = await apiAuthAuthed("set-email", {email:em, password:p}); }
+  catch(_){ return auShowErr(t("authNet")); }
+  if(!res.ok) return auShowErr(
+    res.j && res.j.error === "email-taken" ? t("authBadEmail")
+    : res.status === 401 ? t("authWrongPass") : authErrText(res.j && res.j.error));
+  acctInfoStore(res.j.user);
+  closeAuth();
+  toastMsg(t("checkInbox"));
+ } finally { go.disabled = false; }
+}
+async function doResendVerify(){
+ try{
+  const res = await apiAuthAuthed("resend", {});
+  toastMsg(res.ok ? t("checkInbox") : t("authSaveFail"));
+ }catch(_){ toastMsg(t("authNet")); }
+}
+/* FORGOT IS ITS OWN LITTLE SCREEN, and it takes whichever name you still remember.
+   It used to piggyback on the login form and read the username field only - so somebody who
+   had forgotten their USERNAME (which is at least as common as forgetting the password) had
+   no way in at all, even though the server has always accepted a lookup by email and the
+   reset mail has always carried the username inside it. One field, either answer. */
+function doForgot(){
+ _am = "F";
+ $("auTitle").textContent = t("forgotTitle");
+ $("atC").classList.add("hide"); $("atL").classList.add("hide");
+ $("auUser").classList.remove("hide");
+ $("auUser").placeholder = t("forgotWho");
+ $("auPass").classList.add("hide");
+ const mail = $("auMail"); if(mail) mail.classList.add("hide");
+ const club = $("auClub"); if(club) club.style.display = "none";
+ const fg = $("auForgot"); if(fg) fg.classList.add("hide");
+ $("auGo").textContent = t("forgotGo");
+ $("auGo").setAttribute("onclick", "doForgotSend()");
+ $("auNote").textContent = t("forgotNote");
+ $("auErrBox").classList.add("hide");
+}
+async function doForgotSend(){
+ const v = ($("auUser").value || "").trim();
+ if(v.length < 2) return auShowErr(t("forgotNeed"));
+ const go = $("auGo");
+ go.disabled = true;
+ try{
+  try{ await apiAuth("request-reset", v.indexOf("@") > 0 ? {email:v} : {username:v}); }catch(_){}
+  /* the same answer whether or not the account exists - anything else is a username oracle */
+  auShowErr(t("forgotSent"));
+ } finally { go.disabled = false; }
 }
 /* THE ACCOUNT LIVES IN ONE PLACE NOW.
    It used to live in two, and they had drifted. Sign-up wrote to textdb and decided the
@@ -3595,7 +3724,9 @@ async function doAuth(){
    let res;
    try{ res = await apiAuth("login", {username:u, password:p}); }
    catch(_){ return auShowErr(t("authNet")); }
-   if(!res.ok) return auShowErr(res.status === 401 ? t("authWrongPass") : authErrText(res.j && res.j.error));
+   if(!res.ok) return auShowErr(res.status === 429 ? t("tooManyTries")
+     : res.status === 401 ? t("authWrongPass") : authErrText(res.j && res.j.error));
+   acctInfoStore(res.j.user);
    await finishAuth({uid:res.j.user.uid, username:res.j.user.username, club:res.j.user.club}, p);
   } else {
    const pickedClub = clubFromSelValue(($("auClub") || {}).value || "");
@@ -3603,6 +3734,7 @@ async function doAuth(){
    try{ res = await apiAuth("signup", {username:u, password:p, email:em || undefined, club:pickedClub || undefined}); }
    catch(_){ return auShowErr(t("authNet")); }
    if(!res.ok) return auShowErr(authErrText(res.j && res.j.error));
+   acctInfoStore(res.j.user);
    await finishAuth({uid:res.j.user.uid, username:res.j.user.username, club:res.j.user.club || pickedClub}, p);
   }
  } finally { go.disabled = false; }
@@ -3694,8 +3826,9 @@ function signOut(){
   ["gk_user","gk_preds","gk_club","gk_chat_cache","gk_chat_seents","gk_acct_seen",
    "fx_squad","fx_cap","fx_vice","fx_chips","fx_team","fx_form","fx_ledger","fx_ft","fx_snap",
    "fx_at","fx_dirty","fx_onboarded","fx_tut_skips","fx_coach","fx_owner","fx_gw","fx_firstsub",
-   "gk_push_lgs"]
+   "gk_push_lgs","gk_acct_info"]
    .forEach(function(k){ localStorage.removeItem(k); });
+  _acctInfo = null; _acctInfoAsked = false;
   /* the cached fixture maps are per round, so they need the loop the fantasy page already uses */
   for(let g = 1; g <= 40; g++) localStorage.removeItem("fx_fixt_" + g);
  }catch(_){}
@@ -3843,6 +3976,15 @@ function renderPred(){
   top.innerHTML += '<div class="authcard"><div class="autxt">🔐 ' + esc(t("chatSessionExpired")) + '</div><button type="button" class="retrybtn" onclick="chatReauth()">' + esc(t("chatReconnectBtn")) + "</button></div>";
  } else {
   top.innerHTML += '<div class="userchip">👤 <b>' + esc(gkUser.username) + "</b>" + (myClub ? ' <span class="uclub">⭐ ' + esc(clubLabel(myClub)) + "</span>" : "") + '<button type="button" class="signout" onclick="signOut()">' + esc(t("signOut")) + "</button></div>";
+  /* the nudge that makes the account recoverable: shown only while there is genuinely no
+     confirmed address, one line, one tap, gone for good once the link is clicked */
+  acctInfoEnsure();
+  const ai = acctInfo();
+  if(ai && ai.pendingEmail){
+   top.innerHTML += '<button type="button" class="mailnudge" onclick="doResendVerify()">📩 ' + esc(t("confirmEmailBtn", {m: ai.pendingEmail})) + "</button>";
+  } else if(ai && ai.needsEmail){
+   top.innerHTML += '<button type="button" class="mailnudge" onclick="openEmailSheet()">🔐 ' + esc(t("addEmailBtn")) + "</button>";
+  }
  }
  /* hero banner: how many matches are open right now */
  const openN = (predCache.up || []).filter(e => evState(e) === "pre" && !predLocked(e) && !myPreds[e.id]).length;
