@@ -664,6 +664,12 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
  border:1px solid rgba(255,255,255,.28);color:#fff;font-size:26px;line-height:1;cursor:pointer;
  display:flex;align-items:center;justify-content:center}
 #chatLog .cmedia img{cursor:zoom-in}
+/* the share control sits beside the close button, same size, same weight */
+.mshare{position:absolute;inset-block-start:8px;inset-inline-start:8px;inline-size:34px;block-size:34px;
+ border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--fg);
+ font-size:17px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.mshare:active{transform:scale(.94)}
+.mcd{display:inline-block;margin-block-start:4px;font-weight:800;color:var(--acc,#FF7A45)}
 </style>
 </head>
 <body>
@@ -862,10 +868,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.29";
+const APP_VERSION = "6.30";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-20-v629";
+const FORCE_RELOAD = "2026-08-20-v630";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1207,7 +1213,9 @@ const STR = {
   chatPhoto:["صورة","Photo"],
   chatVideo:["فيديو","Video"],
   chatVoice:["رسالة صوتية","Voice note"],
-  close:["إغلاق","Close"],
+  shareMatch:["شارك الماتش","Share match"],
+ shareCopied:["اتنسخ! ابعته لأي حد","Copied — paste it anywhere"],
+ close:["إغلاق","Close"],
  chatReact:["تفاعل","React"],
  chatDelete:["حذف الرسالة","Delete message"],
   chatDeleteConfirm:["حذف هذه الرسالة للجميع؟","Delete this message for everyone?"],
@@ -3099,6 +3107,103 @@ document.addEventListener("keydown", function(ev){
  else if(!ev.shiftKey && document.activeElement === last){ ev.preventDefault(); first.focus(); }
 }, true);
 /* header + tabs render, WITHOUT touching history — so a language switch can repaint an open sheet */
+/* ============================================================================
+   FIVE THINGS THE WC APP HAD.
+   Found by auditing the deployed WC source rather than waiting to be told, and ported here
+   with the same behaviour. Analytics is the one that is deliberately NOT a straight port —
+   see below.
+   ============================================================================ */
+
+/* HAPTICS. A tap on a phone should be felt as well as seen, and it is the cheapest possible
+   confirmation that a control registered. Silently absent where the API is not supported,
+   which is every desktop and every iPhone — Safari has never implemented it. */
+function vib(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms || 12); }catch(_){} }
+
+/* COUNTDOWN. Days, hours and minutes to kick-off. The Arabic side is not a translation of the
+   English one: the units are written out, and each number-unit pair is wrapped so the sequence
+   reads days -> hours -> minutes right-to-left instead of the browser reordering it. */
+function countdown(ms){
+ let sec = Math.max(0, Math.floor((ms - Date.now()) / 1000));
+ const dd = Math.floor(sec / 86400); sec -= dd * 86400;
+ const hh = Math.floor(sec / 3600); sec -= hh * 3600;
+ const mm = Math.floor(sec / 60);
+ if(LANG === "ar"){
+  const dW = dd === 1 ? "يوم" : dd === 2 ? "يومان" : dd <= 10 ? "أيام" : "يوماً";
+  return '<span dir="rtl">' + (dd ? "<bdi>" + dd + " " + dW + "</bdi> " : "")
+   + "<bdi>" + hh + " س</bdi> <bdi>" + mm + " د</bdi></span>";
+ }
+ return '<span dir="ltr">' + (dd ? dd + "d " : "") + hh + "h " + mm + "m</span>";
+}
+
+/* TEXT AUTO-FIT. A long club name in a fixed box either clips or overflows; this shrinks the
+   type until it fits, down to a floor so it never becomes unreadable. Costs a reflow per
+   element, so it is scheduled once per frame rather than called per render. */
+function fitText(el, min){
+ if(!el) return;
+ const floor = min || 8.5;
+ let size = parseFloat(getComputedStyle(el).fontSize) || 12;
+ let guard = 0;
+ while(el.scrollWidth > el.clientWidth + 1 && size > floor && guard++ < 40){
+  size -= 0.5;
+  el.style.fontSize = size + "px";
+ }
+}
+function fitNames(root){
+ if(!root) return;
+ try{ root.querySelectorAll(".mvt i, .tm i, .crn, .lbname, .cuser").forEach(function(e){ fitText(e, 8.5); }); }catch(_){}
+}
+let _fitT = 0;
+function scheduleFit(){
+ if(_fitT) return;
+ _fitT = setTimeout(function(){ _fitT = 0; fitNames(document); }, 0);
+}
+
+/* SHARE A MATCH. navigator.share where it exists (every phone), clipboard everywhere else,
+   because a desktop browser without the Web Share API would otherwise get nothing at all. */
+async function shareMatch(eid){
+ const e = EV_INDEX[eid]; if(!e) return;
+ vib(10);
+ const comp = (e.competitions && e.competitions[0]) || {};
+ const cs = comp.competitors || [];
+ const H = cs.find(c => c.homeAway === "home") || cs[0] || {};
+ const A = cs.find(c => c.homeAway === "away") || cs[1] || {};
+ const st = evState(e);
+ const line = st === "pre"
+   ? teamName(H) + " × " + teamName(A) + " · " + fmtDayFull(dkey(new Date(e.date))) + " " + fmtTime(e.date)
+   : teamName(H) + " " + (H.score != null ? H.score : "") + " – " + (A.score != null ? A.score : "") + " " + teamName(A);
+ const text = line + "\n" + t("brand") + " · https://goallak.com/";
+ try{
+  if(navigator.share){ await navigator.share({title: t("brand"), text: text}); return; }
+  await navigator.clipboard.writeText(text);
+  toastMsg(t("shareCopied"));
+ }catch(_){ /* the user dismissed the sheet — not an error */ }
+}
+
+/* ANALYTICS, AND DELIBERATELY NOT THE WC APP'S.
+   That version generated a visitor id, looked the visitor up against a third-party geo
+   service, and wrote the result into the world-readable textdb store. Two of those three are
+   things this session has just spent hours removing: a geo lookup hands somebody's IP to a
+   third party, and textdb is writable by anyone who knows the key.
+
+   This counts what the owner actually asked for — how many people, how often — and nothing
+   that identifies anybody: a day bucket, the app version, the language, and whether the app
+   was launched installed or in a browser. No id, no IP lookup, no path, no referrer. One
+   POST a day per device, to our own worker. */
+function trackVisit(){
+ try{
+  if(navigator.webdriver) return;                        /* never count automation */
+  if(location.hostname !== "goallak.com") return;         /* never count local or preview */
+  const day = new Date().toISOString().slice(0, 10);
+  if(localStorage.getItem("gk_seen_day") === day) return; /* once per device per day */
+  localStorage.setItem("gk_seen_day", day);
+  fetch(CHAT_API + "/api/visit", {
+   method: "POST", cache: "no-store",
+   headers: {"Content-Type": "application/json"},
+   body: JSON.stringify({day: day, v: APP_VERSION, lang: LANG, standalone: isStandalone() ? 1 : 0})
+  }).catch(function(){});
+ }catch(_){}
+}
+
 function renderMatchModal(eid){
  const e = EV_INDEX[eid];
  if(!e) return false;
@@ -3135,14 +3240,18 @@ function renderMatchModal(eid){
  const preLineups = !vk && s === "pre";
  if(preLineups) _mdTab = "L";
  _mdEid = eid;
+ scheduleFit();
  $("mbox").innerHTML =
   '<button type="button" class="mx" onclick="closeModal()">✕</button>' +
+  '<button type="button" class="mshare" onclick="shareMatch(\'' + esc(eid) + '\')" aria-label="' + esc(t("shareMatch")) + '" title="' + esc(t("shareMatch")) + '">⤴</button>' +
   '<div class="mvs">' +
    '<span class="mvt">' + crestHtml(H.team) + "<i>" + esc(teamName(H)) + "</i>" + scorerListHtml(e, H) + "</span>" +
    scoreLine +
    '<span class="mvt">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i>" + scorerListHtml(e, A) + "</span>" +
   "</div>" +
-  '<div class="mmeta">' + meta + "</div>" +
+  '<div class="mmeta">' + meta
+    + (s === "pre" && !vk ? '<br><span class="mcd">⏳ ' + countdown(Date.parse(e.date)) + "</span>" : "")
+    + "</div>" +
   (hasDetail
    ? '<div class="mdtabs" id="mdTabs"></div><div id="mdBody"></div>'
    : preLineups
@@ -3398,6 +3507,8 @@ let predTab = "M";
 const predCache = {up:null, res:null, at:0};
 let _predInflight = null;
 function showMain(v, fromPop){
+ /* a tap you can feel — the cheapest confirmation a control registered */
+ if(!fromPop) vib(10);
  /* push a history entry for every non-Matches tab so Android Back returns to Matches
     instead of leaving the app (QA: Back exited from Predictions/Fantasy/Chat/Settings) */
  if(!fromPop && v !== mainView){
@@ -4706,7 +4817,8 @@ async function gkVersionCheck(){
  buildStrip(true);
  paintNavLabels();
  refreshChatNote();
- refreshChatBar();   /* the chat bar shipped hardcoded strings until it was first opened */
+ refreshChatBar();
+ trackVisit();   /* the chat bar shipped hardcoded strings until it was first opened */
  loadDay(false);
  syncMyPreds();
  refreshPushUI();

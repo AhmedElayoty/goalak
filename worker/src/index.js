@@ -388,6 +388,10 @@ async function chatApi(request, env, url) {
     /* Accounts + predictions. Signup / login / verify / reset are reachable WITHOUT a session
        (you cannot have one yet); every other route resolves its uid from the signed token
        inside accountsApi, never from the request body. */
+    /* counting a visit needs no account, by design: the point is how many PEOPLE, and
+       requiring a login would only count the ones who already signed up */
+    if (url.pathname === "/api/visit" && request.method === "POST")
+      return withApiCors(await accountsApi(request, env, url, null), request);
     if (url.pathname.startsWith("/api/auth") || url.pathname.startsWith("/api/pred")
       || url.pathname.startsWith("/api/fx")) {
       /* /api/fx/board is open for the same reason /api/pred/leaderboard is: a standings table
@@ -443,7 +447,7 @@ export default {
     }
     if (url.pathname === "/api/session" || url.pathname.startsWith("/api/session/") || url.pathname.startsWith("/api/chat/")
       || url.pathname.startsWith("/api/auth/") || url.pathname.startsWith("/api/pred/")
-      || url.pathname.startsWith("/api/fx/")) return chatApi(request, env, url);
+      || url.pathname.startsWith("/api/fx/") || url.pathname === "/api/visit") return chatApi(request, env, url);
     if (url.pathname.startsWith("/media/") && request.method === "GET") {
       try { return withApiCors(await serveChatMedia(request, env), request); }
       catch (error) {
@@ -497,6 +501,7 @@ export default {
     }
     if (url.pathname === "/test") return coordinator(env).fetch("https://push.local/test", { method: "POST", body: "{}" });
     /* admin-only account operations: verify the legacy import landed, retry it, remove a QA account */
+    if (url.pathname === "/accounts/visits") return accountStore(env).fetch("https://accounts.local/visits", { method: "POST", body: "{}" });
     if (url.pathname === "/accounts/stats") return accountStore(env).fetch("https://accounts.local/stats", { method: "POST", body: "{}" });
     if (url.pathname === "/accounts/import" && request.method === "POST") return accountStore(env).fetch("https://accounts.local/import-now", { method: "POST", body: "{}" });
     if (url.pathname === "/accounts/fx-import" && request.method === "POST") return accountStore(env).fetch("https://accounts.local/fx-import-now", { method: "POST", body: "{}" });
