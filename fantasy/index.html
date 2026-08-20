@@ -686,8 +686,15 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
    does anything was off screen with nothing suggesting a scroll. Measured again after the
    padding fix and it was still unreachable. It sticks above the nav instead — the eleven
    are the hero, but the way to change them must never be hunted for. */
-#viewTeam > .btn{position:sticky;z-index:55;
+/* ONLY ONE OF THEM STICKS. This selector was `#viewTeam > .btn`, and the team screen has
+   THREE of them - edit the team, the chips, the captain. All three pinned to the same offset
+   and drew on top of each other, which is why the owner's screenshot reads "Edi Captai Chips m"
+   in one orange smear. The primary action is the one worth pinning; the other two are ordinary
+   buttons in the flow below it. */
+#viewTeam > .btn.stick{position:sticky;z-index:55;
  inset-block-end:calc(74px + env(safe-area-inset-bottom))}
+/* and the sticky one must not cover the last thing on the page while it is pinned */
+#viewTeam{padding-block-end:calc(64px + env(safe-area-inset-bottom))}
 /* TOUCH FEEDBACK. -webkit-tap-highlight-color is transparent globally and only the club card
    had an :active rule, so tapping the big orange button, the tab bar, or any of 126 picker
    rows produced nothing at all on screen. On a phone that IS the "something is off". */
@@ -939,7 +946,7 @@ const SEASON_OPENS = "2026-08-21";
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.19";
+const FX_BUILD = "6.20";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -2004,7 +2011,7 @@ function render(){
  $("viewBoard").classList.toggle("hide", view !== "board");
  if(view === "team") renderTeam();
  else if(view === "points") renderPoints();
- else renderBoard();
+ else { renderBoard(); loadBoard(); }   /* refresh on open, served from cache within the TTL */
 }
 
 /* The slider is inside the markup render() replaces, so redrawing during a drag destroyed
@@ -2067,7 +2074,7 @@ function renderTeam(){
   + roundBarHtml()
   + roundStatusHtml()
   + pitchHtml(false)
-  + '<button type="button" class="btn" onclick="openPicker()">'
+  + '<button type="button" class="btn stick" onclick="openPicker()">'
   + esc(squad.length ? t("changeTeam") : t("startWiz")) + "</button>"
   /* The eight chips were reachable only from the settings sheet, so the owner asked where the
      wildcards were - a fair question about a feature with no door on the screen that uses it. */
@@ -2278,51 +2285,6 @@ function openRename(){
    of five strangers on nothing - a fabricated league presented as standings. A table shows
    real entrants or admits it is empty; it never invents them. The engine that scores an
    opponent is kept, because it is correct and is needed the moment real managers exist. */
-const RIVALS = [];
-const rivalName = r => r[LANG === "ar" ? 0 : 1];
-function rivalSquad(name){
- const out = [], byLg = {};
- /* deterministic per rival, but a genuinely different team each — sample the pool by a seeded walk */
- let seed = hash(name);
- const pool = CLUBS.slice().sort((a, b) => priceOf(b.id) - priceOf(a.id));
- let budget = BUDGET;
- for(let guard = 0; guard < 800 && out.length < SQUAD_SIZE; guard++){
-  seed = (seed * 1103515245 + 12345) >>> 0;
-  /* Draw from the QUALITY end of the pool, not uniformly. A uniform draw over 126 clubs
-     fields five weak squads, and once the scoring was calibrated to price that turned the
-     board from unwinnable straight into unlosable — the recommended team won by 73 every
-     time. The exponent was chosen by measurement, not feel: at 1.6 the leading rival lands
-     within 7 points of a well-built squad over a full season, which is the whole point. */
-  const r = (seed % 100000) / 100000;
-  const c = pool[Math.min(pool.length - 1, Math.floor(pool.length * Math.pow(r, 1.6)))];
-  if(out.includes(c.id)) continue;
-  if((byLg[c.lg] || 0) >= MAX_PER_LEAGUE) continue;
-  const need = (SQUAD_SIZE - out.length - 1) * MIN_CLUB_PRICE;
-  if(priceOf(c.id) + need > budget) continue;
-  out.push(c.id); byLg[c.lg] = (byLg[c.lg] || 0) + 1; budget -= priceOf(c.id);
- }
- return out;
-}
-function rivalTotal(name){
- const sq = rivalSquad(name);
- /* the captain must be a STARTER, exactly as the player's must be */
- const cap = sq[hash(name + "c") % Math.max(1, Math.min(START_SIZE, sq.length))];
- if(!SEASON_STARTED) return 0;          /* a rival cannot have scored either */
- let total = 0;
- /* Same engine as the player: eleven starters, auto-subs for blanks, armband on one club.
-    Summing all 15 here is what made the board unwinnable. */
- for(let g = 1; g <= CURRENT_GW; g++) total += resolveSquad(sq, cap, g).total;
- return total;
-}
-/* ============================================================================
-   THE HEAD-TO-HEAD. Your nearest rival on the board — whoever is directly above you,
-   or directly below if you lead. Everything on the team screen is then read against
-   them, which is the difference between a score and a contest.
-   ============================================================================ */
-/* THE LEDGER. One number: the rounds in which you had a legal eleven at the deadline. It is
-   not a streak — fantasy-engagement.md refuses streaks, and rightly: missing round 14 should
-   cost you round 14 and nothing else. Ten rounds, in any order, earns the Groundsman's Pitch.
-   In the demo the season is walked with the scrubber, so a round counts as you reach it. */
 const GROUND_AT = 10;
 function ledger(){
  try{ return JSON.parse(localStorage.getItem("fx_ledger") || "[]"); }catch(_){ return []; }
@@ -2348,10 +2310,69 @@ function groundOf(){ return ledger().length >= GROUND_AT ? "clean" : "base"; }
    other. The owner is Arabic-first, so he was the only one who could see it, and it is
    exactly the "why does the ranking change" he reported.
    r[1] (the English name) is the stable key. Nothing that varies with the UI may seed it. */
-const rivalSeed = r => r[1];
+/* THE GENERATED RIVALS ARE GONE. RIVALS was an empty array guarding a machine that could
+   invent opponents - a seeded squad and a seeded score per fake name. The owner asked of an
+   earlier build "are those names real??" and they were not; the array was emptied then rather
+   than the machine removed. Real managers arrive from the account store now, so the machine
+   has no purpose and is deleted outright: a generator for imaginary opponents left sitting in
+   the file is one edit away from putting invented people back on a leaderboard. */
+/* EVERY MANAGER, NOT JUST YOU.
+   RIVALS has been an empty array since it was written, so the table could only ever contain
+   one row - the owner's, alone, above a line saying nobody else had played. People HAD played.
+
+   Managers come from the same two places everything else does: goalak_accounts for who exists,
+   and goalak_fx_<uid> for what they picked. Nothing new is stored and no new endpoint is
+   needed. They are scored by resolveSquad, THE SAME ENGINE the player is scored by - an
+   earlier version scored rivals over all fifteen clubs while the player got eleven plus
+   auto-subs, a 20-25% handicap that put an ordinary squad 6th of 6 in 98.7% of measured
+   seasons. A leaderboard nobody can climb is worse than no leaderboard.
+
+   HONEST LIMIT: this reads one record per manager from the browser. At four managers that is
+   four requests; at four hundred it is four hundred, and it needs one worker endpoint that
+   returns the table instead. Capped meanwhile, newest accounts first, and cached for a few
+   minutes so opening the tab twice does not refetch. */
+const BOARD_MAX = 60, BOARD_TTL = 180000;
+let RIVAL_ROWS = [], _boardBusy = false;
+function boardCacheKey(){ return "fx_board"; }
+async function loadBoard(force){
+ if(_boardBusy) return;
+ const myKey = fxCloudKey(); if(!myKey) return;
+ try{
+  const c = JSON.parse(localStorage.getItem(boardCacheKey()) || "null");
+  if(!force && c && Date.now() - c.at < BOARD_TTL){ RIVAL_ROWS = c.rows || []; render(); return; }
+ }catch(_){}
+ _boardBusy = true;
+ try{
+  const accounts = await tdbRead("goalak_accounts");
+  if(!accounts || typeof accounts !== "object") return;
+  let me = null;
+  try{ me = JSON.parse(localStorage.getItem("gk_user") || "null"); }catch(_){}
+  const people = Object.keys(accounts).map(k => accounts[k])
+    .filter(a => a && a.uid && (!me || a.uid !== me.uid))
+    .sort((a, b) => (b.ts || 0) - (a.ts || 0))
+    .slice(0, BOARD_MAX);
+  const got = await Promise.all(people.map(a =>
+    tdbRead("goalak_fx_" + a.uid)
+      .then(r => (r && r.v === 1 && Array.isArray(r.squad) && r.squad.length)
+        ? {name: r.team || a.username, mgr: a.username, squad: r.squad, cap: r.cap || null, vice: r.vice || null}
+        : null)
+      .catch(() => null)));
+  RIVAL_ROWS = got.filter(Boolean);
+  try{ localStorage.setItem(boardCacheKey(), JSON.stringify({at: Date.now(), rows: RIVAL_ROWS})); }catch(_){}
+  render();
+ }catch(_){ /* offline: the table simply shows what it already had */ }
+ finally{ _boardBusy = false; }
+}
+/* a rival is scored exactly the way you are: their eleven, their bench, their armband */
+function rivalSeasonTotal(r){
+ if(!SEASON_STARTED) return 0;
+ let t = 0;
+ for(let g = 1; g <= CURRENT_GW; g++) t += resolveSquad(r.squad, r.cap, g, r.vice).total;
+ return t;
+}
 function boardRows(){
- return RIVALS.map((r, i) => ({i: i, seed: rivalSeed(r), name: rivalName(r),
-                               mgr: r[2] || "", s: rivalTotal(rivalSeed(r)), me: false}))
+ return RIVAL_ROWS.map((r, i) => ({i: i, seed: null, name: r.name, mgr: r.mgr,
+                                   s: rivalSeasonTotal(r), me: false}))
    .concat([{i: -1, seed: null, name: teamName(), mgr: managerName(),
              s: seasonTotal(), me: true}])
    .sort((a, b) => b.s - a.s);
@@ -2788,7 +2809,13 @@ function openChips(){
    openSheet(chipConfirmHtml(chipState(chipSave(), CURRENT_GW).byId[id]));
    $("sheetBox").onclick = function(ev){
     const ok = ev.target.closest("[data-chip-confirm]");
-    if(ok){ chipPlays.push({chip: id.split("-")[0], half: +id.split("-")[1], gw: CURRENT_GW, state:"active"}); openChips(); }
+    /* A PLAYED CHIP WAS NEVER SAVED. It went into the in-memory ledger and nowhere else, so
+       it survived exactly as long as the sheet was open - close the app, or let load() run
+       again, and it was gone. That is the owner's "it sets off when i choose it". Since v6.17
+       chipPlays is also part of what travels to the account, so this save both persists it and
+       publishes it. render() too: the chip changes what the team screen should say. */
+    if(ok){ chipPlays.push({chip: id.split("-")[0], half: +id.split("-")[1], gw: CURRENT_GW, state:"active"});
+            save(); render(); openChips(); }
     else if(ev.target.closest("[data-chip-dismiss]")) openChips();
    };
    return;
@@ -2797,7 +2824,7 @@ function openChips(){
   if(cancel){
    const id = cancel.getAttribute("data-chip-cancel");
    chipPlays = chipPlays.filter(x => (x.chip + "-" + x.half) !== id);
-   openChips();
+   save(); render(); openChips();
   }
  };
 }
@@ -3279,6 +3306,7 @@ function fxAskSignIn(){
     still arriving from the server would be offered onboarding he finished weeks ago on
     another device - and then his empty local state would be pushed up over the real one. */
  await cloudPull();
+ loadBoard();                    /* the table fills itself in the background */
  let onboarded = "", hold = "";
  try{ onboarded = localStorage.getItem("fx_onboarded") || ""; }catch(_){}
  try{ hold = sessionStorage.getItem("fx_tut_hold") || ""; }catch(_){}

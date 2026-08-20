@@ -743,7 +743,8 @@ async function main() {
           cards: document.querySelectorAll("#viewPoints .cc").length,
           hasNotice: !!document.querySelector("#viewPoints .card h3"),
           total: seasonTotal(),
-          rivals: RIVALS.map(r => rivalTotal(rivalSeed(r)))
+          /* the invented-rival generator is gone (v6.20); rivals are real records now */
+          rivals: RIVAL_ROWS.map(r => rivalSeasonTotal(r))
         })`).then(JSON.parse);
         ok(`pre-season ${lang} ${vp.w}: no simulated pitch on the points screen`,
            pre.cards === 0, `${pre.cards} club cards drawn before the season started`);
@@ -877,6 +878,90 @@ async function main() {
      !gated.hasPasswordField, "the fantasy page rendered a password field");
   ok("account gate: it offers a way back to the app",
      gated.wayBack >= 1, "no link back to the app");
+
+  /* ---- THREE THINGS THE OWNER SAW ON HIS PHONE --------------------------------
+     A screenshot showed the three buttons on the team screen drawn on top of each other in one
+     orange smear, a played chip that switched itself off, and a standings table containing only
+     him. All three are asserted through the shipped code. */
+  for (const lang of ["ar", "en"]) {
+    setCtx("phone bugs " + lang);
+    await setViewport(360, 800);
+    await loadApp({ lang, fresh: false });
+    const r = await evaluate(`(async()=>{
+      autoFill(); assignCaptain(squad[0]); save();
+      view = "team"; render();
+      await new Promise(f => setTimeout(f, 250));
+      const out = {};
+      /* 1. THE OVERLAP: no two buttons on this screen may share pixels */
+      const btns = [...document.querySelectorAll("#viewTeam > .btn")];
+      const boxes = btns.map(b => b.getBoundingClientRect());
+      let overlaps = 0;
+      for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+        const A = boxes[i], B = boxes[j];
+        if (A.left < B.right && B.left < A.right && A.top < B.bottom && B.top < A.bottom) overlaps++;
+      }
+      out.buttons = btns.length;
+      out.overlaps = overlaps;
+      out.sticky = btns.filter(b => getComputedStyle(b).position === "sticky").length;
+      /* 2. THE CHIP: played THROUGH THE REAL SHEET, the way a finger does it. The first
+         version of this pushed onto chipPlays and called save() itself, so it proved that
+         save() persists chips and NOT that playing one calls save — which was the actual
+         bug. It survived the mutation that removed the fix. This does not. */
+      chipPlays = []; save();
+      openChips();
+      await new Promise(f => setTimeout(f, 200));
+      const playBtn = document.querySelector("#sheetBox [data-chip-play]");
+      out.chipOffered = !!playBtn;
+      if (playBtn) {
+        playBtn.click();
+        await new Promise(f => setTimeout(f, 200));
+        const okBtn = document.querySelector("#sheetBox [data-chip-confirm]");
+        out.chipConfirmable = !!okBtn;
+        if (okBtn) { okBtn.click(); await new Promise(f => setTimeout(f, 250)); }
+      }
+      let stored = [];
+      try{ stored = JSON.parse(localStorage.getItem("fx_chips") || "[]"); }catch(e){}
+      out.chipStored = stored.length;
+      chipPlays = [];                       /* simulate the app being reopened */
+      load();
+      out.chipAfterReload = chipPlays.length;
+      out.chipActive = activeChipFor(CURRENT_GW);
+      closeSheet();
+      chipPlays = []; save();
+      /* 3. THE STANDINGS: rivals come from real records, and nothing is invented */
+      out.noGenerator = typeof rivalSquad === "undefined" && typeof rivalTotal === "undefined";
+      out.hasLoader = typeof loadBoard === "function";
+      /* renderBoard directly, not render(): render() now calls loadBoard(), which serves the
+         cached (empty) table and would wipe the row this case just injected. */
+      RIVAL_ROWS = [{name: "Rival FC", mgr: "someone", squad: squad.slice(), cap: squad[0], vice: squad[1]}];
+      view = "board";
+      document.getElementById("viewBoard").classList.remove("hide");
+      renderBoard();
+      await new Promise(f => setTimeout(f, 150));
+      const rows = [...document.querySelectorAll("#viewBoard .lbrow")];
+      out.boardRows = rows.length;
+      out.boardText = rows.map(x => x.innerText.split(String.fromCharCode(10)).join(" ")).join(" | ");
+      RIVAL_ROWS = []; view = "team"; render();
+      return JSON.stringify(out);
+    })()`).then(JSON.parse);
+
+    ok("phone " + lang + ": the team screen's buttons do not overlap each other",
+       r.overlaps === 0, r.overlaps + " overlapping pairs among " + r.buttons + " buttons");
+    ok("phone " + lang + ": exactly one of them is pinned",
+       r.sticky === 1, r.sticky + " of " + r.buttons + " are sticky — more than one pins them on top of each other");
+    ok("phone " + lang + ": the chips sheet offers a chip and confirms it",
+       r.chipOffered && r.chipConfirmable,
+       "offered=" + r.chipOffered + " confirmable=" + r.chipConfirmable);
+    ok("phone " + lang + ": PLAYING a chip writes it to storage",
+       r.chipStored === 1, "fx_chips held " + r.chipStored + " after confirming one");
+    ok("phone " + lang + ": and it is still there after the app reloads its ledger",
+       r.chipAfterReload === 1 && !!r.chipActive,
+       "after reload: " + r.chipAfterReload + " plays, active=" + r.chipActive);
+    ok("phone " + lang + ": the fake-rival generator is gone",
+       r.noGenerator, "rivalSquad/rivalTotal still exist — invented managers are one edit away");
+    ok("phone " + lang + ": the standings show real managers beside you",
+       r.boardRows === 2 && /someone/.test(r.boardText), r.boardText);
+  }
 
   /* ---- THE VICE-CAPTAIN ---------------------------------------------------------
      There was no vice-captain in this app at all: no state, no control, and `res.vice = null`
