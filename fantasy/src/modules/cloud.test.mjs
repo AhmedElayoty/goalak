@@ -189,15 +189,54 @@ console.log("\n3 · whoever is newer wins");
   eq(w.squad.join(), "new1,new2", "a newer server record replaces an older local one");
 }
 {
-  const w = world({ squad: ["mine"], store: { fx_at: "9000" }, server: REC({ at: 5000, squad: ["theirs"] }) });
+  /* fx_dirty is what "I have an edit the server has not seen" means. Without it a device is
+     merely a reader, and a reader has nothing to defend — which is the correction that let the
+     owner's Triple Captain finally cross from his PC to his phone. */
+  const w = world({ squad: ["mine"], store: { fx_at: "9000", fx_dirty: "1" },
+                    server: REC({ at: 5000, squad: ["theirs"] }) });
   await w.cloudPull();
-  eq(w.squad.join(), "mine", "an older server record does not");
-  ok(w.__writes.length === 1, "and ours is pushed up instead");
+  eq(w.squad.join(), "mine", "an older server record does not beat MY UNSENT edit");
+  ok(w.__writes.length === 1, "and mine is pushed up instead");
 }
 {
-  const w = world({ squad: ["mine"], store: { fx_at: "5000" }, server: REC({ at: 5000, squad: ["theirs"] }) });
+  const w = world({ squad: ["mine"], store: { fx_at: "5000", fx_dirty: "1" },
+                    server: REC({ at: 5000, squad: ["theirs"] }) });
   await w.cloudPull();
   eq(w.squad.join(), "mine", "an identical stamp is not newer — no pointless overwrite");
+}
+
+console.log("\n3b · THE CHIP THAT WOULD NOT CROSS");
+{
+  /* He played a Triple Captain on the PC. It reached the server — the record plainly carried
+     it. The phone already held the squad, so "nothing to lose" no longer applied, and the
+     phone's own clock had drifted ahead through ordinary saves, so newer-wins refused every
+     later change made on the PC. A device with nothing UNSENT is a reader, and a reader takes
+     what the server has. */
+  const chip = [{ chip: "tripcap", half: 1, gw: 1, state: "active" }];
+  const w = world({ squad: ["a", "b", "c"], store: { fx_at: "9999999999999" },   /* clock ahead */
+                    server: REC({ at: 1000, squad: ["a", "b", "c"], chips: chip }) });
+  await w.cloudPull();
+  eq(w.chipPlays.length, 1, "a clean device takes the server's chip even with a clock far ahead");
+  eq(w.__store.fx_dirty, undefined, "and it is marked in sync afterwards");
+}
+{
+  /* but a device with genuine unsent work still wins */
+  const w = world({ squad: ["mine"], store: { fx_at: "9999999999999", fx_dirty: "1" },
+                    server: REC({ at: 1000, squad: ["theirs"] }) });
+  await w.cloudPull();
+  eq(w.squad.join(), "mine", "unsent local work is never overwritten by an older server record");
+}
+{
+  const w = world({ squad: ["a"], store: { fx_at: "1", fx_dirty: "1" } });
+  w.cloudPush(true);
+  await new Promise(r => setTimeout(r, 40));
+  eq(w.__store.fx_dirty, undefined, "a successful push clears the dirty flag");
+}
+{
+  const w = world({ squad: ["a"], store: { fx_at: "1", fx_dirty: "1" }, writeFails: true });
+  w.cloudPush(true);
+  await new Promise(r => setTimeout(r, 40));
+  eq(w.__store.fx_dirty, "1", "a FAILED push does not — the edit is still unsent");
 }
 
 console.log("\n4 · what actually travels");

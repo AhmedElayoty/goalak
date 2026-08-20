@@ -947,7 +947,7 @@ const SEASON_OPENS = "2026-08-21";
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.21";
+const FX_BUILD = "6.22";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -3171,7 +3171,22 @@ function fxStamp(){
    against the shipped logic with his actual timestamps: 1787132999999 local vs 1787132423953
    on the server - it stayed empty forever. */
 function fxTouch(force){ if(!squad.length && !force) return;
- try{ localStorage.setItem("fx_at", String(Date.now())); }catch(_){} }
+ try{ localStorage.setItem("fx_at", String(Date.now())); localStorage.setItem("fx_dirty", "1"); }catch(_){} }
+/* THE TIMESTAMP WAS COMPARING VISITS, NOT EDITS, AND THAT IS THE WHOLE BUG.
+   The owner played a Triple Captain on his PC. It reached the server - the record plainly
+   carries [{"chip":"tripcap","half":1,"gw":1,"state":"active"}] - and his phone would not show
+   it as on. The phone already held the squad, so "a device with nothing to lose always accepts"
+   (v6.19) no longer applied, and it fell back to newer-wins. Any save on the phone had stamped
+   fx_at with NOW, so the phone was permanently newer than a server it had never contradicted,
+   and every later change made on the PC was refused.
+
+   A stamp should mean "I have an edit the server has not seen", not "I was here". So it is
+   paired with a dirty flag that a successful push clears. A device with NOTHING UNSYNCED takes
+   the server's copy, whatever the clocks say - because everything it holds either came from
+   the server or has already been sent to it. Only a device with unsent work of its own gets to
+   argue about timestamps. */
+function fxDirty(){ try{ return localStorage.getItem("fx_dirty") === "1"; }catch(_){ return false; } }
+function fxClean(){ try{ localStorage.removeItem("fx_dirty"); }catch(_){} }
 function fxSnapshot(){
  let team = "", form = "", ledger = null, onboarded = "", skips = "";
  try{ team = localStorage.getItem("fx_team") || ""; }catch(_){}
@@ -3203,6 +3218,7 @@ function fxApply(rec){
   localStorage.setItem("fx_chips", JSON.stringify(chipPlays));
  }catch(_){}
  validateSquad();
+ fxClean();                       /* what we now hold IS the server's copy */
  return true;
 }
 let FX_SYNC = "idle";                    /* idle | saving | saved | offline */
@@ -3233,7 +3249,10 @@ async function cloudPull(){
  const serverHasTeam = !!(rec && rec.v === 1 && Array.isArray(rec.squad) && rec.squad.length);
  const nothingToLose = !squad.length;
  const serverNewer = !!(rec && (rec.at || 0) > fxStamp());
- if(serverHasTeam && (nothingToLose || serverNewer)){
+ /* NOTHING UNSENT OF OUR OWN -> the server is simply the truth. This is the case the clocks
+    kept getting wrong: a phone that had only ever READ still believed it was newer. */
+ const inSync = !fxDirty();
+ if(serverHasTeam && (nothingToLose || inSync || serverNewer)){
   if(fxApply(rec)){ paintChrome(); render(); fxSyncMark("saved"); }
   return;
  }
@@ -3259,7 +3278,7 @@ function cloudPush(now, wipe){
  const go = async () => {
   if(_pushing) return;
   _pushing = true; fxSyncMark("saving");
-  try{ await tdbWrite(key, fxSnapshot()); fxSyncMark("saved"); }
+  try{ await tdbWrite(key, fxSnapshot()); fxClean(); fxSyncMark("saved"); }
   catch(_){ fxSyncMark("offline"); }
   finally{ _pushing = false; }
  };
