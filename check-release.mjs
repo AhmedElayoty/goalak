@@ -99,7 +99,10 @@ for (const [re, why] of [
   [/id="chatEmoji"/, "the emoji button is not in the composer, so nothing opens the picker"],
   [/function toggleReaction\(/, "reactions are gone"],
   [/function rxRow\(/, "rxRow() is gone — reactions would be invisible under messages"],
-  [/onclick="openReact\(event/, "tapping a message no longer opens the reaction bar"],
+  /* the affordance is a SMILEY BUTTON beside the bubble, as it is in the WC app — not the whole
+     message being tappable, which is undiscoverable and fires by accident while scrolling */
+  [/class="rxbtn"/, "the smiley button beside each message is gone — nothing offers a reaction"],
+  [/openReact\(event,this\.dataset\.mid\)/, "the smiley no longer opens the reaction bar"],
   [/type:"react"/, "toggleReaction never sends to the socket — nobody else would see it"],
   [/value\.type === "react"/, "the react frame is ignored, so the server's count never lands"]
 ]) if (!re.test(app)) fail.push(why);

@@ -639,6 +639,15 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 .reactbar button{font-size:22px;line-height:1;background:none;border:0;padding:4px 6px;cursor:pointer;
  border-radius:999px}
 .reactbar button:active{transform:scale(.88)}
+/* outside the bubble, vertically centred, and on the far side for your own messages — the
+   near side already carries the delete control */
+.cmsg .rxbtn{position:absolute;top:50%;transform:translateY(-50%);inset-inline-end:-34px;
+ inline-size:28px;block-size:28px;padding:0;background:var(--card);border:1px solid var(--line);
+ border-radius:50%;color:var(--dim,#8fa0cc);cursor:pointer;display:flex;align-items:center;
+ justify-content:center;opacity:.72}
+.cmsg .rxbtn svg{inline-size:17px;block-size:17px;display:block}
+.cmsg .rxbtn:hover,.cmsg .rxbtn:active{opacity:1;color:var(--acc,#FF7A45);border-color:var(--acc,#FF7A45)}
+.cmsg.own .rxbtn{inset-inline-end:auto;inset-inline-start:-34px}
 .rxrow{display:flex;flex-wrap:wrap;gap:4px;margin-block-start:6px}
 .rxchip{display:inline-flex;align-items:center;gap:3px;font-size:12px;line-height:1;padding:3px 7px;
  border-radius:999px;border:1px solid var(--line,#243056);background:rgba(255,255,255,.05);
@@ -844,10 +853,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.24";
+const APP_VERSION = "6.25";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-20-v624";
+const FORCE_RELOAD = "2026-08-20-v625";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1189,7 +1198,8 @@ const STR = {
   chatPhoto:["صورة","Photo"],
   chatVideo:["فيديو","Video"],
   chatVoice:["رسالة صوتية","Voice note"],
-  chatDelete:["حذف الرسالة","Delete message"],
+  chatReact:["تفاعل","React"],
+ chatDelete:["حذف الرسالة","Delete message"],
   chatDeleteConfirm:["حذف هذه الرسالة للجميع؟","Delete this message for everyone?"],
   chatDeleteFail:["تعذر حذف الرسالة · حاول مرة أخرى","Could not delete the message · try again"],
   chatDiscard:["حذف التسجيل","Discard recording"],
@@ -4059,8 +4069,15 @@ function renderChat(){
     const club = chatClubFor(m);
     const clubHtml = club ? '<span class="cclub">⭐ ' + esc(clubLabel(club)) + "</span>" : "";
     const del = own ? '<button type="button" class="cdel" title="' + esc(t("chatDelete")) + '" aria-label="' + esc(t("chatDelete")) + '" data-mid="' + esc(m.id) + '" onclick="deleteChatMsg(this.dataset.mid)"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>' : "";
-    return '<div class="cmsg' + (own ? " own" : "") + '" data-mid="' + esc(m.id) + '" onclick="openReact(event,this.dataset.mid)">'
-     + del + '<div class="cname"><span class="cuser">' + esc(m.name || "?") + "</span>" + clubHtml + "</div>"
+    /* THE SMILEY IS THE AFFORDANCE, exactly as it is in the WC app: a small round button
+       beside the bubble. The first version here made the WHOLE message tappable, which is
+       both undiscoverable — nothing on screen says a message can be reacted to — and easy to
+       fire by accident while scrolling. */
+    const rxb = gkUser ? '<button type="button" class="rxbtn" data-mid="' + esc(m.id)
+      + '" aria-label="' + esc(t("chatReact")) + '" title="' + esc(t("chatReact"))
+      + '" onclick="event.stopPropagation();openReact(event,this.dataset.mid)">' + "<svg viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z\"/></svg>" + "</button>" : "";
+    return '<div class="cmsg' + (own ? " own" : "") + '" data-mid="' + esc(m.id) + '">'
+     + rxb + del + '<div class="cname"><span class="cuser">' + esc(m.name || "?") + "</span>" + clubHtml + "</div>"
      + text + renderChatMedia(m)
      + '<div class="ctime" dir="ltr">' + esc(fmtTime(new Date(m.ts || 0).toISOString())) + "</div>"
      + rxRow(m) + "</div>";
