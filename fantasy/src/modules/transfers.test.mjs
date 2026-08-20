@@ -41,7 +41,10 @@ function world(o) {
     liveGw: () => (o.gw != null ? o.gw : 5),
     gwCount: () => 36,
     squad: (o.squad || []).slice(),
-    SEASON_STARTED: o.seasonStarted !== false,
+    /* it is a question now, not a constant frozen at parse: an installed app left open across
+       the opening deadline kept answering "pre-season" while every other clock had moved on */
+    seasonStarted: () => o.seasonStarted !== false,
+    playGw: () => (o.gw != null ? o.gw : 5),
     activeChipFor: () => o.chip || null,
     /* ftSave publishes to the account since v6.26. Without a stub the whole suite threw on
        its FIRST assertion and ran ZERO of them - which is how the transfer economy, the one

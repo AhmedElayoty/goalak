@@ -946,14 +946,19 @@ const VERSION = "fx-1.0";
    everybody — for the whole season, until somebody noticed and shipped a new build. It is
    derived now, so the game starts because the calendar says so. */
 const SEASON_OPENS = "2026-08-21";
-const SEASON_STARTED = Date.now() >= Date.parse(SEASON_OPENS + "T00:00:00Z");
+const SEASON_OPENS_MS = Date.parse(SEASON_OPENS + "T00:00:00Z");
+/* A CONSTANT EVALUATED ONCE AT PARSE IS WRONG IN AN INSTALLED APP. A tab left open across the
+   opening deadline - 04:00 local, so overnight - kept the pre-season answer while liveGw(),
+   roundLocked() and seasonOver() all moved on: the bar said the round had started, every score
+   still read zero, and every transfer was still free. It is a question, asked when asked. */
+function seasonStarted(){ return Date.now() >= SEASON_OPENS_MS; }
 /* WHICH BUILD AM I LOOKING AT? Fantasy had no version anywhere on it. The main app has one
    in settings and the owner reads it to tell whether a deploy has reached him - which is how
    he caught that APP_VERSION had been frozen at 5.4 for twelve releases. This page is a
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.33";
+const FX_BUILD = "6.34";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -1060,6 +1065,7 @@ const STR = {
  playsTwice:["بيلعب {n} ماتشات","Plays {n}"],
  syncSaving:["بيتحفظ…","Saving…"],
  syncSaved:["متحفظ على حسابك","Saved to your account"],
+ syncExpired:["الجلسة انتهت — افتح تطبيق جولك وسجّل دخول عشان يتحفظ","Session expired — open the Goallak app and sign in again to save"],
  syncOffline:["مش متحفظ — النت فاصل. هيتحفظ أول ما يرجع.",
               "Not saved — you are offline. It will save when the connection returns."],
  syncTitle:["فريقك متحفظ فين","Where your team is saved"],
@@ -1098,6 +1104,9 @@ const STR = {
  ftBlankOk:["تقدر تحتفظ بنادي مالوش ماتش في الجولة دي — ساعات ده أوفر من إنك تطلّعه وترجّعه.",
             "You may keep a club that has no match this round — sometimes that is cheaper than selling it and buying it back."],
  lockedNow:["مقفول","Locked"],
+ roundInPlay:["بتتلعب دلوقتي","Being played now"],
+ roundPicking:["بتختار للجولة دي","You are picking for this one"],
+ roundDone:["خلصت","Finished"],
  lockedTtl:["الجولة اتقفلت","This round is locked"],
  lockedBody:["مش هتقدر تغيّر فريقك ولا الكابتن بعد ما الجولة تبدأ — زي أي فانتازي محترم. أي تغيير هيتحسب من الجولة الجاية.",
              "You cannot change your team or your captain once the round has begun — the same rule every serious fantasy uses. Changes you make now count from the next round."],
@@ -1295,9 +1304,27 @@ function snapTake(){
  const g = liveGw(); if(g > gwCount()) return;
  const o = snapLoad();
  o[String(g)] = {sq: squad.slice(), cap: captain || "", vc: vice || ""};
- /* only the season's worth, and only from the round the manager joined */
- for(const k of Object.keys(o)) if(+k < g - 40) delete o[k];
+ /* a season's worth is 36 keys of ~100 bytes; nothing needs pruning, and the guard that was
+    here (`+k < g - 40` against a 36-round season) could never once be true */
  try{ localStorage.setItem("fx_snap", JSON.stringify(o)); }catch(_){}
+}
+/* SNAPSHOTS ONLY EXISTED FOR ROUNDS THE APP HAPPENED TO BE OPENED IN.
+   snapTake writes one key - the open round - so a manager who set his team in August and came
+   back in December had three snapshots out of fourteen, and one transfer in December silently
+   rewrote every unsnapshotted round behind him. Anything locked and unrecorded is backfilled
+   with the squad as we find it, which is the only honest estimate available and, far more
+   importantly, FREEZES it so it can never drift again. Rounds before he joined are left alone -
+   gwTotal scores those as zero. */
+function snapBackfill(){
+ if(squad.length !== SQUAD_SIZE) return;
+ const o = snapLoad(), from = joinGw(), to = playGw();
+ let added = 0;
+ for(let g = from; g <= to; g++){
+  if(o[String(g)]) continue;
+  o[String(g)] = {sq: squad.slice(), cap: captain || "", vc: vice || ""};
+  added++;
+ }
+ if(added){ try{ localStorage.setItem("fx_snap", JSON.stringify(o)); }catch(_){} }
 }
 function snapFor(gw){
  if(gw >= liveGw()) return null;              /* the open round IS the live squad */
@@ -1495,7 +1522,11 @@ async function loadFixtures(gw){
   }));
   /* An empty answer is not proof that nobody plays - it is far more likely the feed
      failed. Only a non-empty result is allowed to become the truth for a round. */
-  if(ids.size){
+  /* `heardAll` gated only the CACHE write, so a map missing every La Liga club was still
+     installed and scored from for the whole session - the picker said "no fixture", the round
+     band agreed, and the auto-sub burned bench slots covering matches that existed. The guard
+     belongs on the map, not on the copy of it. */
+  if(ids.size && heardAll){
    FIXT[gw] = ids;
    try{ localStorage.setItem(key, JSON.stringify({ids: [...ids.entries()], at: Date.now(), full: heardAll})); }catch(_){}
    render();
@@ -1545,10 +1576,13 @@ function ftSync(){
     he has scored one. His free window is his own first round, and it closes at that round's
     deadline like everyone else's. */
  const gwNow = liveGw();
- if(!v.join && squad.length) { v.join = gwNow; }
+ /* and it has to be SAVED when it is set: this wrote `join` and then returned on the next line
+    without persisting it, so the first build was stamped at the following rollover instead, with
+    a round the manager had nothing to do with */
+ if(!v.join && squad.length) { v.join = gwNow; if(v.gw === gwNow){ ftSave(v); return v; } }
  if(v.gw === gwNow) return v;
  if(v.gw){
-  const st = transferState(v);
+  const st = transferState(v, v.gw);
   /* ONE PER ROUND ELAPSED, not one per visit. Somebody who does not open the app for three
      rounds has still been allowed three transfers by the rules; crediting only one would
      punish him for not opening the app, which is not a thing the rules say anywhere. The
@@ -1563,12 +1597,20 @@ function ftSync(){
  v.gw = gwNow; v.base = squad.slice(); ftSave(v);
  return v;
 }
-function transferState(v){
+/* `gw` is the round being PRICED, which is not always the round being picked for: at a rollover
+   the round that just closed has to be priced with ITS chip and ITS free-transfer window. It
+   defaulted to the open round, so a Wildcard played in round 6 was charged the full -20 when
+   round 7 opened, and the charge was written into the ledger where it is permanent. */
+function transferState(v, gw){
  v = v || ftLoad();
+ const round = gw || liveGw();
  const free0 = Math.max(1, Math.min(FT_MAX, v.banked || 1));
- const chip = typeof activeChipFor === "function" ? activeChipFor(liveGw()) : null;
- const unlimited = !SEASON_STARTED
-   || !v.join || v.join === CURRENT_GW           /* his own first round */
+ const chip = typeof activeChipFor === "function" ? activeChipFor(round) : null;
+ const unlimited = !seasonStarted()
+   /* THE FIRST BUILD IS THE MANAGER'S OWN FIRST ROUND. This was written with liveGw() and read
+      against CURRENT_GW, which are never the same round - so the exemption fired one round late
+      and the round it was meant to cover was billed. */
+   || !v.join || v.join === round                /* his own first round */
    || /wildcard|freehit/.test(String(chip || ""));
  const base = v.base && v.base.length ? v.base : squad;
  /* a transfer is a club you now own that you did not own at the start of the round */
@@ -1801,13 +1843,20 @@ function scoreGw(gw){
  return applyChip(id, res) || res;
 }
 function gwTotal(gw){
- if(!SEASON_STARTED) return 0;
+ if(!seasonStarted()) return 0;
  /* the hit is part of the round's score, not a footnote beside it. A past round is charged
     what it actually cost at the time — read back from the ledger — so opening the app in
     round 6 does not refund the -8 taken in round 5. */
  const v = ftLoad();
+ /* a round before this manager arrived is not a round they scored in, and a round that has not
+    kicked off is not a round at all - resolveSquad will happily invent a number for both */
+ /* the round being picked for has not been played, so it has no score yet - but it does
+    already have a price, and that is worth showing on its card rather than springing at the
+    rollover. It is deliberately NOT in seasonTotal, which counts rounds that happened. */
+ if(gw === liveGw() && gw <= gwCount()) return -transferCost();
+ if(gw < Math.max(1, +v.join || 1) || gw > playGw()) return 0;
  const past = (v.paid && typeof v.paid === "object" && +v.paid[gw]) || 0;
- return scoreGw(gw).total - (gw === liveGw() ? transferCost() : past);
+ return scoreGw(gw).total - past;
 }
 /* A scrubber, so the whole season can be walked in ten seconds rather than nine months.
    It is a VIEWING control: it never credits the ground ledger and never moves a deadline. */
@@ -1844,6 +1893,14 @@ function liveGw(){
  return n + 1;                       /* season over: there is nothing left to pick for */
 }
 function seasonOver(){ return liveGw() > gwCount(); }
+/* THE ROUND CURRENTLY BEING PLAYED. liveGw() is the round your EDITS count for, and because the
+   windows are back-to-back that is always the one AFTER the one being played. Substituting it
+   for "the current round" made the season total include a round nobody had kicked off yet: on
+   the morning of 22 August the headline read 113 while the only round that had started was
+   worth 68, because simMatch is a deterministic hash and happily scores a future round. */
+function playGw(){ return Math.max(0, Math.min(gwCount(), liveGw() - 1)); }
+/* the first round this manager was in: rounds before it are not theirs to be scored for */
+function joinGw(){ const v = ftLoad(); return Math.max(1, +v.join || 1); }
 let _gwRaf = 0;
 function setGw(g){
  clearArm();
@@ -1858,8 +1915,8 @@ function setGw(g){
  _gwRaf = requestAnimationFrame(() => { _gwRaf = 0; render(); });
 }
 function seasonTotal(){
- if(!SEASON_STARTED) return 0;
- let s = 0; const upto = Math.min(gwCount(), liveGw()); for(let g = 1; g <= upto; g++) s += gwTotal(g); return s;
+ if(!seasonStarted()) return 0;
+ let s = 0; for(let g = joinGw(); g <= playGw(); g++) s += gwTotal(g); return s;
 }
 
 /* ---------------- rendering ---------------- */
@@ -2039,7 +2096,9 @@ function pitchHtml(withPoints, gw){
  /* only the round you actually arrived at counts, and only from the team screen — and only
     the REAL round: crediting whatever the scrubber was pointing at let ten taps between
     Points and Team complete a season's ground progression in about a minute */
- markRound(liveGw(), !withPoints);
+ /* the ground ledger is "rounds you turned up for", so it belongs to the round being PLAYED,
+    not the one being picked for - crediting liveGw() handed out the reward a round early */
+ markRound(Math.max(1, playGw()), !withPoints);
  ftSync();
  const ground = groundOf();
  let h = '<div class="st' + enter + '" data-sky="' + sky + '" data-cup="' + inCup + '"'
@@ -2216,7 +2275,7 @@ function renderPoints(){
  const gw = CURRENT_GW;
  /* The round scrubber lives HERE now, on the screen whose whole subject is the round. On the
     team screen it was 96px of chrome above a pitch nobody could see. */
- if(!SEASON_STARTED){
+ if(!seasonStarted()){
   $("viewPoints").innerHTML = gwBarHtml()
    + '<div class="card" style="text-align:center"><div style="font-size:34px">⏳</div>'
    + '<h3 style="margin:8px 0 4px">' + esc(t("preTtl")) + "</h3>"
@@ -2479,10 +2538,11 @@ async function loadBoard(force){
    let me = null; try{ me = JSON.parse(localStorage.getItem("gk_user") || "null"); }catch(_){}
    RIVAL_ROWS = (j.managers || [])
      .filter(m => !me || m.uid !== me.uid)
-     .map(m => ({name: m.name || m.mgr, mgr: m.mgr, squad: m.squad, cap: m.cap, vice: m.vice}));
+     .map(m => ({name: m.name || m.mgr, mgr: m.mgr, squad: m.squad, cap: m.cap, vice: m.vice,
+                 paid: m.paid || null, join: m.join || 1}));
    try{ localStorage.setItem(boardCacheKey(), JSON.stringify({at: Date.now(), rows: RIVAL_ROWS})); }catch(_){}
    render(); return;
-  }catch(_){ fxSyncMark("offline"); }
+  }catch(_){ fxSyncFail(); }
   /* the per-manager walk over textdb went with the rest of the mirror: it read the same
      stale records, so a rival's old team name could reappear in the table long after
      they had changed it */
@@ -2490,22 +2550,26 @@ async function loadBoard(force){
  finally{ _boardBusy = false; }
 }
 /* a rival is scored exactly the way you are: their eleven, their bench, their armband */
-/* Rivals were scored under a rule the manager is exempt from nowhere and pays everywhere:
-   their season total summed raw round scores with no hit ever deducted, so the standings
-   compared a number that had -4s taken out of it against numbers that never could. Their
-   ledger is simulated from the same seed that builds their squad. */
-function rivalHits(name, gw){
- let h = 0, seed = 0;
- for(let i = 0; i < String(name).length; i++) seed = (seed * 31 + String(name).charCodeAt(i)) >>> 0;
- for(let g = 2; g <= gw; g++){ const r = ((seed ^ (g * 2654435761)) >>> 0) % 100; if(r < 22) h += 4; }
+/* THEIR REAL LEDGER, NOT A HASH OF THEIR TEAM NAME.
+   Rivals used to be scored with no hit deducted at all, which compared a number that had -4s
+   taken out of it against numbers that never could. The first correction simulated their hits
+   from a hash of the team name - and the team name is editable, so renaming re-rolled a rival's
+   whole season by up to sixty points, retroactively. That is the exact mistake the comment
+   sixty lines above this one was written about. These are real managers on a real server now:
+   their ledger comes back with their squad. */
+function rivalPaid(r, gw){
+ const paid = r && r.paid && typeof r.paid === "object" ? r.paid : null;
+ if(!paid) return 0;
+ let h = 0;
+ for(let g = 1; g <= gw; g++) h += (+paid[g] || 0);
  return h;
 }
 function rivalSeasonTotal(r){
- if(!SEASON_STARTED) return 0;
+ if(!seasonStarted()) return 0;
  let t = 0;
- const upto = Math.min(gwCount(), liveGw());
- for(let g = 1; g <= upto; g++) t += resolveSquad(r.squad, r.cap, g, r.vice).total;
- return t - rivalHits(r.name, upto);
+ const from = Math.max(1, +r.join || 1), upto = playGw();
+ for(let g = from; g <= upto; g++) t += resolveSquad(r.squad, r.cap, g, r.vice).total;
+ return t - rivalPaid(r, upto);
 }
 function boardRows(){
  return RIVAL_ROWS.map((r, i) => ({i: i, seed: null, name: r.name, mgr: r.mgr,
@@ -2526,7 +2590,14 @@ function roundBarHtml(){
   +  '<div class="rndb__s">' + esc(t("gwOf", {n: gw, of: 36}))
   +    (isFinite(gwLockMs(gw))
         ? ' · <b style="color:var(--fx-gold)">'
-          + esc(roundLocked(gw) ? t("lockedNow") : t("locksOn", {d: gwDates(gw).split(" – ")[0]}))
+          /* `roundLocked(CURRENT_GW)` is TRUE every day from the season opening, because a round
+             locks when its window opens - so this read "Locked" beside a picker, a captain sheet
+             and a chip sheet that all open and commit freely. It says which round the round on
+             screen is, relative to the one being picked for. */
+          + esc(gw === playGw() ? t("roundInPlay")
+              : gw === liveGw() ? t("roundPicking")
+              : roundLocked(gw) ? t("roundDone")
+              : t("locksOn", {d: gwDates(gw).split(" – ")[0]}))
           + "</b>" : "") + "</div>"
   +  '<div class="rndb__bar"><div class="rndb__fill" style="inline-size:' + pct + '%"></div></div>'
   + "</span></div>";
@@ -2632,7 +2703,7 @@ function openShare(){
  /* THE FIELD THE MODULE ACTUALLY READS is state.captainPts; this wrote `pts` onto the
     captain TILE, which share.js never looks at, so the card always took the "no captain
     line" branch. Pre-season it stays absent on purpose — there is nothing to report yet. */
- if(st.captain && SEASON_STARTED) st.captainPts = simMatch(captain, CURRENT_GW).pts * 2;
+ if(st.captain && seasonStarted()) st.captainPts = simMatch(captain, CURRENT_GW).pts * 2;
  openSheet('<h2>' + esc(t("shareTitle")) + "</h2>" + shareStripHtml(st)
   + '<div class="note">' + esc(t("shareHint")) + "</div>");
 }
@@ -2687,7 +2758,11 @@ function swapSlots(a, b){
     swinging a round by 17 points. Clear it and say so; the manager chooses. */
  if(captain && squad.indexOf(captain) >= START_SIZE){ captain = null; _capDropped = true; }
  /* the vice is an ELEVEN role too — a benched vice can never take the armband */
- if(vice && squad.indexOf(vice) >= START_SIZE){ vice = null; _capDropped = true; }
+ /* benching the vice nulled it and appointed nobody, so the armband chain silently fell
+    through to whichever substitute happened to be first in the dugout - the exact failure
+    ensureVice() exists to prevent. And _capDropped raised a note saying the CAPTAIN had been
+    benched, which was not what happened. */
+ if(vice && squad.indexOf(vice) >= START_SIZE){ vice = null; ensureVice(); _viceDropped = true; }
  save();
 }
 /* promote a substitute straight into the XI, replacing a chosen starter */
@@ -2894,10 +2969,19 @@ function setVice(id){
     mis-tap and a round was scored with no armband at all. Tapping V on the captain now means
     what it looks like it means: the two swap. */
  if(id === captain){
+  /* With a vice, the two swap. WITHOUT one - which swapSlots produces every time a vice is
+     benched - the "swap" had nothing to swap with and simply deleted the captain, leaving the
+     round to be scored with no armband on anybody. The captain steps down to vice and the
+     strongest remaining starter takes the armband, so both are always filled. */
   const old = vice;
   vice = id;
-  captain = old && old !== id ? old : null;
-  if(!captain) _capDropped = true;
+  if(old && old !== id){ captain = old; }
+  else {
+   captain = squad.slice(0, START_SIZE)
+     .filter(x => x !== id)
+     .sort((a, b) => priceOf(b) - priceOf(a))[0] || null;
+   _capDropped = true;
+  }
   save(); openCaptain(); render();
   return;
  }
@@ -2978,7 +3062,7 @@ function chipSave(){
  /* This said `false`, always. The module implements the deadline rule in full and has a
     test for it, so a working lock shipped and was never armed: a chip could be played on a
     round that had already kicked off. */
- return {lang: LANG, plays: chipPlays, firstGw: 1, halfwayGw: 18, lastGw: 36, deadlinePassed: seasonOver()};
+ return {lang: LANG, plays: chipPlays, firstGw: 1, halfwayGw: Math.round(gwCount() / 2), lastGw: gwCount(), deadlinePassed: seasonOver()};
 }
 function openChips(){
  if(typeof chipState !== "function") return;
@@ -3252,6 +3336,11 @@ function resetDemo(){
       try{ cloudPush(true, true); }catch(__){}   /* the only caller allowed to clear the server */
       localStorage.removeItem("fx_tut_skips");
       try{ sessionStorage.removeItem("fx_tut_hold"); }catch(__){}
+      /* the round-model work added three more pieces of per-manager state and this list was
+         never updated, so Start Over left the OLD team's locked-round lineups on the Points
+         screen and went on deducting its -4s for the rest of the season */
+      localStorage.removeItem("fx_snap"); localStorage.removeItem("fx_ft");
+      localStorage.removeItem("fx_gw");
       localStorage.removeItem("fx_team"); localStorage.removeItem("fx_ledger"); }catch(_){}
  seenCoach = {}; coachShownThisSession = false;
  closeSheet(); paintChrome(); render(); openWizard();
@@ -3438,7 +3527,14 @@ function fxApply(rec){
   if(rec.ledger) localStorage.setItem("fx_ledger", JSON.stringify(rec.ledger));
   if(rec.ft) localStorage.setItem("fx_ft", JSON.stringify(rec.ft));
   /* a locked round's lineup is history and must be the same on every device */
-  if(rec.snap && typeof rec.snap === "object") localStorage.setItem("fx_snap", JSON.stringify(rec.snap));
+  /* MERGE, NEVER REPLACE. A device whose own snapLoad() is {} still satisfies `typeof object`,
+     so a wholesale overwrite let an empty history land on top of a full one - and every round it
+     covered went straight back to being scored from the live squad. A locked round's lineup is
+     history: whoever HAS it keeps it, and neither side can delete the other's. */
+  if(rec.snap && typeof rec.snap === "object"){
+   let mine = {}; try{ mine = JSON.parse(localStorage.getItem("fx_snap") || "{}") || {}; }catch(_){}
+   localStorage.setItem("fx_snap", JSON.stringify(Object.assign({}, rec.snap, mine)));
+  }
   if(rec.ob) localStorage.setItem("fx_onboarded", rec.ob); else localStorage.removeItem("fx_onboarded");
   if(rec.sk) localStorage.setItem("fx_tut_skips", rec.sk); else localStorage.removeItem("fx_tut_skips");
   localStorage.setItem("fx_at", String(rec.at || Date.now()));
@@ -3452,9 +3548,16 @@ function fxApply(rec){
  return true;
 }
 let FX_SYNC = "idle";                    /* idle | saving | saved | offline */
+/* AN EXPIRED SESSION IS NOT A FLAT NETWORK, AND SAYING SO WAS A LIE.
+   Every failed call marked "offline", whose copy promises it will save as soon as the network
+   is back. It will not: without a session the server refuses every write, so a manager could
+   play a whole round into nothing while being told it was fine. The two are told apart now,
+   and the one the manager can actually fix says how to fix it. */
+function fxSyncFail(){ fxSyncMark(fxToken() ? "offline" : "expired"); }
 function fxSyncText(){
  return FX_SYNC === "saving" ? t("syncSaving")
       : FX_SYNC === "saved" ? t("syncSaved")
+      : FX_SYNC === "expired" ? t("syncExpired")
       : FX_SYNC === "offline" ? t("syncOffline") : "";
 }
 function fxSyncMark(v){
@@ -3475,7 +3578,7 @@ async function cloudPull(){
     One store now. A failed read is still not an empty team - it only means offline. */
  let rec = null;
  try{ rec = (await fxApi("/api/fx/get")).fx; }
- catch(_){ fxSyncMark("offline"); return; }
+ catch(_){ fxSyncFail(); return; }
  /* THE TIMESTAMP EXISTS TO PROTECT A LOCAL SQUAD. WITH NOTHING LOCAL THERE IS NOTHING TO
     PROTECT, so a device holding no team ALWAYS accepts one from the server, whatever the
     clocks say. That is the rule the owner's phone needed: it had drifted ahead of the server
@@ -3521,7 +3624,7 @@ function cloudPush(now, wipe){
   /* and nothing writes to textdb any more either: a write there is a stale record sitting
      in a store somebody may still read back over the top of the real one */
   try{ await fxApi("/api/fx/set", {fx: snap}); fxClean(); fxSyncMark("saved"); }
-  catch(_){ fxSyncMark("offline"); }
+  catch(_){ fxSyncFail(); }
   finally{ _pushing = false; }
  };
  /* debounced, because save() runs on every tap while a squad is being built */
@@ -3599,6 +3702,7 @@ function fxAskSignIn(){
     the session is not their team and is dropped before it can be read, never mind pushed. */
  fxGuardOwner();
  load();
+ snapBackfill();          /* freeze anything already played before a single edit can move it */
  paintChrome();
  render();
  loadFixtures(CURRENT_GW);

@@ -733,7 +733,9 @@ async function main() {
          full of simulated points while the season has not started, so the suite asserts the
          holding state instead of a pitch. When SEASON_STARTED flips, the pitch assertions
          come back automatically - nothing here needs editing again. */
-      const started = await evaluate(`SEASON_STARTED === true`);
+      /* it is a function now, not a constant frozen at parse: a tab left open across the
+         opening deadline used to keep answering "pre-season" while every other clock moved on */
+      const started = await evaluate(`seasonStarted() === true`);
       if (started) {
         await waitFor(`document.querySelectorAll("#viewPoints .cc").length > 0`, 6000, "points pitch");
         await suiteScreen("points", "#viewPoints");

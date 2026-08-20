@@ -503,6 +503,7 @@ html[data-theme="light"] .bnav{background:linear-gradient(180deg,#ffffff,#e8edf8
 .pod{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;max-width:118px;min-width:0}
 .pod .pava{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:900;color:#fff;background:linear-gradient(135deg,#2c3d78,#16244f);border:2.5px solid #8493c8;position:relative}
 .pod.p1 .pava{width:66px;height:66px;font-size:27px;border-color:var(--gold);box-shadow:0 0 22px rgba(255,192,46,.4)}
+.pod.p2 .pava{border-color:#b9c2d0}
 .pod.p3 .pava{border-color:#c9803a}
 .pod .pcrown{position:absolute;top:-19px;inset-inline:0;text-align:center;font-size:17px}
 .pod .prank{font-size:10px;font-weight:900;color:var(--dim2)}
@@ -893,10 +894,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.33";
+const APP_VERSION = "6.34";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-20-v633";
+const FORCE_RELOAD = "2026-08-20-v634";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1181,6 +1182,14 @@ const STR = {
  authNote:["لا تستخدم كلمة سر بتستعملها في مكان تاني","Don't reuse a password from anywhere important"],
  emailOpt:["إيميل (اختياري) — عشان تقدر ترجّع كلمة السر","Email (optional) — the only way to reset your password"],
  forgotQ:["نسيت كلمة السر؟","Forgot your password?"],
+ resetTitle:["كلمة سر جديدة","Set a new password"],
+ resetNew:["كلمة السر الجديدة","New password"],
+ resetGo:["احفظ كلمة السر","Save password"],
+ resetNote:["اللينك ده بيشتغل مرة واحدة بس","This link works once"],
+ resetShort:["كلمة السر لازم 6 حروف على الأقل","At least 6 characters"],
+ resetBad:["اللينك ده انتهى أو اتستخدم قبل كده","That link has expired or was already used"],
+ resetDone:["تمام! سجّل دخول بكلمة السر الجديدة","Done — sign in with your new password"],
+ verifyDone:["اتأكد الإيميل ✅","Email confirmed ✅"],
  forgotSent:["لو الإيميل مسجّل، هيوصلك لينك دلوقتي","If that address is registered, a link is on its way"],
  forgotNeed:["اكتب اسم المستخدم الأول","Type your username first"],
  authBadEmail:["الإيميل ده مش مظبوط أو مستخدم قبل كده","That email is not valid, or is already in use"],
@@ -1364,11 +1373,12 @@ function rangeParam(k, before, after){ return addDaysKey(k, -(before)) + "-" + a
 /* WC v3.31: ESPN SILENTLY caps a scoreboard at 100 events when no limit is sent — a truncated
    response is indistinguishable from a real one. That bug hid an entire knockout round.
    Every scoreboard call in this app goes through here. Never build the URL by hand. */
-/* `limit=300` used to be enough and is not any more: measured on 23 Aug, a plain call returns
-   100, `limit=300` returns exactly 300, and `limit=1000` returns 333 — the cap IS the limit we
-   asked for, so a busy day silently loses everything past the three-hundredth match. That is
-   the same silent truncation that once hid a whole knockout round. The league feeds could
-   never approach it; `all/` reaches it most Saturdays. */
+/* `limit` IS the cap, and 300 had become too small for the combined feed. Measured on 23 Aug:
+   no limit returns 100, `limit=300` returns exactly 300, `limit=1000` returns 333 - so 333 is
+   the real answer for that day and 300 was silently losing 33 matches. The single-league feeds
+   come nowhere near it; `all/` passes 300 most Saturdays, which is the discovery feed behind
+   "Top Clubs - Other Competitions", so a cup tie past the three-hundredth match simply did not
+   exist to the app. If a day ever returns exactly 1000 this is the line to raise again. */
 function sbUrl(slug, range){ return API + slug + "/scoreboard?dates=" + range + "&limit=" + (slug === "all" ? 1000 : 300); }
 /* European season runs Aug->May. Derived, never hardcoded, so it stays correct after every
    July rollover (standing rule 13: no baked-in dates). */
@@ -3424,7 +3434,12 @@ async function createChatSession(username, password){
  return false;
 }
 async function renewStoredChatSession(){
- if(!validChatSession()) return false;
+ /* This demanded a session that was ALREADY valid, so calling it to rescue one that had just
+    lapsed returned false without trying — the "one silent renewal attempt" was fiction and the
+    user was sent to a password prompt they never needed to see. It renews any token that has
+    not actually expired yet; the server is the one that decides. */
+ if(!gkUser || !chatSession || !chatSession.token || chatSession.uid !== gkUser.uid) return false;
+ if(Number(chatSession.exp) <= Date.now()) return false;
  if(Number(chatSession.exp) - Date.now() > 7 * 86400000) return true;
  try{
   const r = await fetch(CHAT_API + "/api/session/refresh", {method:"POST", headers:chatAuthHeaders(), cache:"no-store"});
@@ -3470,6 +3485,11 @@ function updateAuthUI(){
   cSel.style.display = _am === "C" ? "" : "none";
   if(_am === "C") buildClubOptions(cSel);
  }
+ /* openReset repurposes this modal, so authMode has to put every piece of it back or the
+    login form stays stuck on the reset screen */
+ $("auUser").classList.remove("hide");
+ $("atC").classList.remove("hide"); $("atL").classList.remove("hide");
+ $("auGo").setAttribute("onclick", "doAuth()");
  $("auGo").textContent = _am === "C" ? t("createAcc") : t("login");
  $("auNote").textContent = t("authNote");
  $("auErrBox").classList.add("hide");
@@ -3479,6 +3499,49 @@ function auShowErr(msg){ const e = $("auErrBox"); e.textContent = msg; e.classLi
    account store was built, and the app never exposed it, so a forgotten password meant a
    permanently lost account. The reply is deliberately the same whether or not the address is
    on file: anything else turns this box into a "does this person have an account" oracle. */
+/* the set-a-new-password screen, reached only from the emailed link */
+let _resetTok = "";
+function openReset(tok){
+ _resetTok = tok;
+ _am = "R";
+ $("auWrap").classList.remove("hide");
+ $("auTitle").textContent = t("resetTitle");
+ $("auUser").classList.add("hide");
+ const mail = $("auMail"); if(mail) mail.classList.add("hide");
+ const club = $("auClub"); if(club) club.style.display = "none";
+ const fg = $("auForgot"); if(fg) fg.classList.add("hide");
+ $("atC").classList.add("hide"); $("atL").classList.add("hide");
+ $("auPass").value = "";
+ $("auPass").placeholder = t("resetNew");
+ $("auPass").setAttribute("autocomplete", "new-password");
+ $("auGo").textContent = t("resetGo");
+ $("auGo").setAttribute("onclick", "doReset()");
+ $("auNote").textContent = t("resetNote");
+ $("auErrBox").classList.add("hide");
+}
+async function doReset(){
+ const p = $("auPass").value || "";
+ if(p.length < 6) return auShowErr(t("resetShort"));
+ const go = $("auGo");
+ go.disabled = true;
+ try{
+  let res;
+  try{ res = await apiAuth("reset", {token:_resetTok, password:p}); }
+  catch(_){ return auShowErr(t("authNet")); }
+  if(!res.ok) return auShowErr(res.j && res.j.error === "weak-password" ? t("resetShort") : t("resetBad"));
+  /* strip the token out of the address bar before anything else: a reset link left in the
+     history is a reset link somebody else can find */
+  try{ history.replaceState({}, "", location.pathname); }catch(_){}
+  closeAuth();
+  toastMsg(t("resetDone"));
+  openAuth("L");
+ } finally { go.disabled = false; }
+}
+async function doVerify(tok){
+ try{ await apiAuth("verify", {token:tok}); }catch(_){}
+ try{ history.replaceState({}, "", location.pathname); }catch(_){}
+ toastMsg(t("verifyDone"));
+}
 async function doForgot(){
  const u = ($("auUser").value || "").trim();
  if(u.length < 2) return auShowErr(t("forgotNeed"));
@@ -3494,6 +3557,15 @@ async function doForgot(){
    password reset changed it in the worker only, which locked them out of the browser check.
    Sign-up and sign-in both go to the worker. Existing textdb accounts are adopted by the
    worker the first time their owner proves the old password, so nobody has to do anything. */
+/* the same call with the session attached - set-club, and anything else that acts on YOU */
+async function apiAuthAuthed(op, body){
+ const r = await fetch(CHAT_API + "/api/auth/" + op, {
+  method:"POST", headers:Object.assign({"Content-Type":"application/json"}, chatAuthHeaders()),
+  cache:"no-store", body:JSON.stringify(body || {})
+ });
+ const j = await r.json().catch(() => ({}));
+ return {status:r.status, ok:r.ok && j.ok, j:j};
+}
 async function apiAuth(op, body){
  const r = await fetch(CHAT_API + "/api/auth/" + op, {
   method:"POST", headers:{"Content-Type":"application/json"}, cache:"no-store",
@@ -3621,8 +3693,11 @@ function signOut(){
  try{
   ["gk_user","gk_preds","gk_club","gk_chat_cache","gk_chat_seents","gk_acct_seen",
    "fx_squad","fx_cap","fx_vice","fx_chips","fx_team","fx_form","fx_ledger","fx_ft","fx_snap",
-   "fx_at","fx_dirty","fx_onboarded","fx_tut_skips","fx_coach"]
+   "fx_at","fx_dirty","fx_onboarded","fx_tut_skips","fx_coach","fx_owner","fx_gw","fx_firstsub",
+   "gk_push_lgs"]
    .forEach(function(k){ localStorage.removeItem(k); });
+  /* the cached fixture maps are per round, so they need the loop the fantasy page already uses */
+  for(let g = 1; g <= 40; g++) localStorage.removeItem("fx_fixt_" + g);
  }catch(_){}
  /* and the push record must stop naming somebody who has left, or the live match card keeps
     following their favourite club onto this device */
@@ -3636,12 +3711,14 @@ function signOut(){
  updateChatBadge();
  renderPred();
 }
-async function predAuthHeadersReady(){ return validChatSession(); }
 function predAuthHeaders(){
  return Object.assign({"Content-Type":"application/json"}, chatAuthHeaders());
 }
 async function syncMyPreds(){
  if(!gkUser) return;
+ /* one silent renewal attempt before giving up: a token that is merely old is not a logout */
+ if(!validChatSession()){ try{ await renewStoredChatSession(); }catch(_){} }
+ if(!validChatSession()) return;
  try{
   const r = await fetch(CHAT_API + "/api/pred/get", {headers:chatAuthHeaders(), cache:"no-store"});
   const j = await r.json().catch(() => ({}));
@@ -3758,6 +3835,12 @@ function renderPred(){
  top.innerHTML = '<div class="predcomp">🏆 ' + esc(t("predComp")) + "</div>";
  if(!gkUser){
   top.innerHTML += '<div class="authcard"><div class="autxt">🎯 ' + esc(t("predSignInMsg")) + '</div><button type="button" class="retrybtn" onclick="openAuth(\'C\')">' + esc(t("joinBtn")) + "</button></div>";
+ } else if(!validChatSession()){
+  /* SIGNED IN, BUT THE SESSION HAS LAPSED. Predictions live on the server now, so without a
+     session nothing can be read or written - and the honest thing is to say so and offer the
+     one tap that fixes it, rather than showing an empty tab and letting somebody think there
+     is nothing to predict. */
+  top.innerHTML += '<div class="authcard"><div class="autxt">🔐 ' + esc(t("chatSessionExpired")) + '</div><button type="button" class="retrybtn" onclick="chatReauth()">' + esc(t("chatReconnectBtn")) + "</button></div>";
  } else {
   top.innerHTML += '<div class="userchip">👤 <b>' + esc(gkUser.username) + "</b>" + (myClub ? ' <span class="uclub">⭐ ' + esc(clubLabel(myClub)) + "</span>" : "") + '<button type="button" class="signout" onclick="signOut()">' + esc(t("signOut")) + "</button></div>";
  }
@@ -3845,6 +3928,10 @@ async function submitPredGk(eid, btn){
  const h = parseInt(hv && hv.value, 10), a = parseInt(av && av.value, 10);
  if(!(h >= 0 && h <= 20) || !(a >= 0 && a <= 20)) return toastMsg(t("badScore"));
  if(myPreds[eid]) return renderPredMatches();
+ if(!validChatSession()){
+  try{ await renewStoredChatSession(); }catch(_){}
+  if(!validChatSession()){ toastMsg(t("chatSessionExpired")); renderPred(); return; }
+ }
  btn.disabled = true;
  /* THE PICK IS SENT ON ITS OWN AND THE SERVER MERGES IT.
     This used to read the whole blob, edit it in the browser and write the whole thing back.
@@ -3864,6 +3951,9 @@ async function submitPredGk(eid, btn){
    const j = await r.json().catch(() => ({}));
    if(r.ok && j.ok && j.pred && j.pred.p){ ok = true; landedAll = j.pred.p; }
    else if(r.status === 401){ btn.disabled = false; return toastMsg(t("chatSessionExpired")); }
+   /* THE SERVER KEEPS THE DEADLINE and says so; retrying a refusal three times and then
+      reporting a generic save failure told the user nothing about why. */
+   else if(j && j.error === "too-late"){ btn.disabled = false; toastMsg(t("lockedNow")); renderPredMatches(); return; }
   }catch(_){ await sleep(350); }
  }
  btn.disabled = false;
@@ -3887,6 +3977,7 @@ async function renderLeaderboard(){
      bodies that then scored everybody zero. It was also capped at the hundred OLDEST
      accounts, so the hundred-and-first player could never appear on it however well they
      predicted. */
+  if(!validChatSession()){ try{ await renewStoredChatSession(); }catch(_){} }
   const lbR = await fetch(CHAT_API + "/api/pred/leaderboard", {headers:chatAuthHeaders(), cache:"no-store"});
   const lbJ = await lbR.json().catch(() => ({}));
   if(!lbR.ok || !lbJ.ok || !Array.isArray(lbJ.users)) throw new Error("board");
@@ -3936,7 +4027,14 @@ function lbHtml(rows){
   const top = [rows[1], rows[0], rows[2]].filter(Boolean);
   h += '<div class="podium">' + top.map(r => {
    const rank = rankOf(rows, r);
-   return '<div class="pod p' + rank + '"><span class="pava">' + (rank === 1 ? '<span class="pcrown">👑</span>' : "") + esc(String(r.name || "?").charAt(0).toUpperCase()) +
+   /* THE PLINTH IS POSITIONAL, THE NUMBER IS THE RANK. Feeding the competition rank into the
+      class name meant two players tied on top rendered as p1, p1, p3 — the second-place plinth
+      got the full gold treatment and two crowns appeared side by side, and there is no .p2
+      rule at all. The podium keeps its shape; the tie shows in the number. */
+   const seat = top.indexOf(r) === 1 ? 1 : top.indexOf(r) === 0 ? 2 : 3;
+   /* the crown belongs to the CENTRE plinth, not to everyone whose number is 1 — a two-way tie
+      for first otherwise crowned two people standing at different heights */
+   return '<div class="pod p' + seat + '"><span class="pava">' + (seat === 1 ? '<span class="pcrown">👑</span>' : "") + esc(String(r.name || "?").charAt(0).toUpperCase()) +
     '</span><span class="prank" dir="ltr">#' + rank + '</span><span class="pname">' + esc(r.name) + "</span>" +
     (r.club ? '<span class="pclub">⭐ ' + esc(clubAr({shortDisplayName:r.club.s, displayName:r.club.n})) + "</span>" : "") +
     '<span class="ppts" dir="ltr">' + r.pts + "</span></div>";
@@ -4056,6 +4154,16 @@ async function setClubFromSel(sel){
 }
 async function saveClubToAccount(){
  if(!gkUser) return;
+ /* THE CLUB NOW LIVES IN TWO PLACES AND ONLY ONE OF THEM WAS BEING WRITTEN.
+    Sign-in reads it back from the worker (finishAuth), the leaderboard badge reads it from the
+    worker, and the personalised live match card is targeted from the worker - but changing your
+    club still only rewrote the textdb accounts blob. So anybody who picked a club AFTER signing
+    up lost it the next time they signed in, and quietly stopped being targeted by the live
+    card. The worker is written first because it is the one that matters; the textdb copy stays
+    until the chat club chips, which still read that blob, move across too. */
+ if(validChatSession()){
+  try{ await apiAuthAuthed("set-club", {club: myClub || null}); }catch(_){}
+ }
  const k = gkUser.username.toLowerCase();
  /* This rewrites the WHOLE shared accounts object, so it carries the same wipe guard and
     verify-after-write as doAuth: a stale snapshot written back would delete every account
@@ -4181,7 +4289,17 @@ function normChat(list){
 }
 try{ chatMsgs = normChat(JSON.parse(localStorage.getItem("gk_chat_cache") || "[]")); }catch(_){}
 function cacheChat(){ try{ localStorage.setItem("gk_chat_cache", JSON.stringify(chatMsgs.slice(-100))); }catch(_){} }
-function chatAuthHeaders(extra){ return Object.assign({Authorization:"Bearer " + chatSession.token}, extra || {}); }
+/* `chatSession` is null until somebody signs in, and this read `chatSession.token`
+   unconditionally - which threw a TypeError rather than returning an unauthorized request.
+   Chat only ever called it behind a session check so it never showed; moving predictions onto
+   the same API put it on a path that does NOT have one, where the throw was swallowed by a
+   catch and the tab simply stayed empty. No headers is a 401, which is a thing the caller can
+   see and act on; an exception is not. */
+function chatAuthHeaders(extra){
+ const h = Object.assign({}, extra || {});
+ if(chatSession && chatSession.token) h.Authorization = "Bearer " + chatSession.token;
+ return h;
+}
 function chatReauth(){
  closeChatSocket();
  clearChatSession();
@@ -5047,6 +5165,12 @@ async function gkVersionCheck(){
  refreshChatNote();
  refreshChatBar();
  trackVisit();   /* the chat bar shipped hardcoded strings until it was first opened */
+ /* RE-PUBLISH THE SUBSCRIPTION ON EVERY OPEN. Nothing did: the record was written at subscribe,
+    at sign-in, at sign-out, on a language change and on a league chip, and never otherwise. So a
+    push service that rotated the endpoint left a dead record on the server while Settings still
+    read ON - and the same for a uid or language that changed some other way. It is one cheap
+    write against a record we already hold, and it is the only thing that heals a stale one. */
+ setTimeout(function(){ try{ if(Notification && Notification.permission === "granted") savePushSub(); }catch(_){} }, 4000);
  loadDay(false);
  syncMyPreds();
  refreshPushUI();
@@ -5054,6 +5178,14 @@ async function gkVersionCheck(){
  /* deep link: ?lg=<leagueId> opens that league, ?go=pred opens predictions */
  try{
   const q = new URLSearchParams(location.search);
+  /* THE LINKS THE WORKER SENDS HAD TO GO SOMEWHERE. It has mailed
+     goallak.com/?reset=<token> and ?verify=<token> since the account store was built, and this
+     handler read only `lg` and `go` — so both landed on the Matches tab and did nothing, which
+     is why "forgot my password" was a dead end however well the server behaved. */
+  const rq = q.get("reset");
+  if(rq){ openReset(rq); return; }
+  const vq = q.get("verify");
+  if(vq){ doVerify(vq); return; }
   const lgq = q.get("lg");
   if(q.get("go") === "pred") showMain("pred");
   else if(q.get("go") === "fant") goFantasy();
@@ -5076,6 +5208,20 @@ async function gkVersionCheck(){
   document.addEventListener("visibilitychange", function(){ if(!document.hidden) gkCheckUpdate(); });
   window.addEventListener("focus", gkCheckUpdate);
   setInterval(gkCheckUpdate, 300000);
+  /* THE SERVICE WORKER RE-SUBSCRIBED AND NOTHING WAS LISTENING.
+     A push service can rotate an endpoint out from under the app with no user-visible event:
+     the old one starts returning 410, the worker prunes it, and the person is silently
+     unsubscribed with the switch in Settings still reading ON. sw.js now re-subscribes and
+     posts the new record here - but a message nobody receives is half a fix, so the page has
+     to be the half that saves it and drops the dead endpoint. */
+  navigator.serviceWorker.addEventListener("message", function(e){
+   const d = e && e.data;
+   if(!d || d.gk !== "pushsub" || !d.sub || !d.sub.endpoint) return;
+   savePushSub({toJSON: function(){ return d.sub; }}).then(function(saved){
+    if(saved && d.old && d.old !== d.sub.endpoint){ try{ removePushSub(d.old); }catch(_){} }
+    try{ refreshPushUI(); }catch(_){}
+   }).catch(function(){});
+  });
   navigator.serviceWorker.addEventListener("controllerchange", function(){
    if(_swReloaded || !_hadController) return;
    try{ if(localStorage.getItem("gk_reload_token") === FORCE_RELOAD) return; }catch(_){}

@@ -39,7 +39,13 @@ function world(o) {
   /* THE MIRROR IS GONE (v6.28), so the API is the only store and every case runs with it on
      unless a case is explicitly about the API being unreachable. */
   if (o.api === undefined) o.api = true;
-  const store = Object.assign({ gk_user: JSON.stringify({ uid: 7, username: "ahmed" }) }, o.store || {});
+  /* A LIVE SESSION UNLESS THE CASE SAYS OTHERWISE. Since v6.33 a failed call distinguishes a
+     flat network ("offline", it will retry) from a lapsed session ("expired", only signing in
+     again fixes it) - so a harness with no session would report every failure as expired. */
+  const store = Object.assign({
+    gk_user: JSON.stringify({ uid: 7, username: "ahmed" }),
+    gk_chat_session: JSON.stringify({ token: "t", uid: 7, exp: 4102444800000 })
+  }, o.store || {});
   const writes = [], apiWrites = [];
   const ctx = {
     localStorage: {
@@ -347,6 +353,22 @@ console.log("\n5 · the things that must not happen");
   eq(writeCount(w), 0, "three taps in a row do not fire three writes immediately");
   await new Promise(r => setTimeout(r, 1400));
   eq(writeCount(w), 1, "they settle into exactly one");
+}
+
+console.log("\n6 · a lapsed session is not a flat network");
+{
+  /* THE LIE THIS REPLACES: every failed call said "not saved — the network is down, it will
+     save as soon as it is back". Without a session it never will, because the server refuses
+     every write — so a manager could play a whole round into nothing while being reassured. */
+  const w = world({ squad: ["a"], store: { gk_chat_session: "" }, writeFails: true });
+  w.cloudPush(Date.now());
+  await new Promise(r => setTimeout(r, 1400));
+  eq(w.__sync(), "expired", "no session: it says the session expired, not that the network is down");
+
+  const w2 = world({ squad: ["a"], writeFails: true });
+  w2.cloudPush(Date.now());
+  await new Promise(r => setTimeout(r, 1400));
+  eq(w2.__sync(), "offline", "live session, dead network: still offline, and it will retry");
 }
 
 console.log("\n" + "=".repeat(64));
