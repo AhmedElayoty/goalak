@@ -963,6 +963,80 @@ async function main() {
        r.boardRows === 2 && /someone/.test(r.boardText), r.boardText);
   }
 
+  /* ---- WHICH SUBSTITUTE COMES ON ---------------------------------------------
+     The owner asked "so which one will cover?" and the app could not answer it — four numbered
+     bench slots with nothing saying the numbers were a priority, and a band that counted the
+     cover without naming it. The rule is bench ORDER, first with a match, and this asserts the
+     app both obeys it and says it. */
+  for (const lang of ["ar", "en"]) {
+    setCtx("cover " + lang);
+    await setViewport(360, 800);
+    await loadApp({ lang, fresh: false });
+    const r = await evaluate(`(async()=>{
+      autoFill(); assignCaptain(squad[0]); save();
+      const gw = CURRENT_GW, out = {};
+      /* bench slots 12..15; make the FIRST bench club blank and the second and third play,
+         plus one blanked starter so a substitution actually happens */
+      const seed = (playing) => {
+        const ids = squad.map(id => [String(id), playing.indexOf(id) >= 0 ? 1 : 0]).filter(x => x[1]);
+        FIXT = {}; fixtLoading = {}; FIXT[gw] = new Map(ids);
+        try{ localStorage.setItem("fx_fixt_"+gw, JSON.stringify({ids: ids, at: Date.now()})); }catch(e){}
+      };
+      const b1 = squad[START_SIZE], b2 = squad[START_SIZE+1], b3 = squad[START_SIZE+2];
+      out.benchPrices = squad.slice(START_SIZE).map(priceOf);
+      const deadStarter = squad[5];
+      seed(squad.filter(id => id !== b1 && id !== deadStarter));
+      out.expected = b2;
+      out.firstCover = firstCover(gw);
+      const res = resolveSquad(squad, captain, gw, vice);
+      const row = res.lineup.find(x => x.id === deadStarter);
+      out.whoCameOn = row && row.sub ? row.sub.id : null;
+      /* and it must be the ORDER, not the best: b3 is deliberately not chosen over b2 */
+      out.notB3 = out.whoCameOn !== b3;
+      /* THE DECISIVE TEST, and it does not depend on prices — autoFill fills the bench with
+         four clubs at the floor price, so "cheapest" and "dearest" are the same club and a
+         value-based check cannot tell the two rules apart. REVERSE THE BENCH instead: if the
+         rule is order, a different club comes on; if it is "pick the best", the same one does
+         however the bench is arranged. */
+      const sub1 = out.whoCameOn;
+      squad = squad.slice(0, START_SIZE).concat(squad.slice(START_SIZE).reverse());
+      const res2 = resolveSquad(squad, captain, gw, vice);
+      const row2 = res2.lineup.find(x => x.id === deadStarter);
+      out.afterReverse = row2 && row2.sub ? row2.sub.id : null;
+      out.orderDecides = !!sub1 && !!out.afterReverse && sub1 !== out.afterReverse;
+      squad = squad.slice(0, START_SIZE).concat(squad.slice(START_SIZE).reverse());  /* put it back */
+      /* the band names it */
+      view = "team"; render();
+      await new Promise(f => setTimeout(f, 250));
+      const band = document.querySelector("#viewTeam .rs");
+      out.bandHint = band ? band.innerText.split(String.fromCharCode(10)).join(" ") : "";
+      /* the dugout label says the order matters */
+      out.benchLab = (document.querySelector("#viewTeam .dug__lab") || {}).textContent || "";
+      /* and the sheet marks which one is first on */
+      openRoundWho();
+      await new Promise(f => setTimeout(f, 200));
+      out.sheetMarks = document.querySelectorAll("#sheetBox .fxn--next").length;
+      out.sheetRule = !!document.querySelector("#sheetBox b");
+      closeSheet();
+      return JSON.stringify(out);
+    })()`).then(JSON.parse);
+
+    ok("cover " + lang + ": the substitute is the first bench club WITH A MATCH",
+       r.whoCameOn === r.expected, "expected " + r.expected + ", got " + r.whoCameOn);
+    ok("cover " + lang + ": firstCover() agrees with what actually happens",
+       r.firstCover === r.whoCameOn, r.firstCover + " vs " + r.whoCameOn);
+    ok("cover " + lang + ": reversing the bench changes who comes on — the ORDER decides",
+       r.orderDecides,
+       "same club (" + r.whoCameOn + ") came on before and after reversing the bench, so the "
+       + "rule is not order");
+    ok("cover " + lang + ": the band NAMES the club that will cover",
+       /first on|أول اللي هينزل/i.test(r.bandHint), r.bandHint);
+    ok("cover " + lang + ": the dugout says the order is what decides",
+       /in this order|بالترتيب/i.test(r.benchLab), r.benchLab);
+    ok("cover " + lang + ": the sheet marks exactly one club as first on, and states the rule",
+       r.sheetMarks === 1 && r.sheetRule, r.sheetMarks + " marked, rule shown " + r.sheetRule);
+  }
+
   /* ---- THE VICE-CAPTAIN ---------------------------------------------------------
      There was no vice-captain in this app at all: no state, no control, and `res.vice = null`
      hard-coded into the chip engine — while the Triple Captain's shipped copy promised the x3

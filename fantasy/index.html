@@ -834,6 +834,7 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
 .rwcap{display:inline-block;min-inline-size:16px;text-align:center;border-radius:5px;
  background:var(--fx-gold,#e8b64c);color:#1a1305;font-size:10px;padding:1px 4px}
 .fxn--one{background:color-mix(in srgb,var(--dim) 18%,transparent);color:var(--dim)}
+.fxn--next{background:color-mix(in srgb,var(--fx-gold,#e8b64c) 22%,transparent);color:var(--fx-gold,#e8b64c)}
 
 /* the transfer line lives inside the budget panel: the two numbers a manager spends are
    money and points, and they belong beside each other */
@@ -946,7 +947,7 @@ const SEASON_OPENS = "2026-08-21";
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.20";
+const FX_BUILD = "6.21";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -1062,6 +1063,11 @@ const STR = {
  rsDouble:["بيلعبوا مرتين","play twice"],
  rsAllPlay:["كل الـ11 بيلعبوا الجولة دي","All eleven of your XI play this round"],
  rsCapBlank:["الكابتن بتاعك مالوش ماتش — الشارة مش هتجيب ولا نقطة","Your captain has no match — the armband scores nothing"],
+ rsCoverWho:["لو حد مالوش ماتش، {c} هو أول اللي هينزل مكانه","If someone has no match, {c} is first on"],
+ rsBenchNo:["الدكة · رقم {n}","Bench · number {n}"],
+ rsNextOn:["أول اللي ينزل","First on"],
+ rsOrderRule:["الترتيب هو اللي بيحدد: بيدخل أول نادي على الدكة عنده ماتش — مش الأحسن. رتّبهم زي ما تحب.",
+              "Order decides it: the first club on your bench with a match comes on — not the best one. Reorder them as you like."],
  rsCoverHint:["عندك {n} على الدكة بيلعبوا ويقدروا يغطّوا","{n} on your bench are playing and can cover"],
  rsTap:["اضغط تشوف مين بيلعب","Tap to see who plays"],
  rsTitle:["مين بيلعب الجولة دي","Who plays this round"],
@@ -1121,7 +1127,8 @@ const STR = {
  startWiz:["ابدأ فريقك","Build your team"],
  changeTeam:["عدّل فريقك","Edit your team"],
  resetDemo:["امسح فريقي وابدأ من جديد","Delete my team and start again"],
- benchLab:["دكة البدلاء · بيدخلوا لوحدهم لو ناديك مالوش ماتش","The bench · they come on automatically when a starter has no match"],
+ benchLab:["دكة البدلاء · بيدخلوا بالترتيب ده لو نادي مالوش ماتش",
+           "The bench · they come on in this order when a starter has no match"],
  cameOn:["دخل","Came on"],
  swapWith:["بدّل","Swap"],
  swapHere:["حطه هنا","Put here"],
@@ -2427,12 +2434,36 @@ function roundStatusHtml(){
  return '<button type="button" class="rs" data-tone="' + tone + '" onclick="openRoundWho()">'
   + (capOut ? '<div class="rs__cap">⚠️ ' + esc(t("rsCapBlank")) + "</div>" : "")
   + '<div class="rs__row">' + bits.join('<span class="rs__sep">·</span>') + "</div>"
-  + '<div class="rs__hint">' + esc(blanks.length && benchUp ? t("rsCoverHint", {n: benchUp}) : t("rsTap")) + "</div>"
+  /* name the substitute rather than counting them: "3 can cover" answers a question nobody
+     asked, and leaves "which one?" hanging. */
+  + '<div class="rs__hint">' + esc(
+      blanks.length && benchUp
+        ? (function(){ const c = firstCover(gw);
+            return c ? t("rsCoverWho", {c: clubNameShort(CLUBS.find(x => x.id === c) || {}), n: benchUp})
+                     : t("rsCoverHint", {n: benchUp}); })()
+        : t("rsTap")) + "</div>"
   + "</button>";
+}
+/* WHICH SUBSTITUTE COMES ON, ANSWERED BY NAME.
+   resolveSquad walks the bench IN ORDER and takes the first club with a match — it is not the
+   best one, and it cannot be: nobody knows which will score most before the round is played.
+   The order is the manager's own, and the numbers 1..4 on the dugout ARE that order.
+
+   The owner asked the obvious question — "so which one will cover?" — and the app could not
+   answer it. It showed four numbered slots without ever saying the numbers were a priority he
+   controls, and the band counted the cover without naming it. Both now say it. */
+function firstCover(gw, skip){
+ const bench = squad.slice(START_SIZE);
+ for(const b of bench){
+  if(skip && skip.indexOf(b) >= 0) continue;
+  if(clubMatchCount(b, gw) > 0) return b;
+ }
+ return null;
 }
 /* the whole squad, sorted by what it does this round, so the fix is one tap from the warning */
 function openRoundWho(){
  const gw = CURRENT_GW;
+ const cover = firstCover(gw);
  const line = (id, i) => {
   const c = CLUBS.find(x => x.id === id); if(!c) return "";
   const n = clubMatchCount(id, gw);
@@ -2442,11 +2473,14 @@ function openRoundWho(){
   return '<div class="rwrow' + (n === 0 ? " out" : "") + '">' + kitHtml(c, "k34")
    + '<span class="crname"><span class="crn">' + esc(clubName(c))
    + (id === captain ? ' <b class="rwcap">C</b>' : "") + "</span>"
-   + '<span class="crl">' + esc(i < START_SIZE ? t("rsOnPitch") : t("rsOnBench")) + "</span></span>"
+   + '<span class="crl">' + esc(i < START_SIZE ? t("rsOnPitch")
+        : t("rsBenchNo", {n: i - START_SIZE + 1})) + "</span></span>"
+   + (id === cover ? '<span class="fxn fxn--next">' + esc(t("rsNextOn")) + "</span>" : "")
    + tag + "</div>";
  };
  openSheet("<h2>" + esc(t("rsTitle")) + "</h2>"
-  + '<div class="dim" style="font-size:13px;line-height:1.7;margin-bottom:12px">' + esc(t("rsLead")) + "</div>"
+  + '<div class="dim" style="font-size:13px;line-height:1.7;margin-bottom:12px">' + esc(t("rsLead"))
+  + "<br><b>" + esc(t("rsOrderRule")) + "</b></div>"
   + squad.map(line).join("")
   + '<button type="button" class="btn" onclick="closeSheet();openPicker()">' + esc(t("changeTeam")) + "</button>"
   + '<button type="button" class="btn ghost" onclick="closeSheet();openCaptain()">' + esc(t("capTitle")) + "</button>");
