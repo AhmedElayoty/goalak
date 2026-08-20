@@ -159,12 +159,41 @@ function buildPayload(kind, e, lg, lang) {
   } else if (kind === "ft") {
     title = (ar ? "🏁 انتهت · " : "🏁 FT · ") + h + " " + hs + " - " + as + " " + a;
     body = lgName;
+  } else if (kind === "fxlock") {
+    /* e is not an ESPN event here — it carries {round, hours} */
+    title = ar ? "⏳ الجولة " + e.round + " بتقفل قريب" : "⏳ Round " + e.round + " locks soon";
+    body = ar ? "باقي " + e.hours + " ساعة. راجع فريقك والكابتن قبل ما تقفل."
+              : e.hours + "h left. Check your team and captain before it locks.";
+  } else if (kind === "predopen") {
+    title = ar ? "🔮 توقعات دوري الأبطال فتحت" : "🔮 Champions League predictions are open";
+    body = ar ? "ماتشات بكرة جاهزة للتوقع" : "Tomorrow's matches are ready to predict";
+  } else if (kind === "livecard") {
+    /* THE STICKY ONE. Same tag every minute, silent, never re-alerts: Android replaces the
+       existing notification in place, so it reads as one card that updates rather than a
+       stream of buzzes. This is as close as the web gets to a native live activity —
+       Android's rich Live Updates are not exposed to web push at all, and iOS shows nothing
+       like it, so the card degrades to an ordinary silent notification there. */
+    const clock = (e.status && e.status.displayClock) || "";
+    title = h + " " + hs + " - " + as + " " + a;
+    body = (clock ? clock + " · " : "") + lgName;
   } else {
     title = "GOALLAK"; body = ar ? "الجول جولك" : "El Goal Goallak";
   }
+  const live = kind === "livecard";
   return {
-    payload: { title, body, icon: APP_URL + "icon-192.png", badge: APP_URL + "badge.png", tag, url: APP_URL },
-    options: { ttl: 3600, urgency: "high", topic: tag.slice(0, 32).replace(/[^A-Za-z0-9_-]/g, "-") }
+    payload: {
+      title, body, icon: APP_URL + "icon-192.png", badge: APP_URL + "badge.png",
+      /* one tag PER MATCH for the live card, so it replaces itself instead of stacking */
+      tag: live ? "live-" + e.id : tag,
+      url: APP_URL, sticky: live, silent: live, renotify: !live, ts: Date.now()
+    },
+    options: {
+      /* a live card that arrives late is worse than not arriving: it would overwrite a newer
+         score with an older one, so it expires in two minutes */
+      ttl: live ? 120 : 3600,
+      urgency: live ? "normal" : "high",
+      topic: (live ? "live-" + e.id : tag).slice(0, 32).replace(/[^A-Za-z0-9_-]/g, "-")
+    }
   };
 }
 
@@ -232,6 +261,7 @@ async function runOnce(env, dry) {
       const dets = (e.competitions && e.competitions[0] && e.competitions[0].details) || [];
       const reds = dets.filter(d => d && /red card/i.test(d.type && d.type.text || "")).length;
       const rec = states[e.id];
+      let pendingGoal = null;
 
       /* 30-minute reminder: real window only, once */
       const mins = (kickoff - now) / 60000;
@@ -244,16 +274,64 @@ async function runOnce(env, dry) {
         continue;
       }
       if (rec.st === "pre" && st === "in" && (now - kickoff) < 20 * 60000) queue("live-" + e.id, "live", e, lg);
+      /* GOALS ARE HELD BACK ONE MINUTE, on the owner's instruction: a push that beats the
+         television spoils the goal for anybody watching a stream that runs behind. The goal is
+         recorded when it is seen and sent on the NEXT tick — the cron runs every minute, so the
+         delay is exactly the minute asked for and needs no timer. */
       if (st === "in" && (nh > (rec.hs || 0) || na > (rec.as || 0)) && (now - (rec.ts || 0)) < 10 * 60000) {
-        queue("goal-" + e.id + "-" + nh + "-" + na, "goal", e, lg);
+        pendingGoal = { hs: nh, as: na, at: now };
+      }
+      const pg = rec.pendingGoal;
+      if (pg && now - pg.at >= 55000) {
+        queue("goal-" + e.id + "-" + pg.hs + "-" + pg.as, "goal", e, lg);
+        pendingGoal = null;
+      } else if (pg && !pendingGoal) {
+        pendingGoal = pg;   /* not due yet — carry it to the next run */
       }
       if (st === "in" && reds > (rec.red || 0) && (now - (rec.ts || 0)) < 10 * 60000) {
         queue("red-" + e.id + "-" + reds, "red", e, lg);
       }
       if (rec.st === "in" && st === "post") queue("ft-" + e.id, "ft", e, lg);
-      states[e.id] = { st, hs: nh, as: na, red: reds, ts: now, kickoff };
+      /* THE LIVE CARD. One silent, self-replacing notification per live match, for the people
+         who follow one of the clubs in it. Queued every tick while the match is in play so the
+         score and the clock stay current. */
+      if (st === "in") queue("livecard-" + e.id + "-" + now, "livecard", e, lg);
+
+      /* CHAMPIONS LEAGUE PREDICTIONS, a day out. One per match, once. */
+      const hrs = (kickoff - now) / 3600000;
+      if (lg.id === "ucl" && st === "pre" && hrs >= 23.5 && hrs <= 24.5) queue("predopen-" + e.id, "predopen", e, lg);
+
+      states[e.id] = { st, hs: nh, as: na, red: reds, ts: now, kickoff, pendingGoal };
     }
   });
+
+  /* FANTASY ROUND DEADLINES. The rounds live in the app's own calendar.json, so the worker
+     reads the same file the game does rather than keeping a second copy that can drift. A
+     round locks the moment its window opens. */
+  try {
+    const cal = await fetch(APP_URL + "fantasy/calendar.json?t=" + now, { cf: { cacheTtl: 300 } })
+      .then(r => r.ok ? r.json() : null).catch(() => null);
+    const gws = cal && Array.isArray(cal.gws) ? cal.gws : [];
+    for (let i = 0; i < gws.length; i++) {
+      const lockMs = Date.parse(gws[i][0] + "T00:00:00Z");
+      if (!isFinite(lockMs)) continue;
+      const hrsLeft = (lockMs - now) / 3600000;
+      /* two reminders: a day out to make a plan, three hours out to actually do it */
+      for (const mark of [24, 3]) {
+        if (hrsLeft <= mark + 0.02 && hrsLeft >= mark - 0.02) {
+          queue("fxlock-" + (i + 1) + "-" + mark, "fxlock",
+                { id: "fx" + (i + 1), round: i + 1, hours: mark }, { id: "fx", ar: "فانتازي", en: "Fantasy" });
+        }
+      }
+    }
+  } catch (_) { /* the calendar is unreachable this minute — try again next minute */ }
+
+  /* one lookup per run: who follows which club. The account store already returns it. */
+  const clubOf = {};
+  try {
+    const lb = await accountStore(env).fetch("https://accounts.local/leaderboard", { method: "POST", body: "{}" }).then(r => r.json());
+    for (const u of (lb && lb.users) || []) if (u && u.uid && u.club && u.club.id) clubOf[u.uid] = String(u.club.id);
+  } catch (_) { /* no club map this minute: the live card simply finds no targets */ }
 
   let delivered = 0, failed = 0;
   const deadAll = new Set();
@@ -261,6 +339,15 @@ async function runOnce(env, dry) {
     const privateJWK = privateJwkFromEnv(env);
     for (const q of queued) {
       const targets = subs.filter(s => {
+        /* A LIVE CARD IS PERSONAL. It sits pinned in the shade for ninety minutes, so it goes
+           only to somebody who follows one of the two clubs — sending it on league interest
+           alone would pin a card for every match in the Premier League at once. */
+        if (q.kind === "livecard") {
+          const mine = clubOf[s.uid];
+          if (!mine) return false;
+          const cs = (q.e.competitions && q.e.competitions[0] && q.e.competitions[0].competitors) || [];
+          return cs.some(c => c.team && String(c.team.id) === String(mine));
+        }
         const lgs = Array.isArray(s.lgs) ? s.lgs : [];
         return !lgs.length || lgs.includes(q.lg.id);
       });
@@ -275,7 +362,9 @@ async function runOnce(env, dry) {
       }
       delivered += qOk; failed += qFail;
       /* total failure = leave unmarked so the next run retries (tag replaces, so no stacking) */
-      if (qOk > 0 || targets.length === 0 || qFail === 0) sent.push({ id: q.id, ts: now });
+      /* the live card is MEANT to repeat every minute, so it never joins the ledger —
+         recording it would grow the file without bound and dedupe the very repeat we want */
+      if (q.kind !== "livecard" && (qOk > 0 || targets.length === 0 || qFail === 0)) sent.push({ id: q.id, ts: now });
     }
   }
 
