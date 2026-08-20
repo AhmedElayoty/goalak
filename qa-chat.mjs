@@ -374,6 +374,43 @@ function report() {
     ok("media: the webm recorder is gone",
        media.noWebmRecorder, "voiceMimeType still exists — webm is silent on every iPhone");
 
+    /* THE MATCH SHEET. The share button shipped absolutely positioned inside an unpositioned
+       container and landed somewhere the owner could not find — the same class of bug as the
+       smiley, and it got through because only the chat had a live suite. A control is only
+       real if it is ON SCREEN and a tap lands on IT. */
+    const sheetProbe = [
+      '(() => {',
+      '  closeLightbox();   /* the chat case above opened one; it would cover the sheet */',
+      '  const now = Date.now() + 3600000;',
+      '  const ev = {id:"qa1", date:new Date(now).toISOString(), _gkLeagueId:"epl",',
+      '    status:{type:{state:"pre"}},',
+      '    competitions:[{competitors:[',
+      '      {homeAway:"home", score:null, team:{id:"1", displayName:"Alpha FC", shortDisplayName:"Alpha"}},',
+      '      {homeAway:"away", score:null, team:{id:"2", displayName:"Beta United", shortDisplayName:"Beta"}}',
+      '    ]}]};',
+      '  EV_INDEX["qa1"] = ev;',
+      '  document.getElementById("modal").classList.remove("hide");',
+      '  renderMatchModal("qa1");',
+      '  const b = document.querySelector("#mbox .mshare");',
+      '  if (!b) return JSON.stringify({found:false});',
+      '  const r = b.getBoundingClientRect();',
+      '  const e = document.elementFromPoint(r.left + r.width/2, r.top + r.height/2);',
+      '  return JSON.stringify({found:true, text:(b.textContent||"").trim(),',
+      '    onScreen: r.width > 0 && r.height > 0 && r.left >= 0 && r.right <= window.innerWidth,',
+      '    hit: !!(e && e.closest(".mshare")),',
+      '    blockedBy: e ? (e.className || e.tagName) + "|" + (e.id||"") : "nothing",',
+      '    countdown: !!document.querySelector("#mbox .mcd")});',
+      '})()'
+    ].join(" ");
+    const sheet = JSON.parse(await evaluate(sheetProbe));
+    ok("match sheet: the share control exists", sheet.found, JSON.stringify(sheet));
+    ok("match sheet: it is ON SCREEN", sheet.onScreen === true, JSON.stringify(sheet));
+    ok("match sheet: a tap lands on it", sheet.hit === true, JSON.stringify(sheet));
+    ok("match sheet: it SAYS what it does, not just an arrow",
+       /share|شارك/i.test(sheet.text || "") && (sheet.text || "").length > 3,
+       "label was " + JSON.stringify(sheet.text));
+    ok("match sheet: an unstarted match shows a countdown", sheet.countdown === true, JSON.stringify(sheet));
+
     report();
   } finally {
     try { if (chromeProc && !KEEP) chromeProc.kill(); } catch (_) {}

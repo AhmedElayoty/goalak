@@ -664,11 +664,13 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
  border:1px solid rgba(255,255,255,.28);color:#fff;font-size:26px;line-height:1;cursor:pointer;
  display:flex;align-items:center;justify-content:center}
 #chatLog .cmedia img{cursor:zoom-in}
-/* the share control sits beside the close button, same size, same weight */
-.mshare{position:absolute;inset-block-start:8px;inset-inline-start:8px;inline-size:34px;block-size:34px;
- border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--fg);
- font-size:17px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.mshare:active{transform:scale(.94)}
+/* A REAL BUTTON, NOT A FLOATING GLYPH. It was absolute inside an unpositioned container, so it
+   was drawn somewhere nobody would look for it, and it said nothing but "⤴". */
+.mshare{display:flex;align-items:center;justify-content:center;gap:7px;inline-size:100%;
+ margin-block:10px 2px;padding:11px 12px;border-radius:12px;
+ border:1px solid var(--line);background:var(--card2,rgba(255,255,255,.06));
+ color:var(--fg);font-weight:800;font-size:13.5px;cursor:pointer}
+.mshare:active{transform:scale(.98)}
 .mcd{display:inline-block;margin-block-start:4px;font-weight:800;color:var(--acc,#FF7A45)}
 </style>
 </head>
@@ -868,10 +870,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.31";
+const APP_VERSION = "6.32";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-20-v631";
+const FORCE_RELOAD = "2026-08-20-v632";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -3243,7 +3245,6 @@ function renderMatchModal(eid){
  scheduleFit();
  $("mbox").innerHTML =
   '<button type="button" class="mx" onclick="closeModal()">✕</button>' +
-  '<button type="button" class="mshare" onclick="shareMatch(\'' + esc(eid) + '\')" aria-label="' + esc(t("shareMatch")) + '" title="' + esc(t("shareMatch")) + '">⤴</button>' +
   '<div class="mvs">' +
    '<span class="mvt">' + crestHtml(H.team) + "<i>" + esc(teamName(H)) + "</i>" + scorerListHtml(e, H) + "</span>" +
    scoreLine +
@@ -3252,6 +3253,12 @@ function renderMatchModal(eid){
   '<div class="mmeta">' + meta
     + (s === "pre" && !vk ? '<br><span class="mcd">⏳ ' + countdown(Date.parse(e.date)) + "</span>" : "")
     + "</div>" +
+  /* A LABELLED BUTTON, IN THE FLOW. The first version was a floating icon, absolutely
+     positioned inside a container that is not positioned — so it landed somewhere the owner
+     could not find it. And even where it belonged, a bare arrow glyph does not say what it
+     does. It reads "Share match" now, full width, under the meta line where the eye already is. */
+  '<button type="button" class="mshare" onclick="shareMatch(\'' + esc(eid) + '\')">⤴ '
+    + esc(t("shareMatch")) + "</button>" +
   (hasDetail
    ? '<div class="mdtabs" id="mdTabs"></div><div id="mdBody"></div>'
    : preLineups
@@ -3509,6 +3516,9 @@ let _predInflight = null;
 function showMain(v, fromPop){
  /* a tap you can feel — the cheapest confirmation a control registered */
  if(!fromPop) vib(10);
+ /* a full-screen overlay must never outlive the screen it was opened from: a photo left
+    open over the chat would sit on top of whatever tab you moved to */
+ try{ closeLightbox(); closeReact(); closeEmojiPanel(); }catch(_){}
  /* push a history entry for every non-Matches tab so Android Back returns to Matches
     instead of leaving the app (QA: Back exited from Predictions/Fantasy/Chat/Settings) */
  if(!fromPop && v !== mainView){
