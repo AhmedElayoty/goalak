@@ -1,0 +1,54 @@
+name = "goalak-push"
+main = "src/index.js"
+compatibility_date = "2026-08-15"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[triggers]
+crons = ["* * * * *"]
+
+[vars]
+# DRY_RUN "false" = live sender (flipped 2026-08-15 after authorized dry-run verification; /test confirms delivery per device).
+DRY_RUN = "false"
+VAPID_PUBLIC_KEY = "BLyDli3t0W8TTo9gL7s4ibxgVJY6_ism0HIyn8DymerLNs1Bs9mo5ct5i_wti8NNUQ_pfXxMXXZfJKdg1Gc02RM"
+VAPID_SUBJECT = "https://goallak.com/"
+
+[[durable_objects.bindings]]
+name = "PUSH_COORDINATOR"
+class_name = "PushCoordinator"
+
+[[durable_objects.bindings]]
+name = "CHAT_ROOM"
+class_name = "ChatRoom"
+
+# One instance holds every account: username uniqueness needs a single writer.
+[[durable_objects.bindings]]
+name = "ACCOUNT_STORE"
+class_name = "AccountStore"
+
+[[r2_buckets]]
+binding = "CHAT_MEDIA"
+bucket_name = "goallak-chat-media"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["PushCoordinator"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["ChatRoom"]
+
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["AccountStore"]
+
+[observability]
+enabled = true
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+
+[observability.traces]
+enabled = true
+head_sampling_rate = 0.01
