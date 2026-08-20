@@ -36,6 +36,9 @@ const REC = o => Object.assign({ v: 1, at: 1000, squad: ["a", "b"], cap: "a", vi
 /* a world with its own storage, its own squad, and a fetch that does whatever the case needs */
 function world(o) {
   o = o || {};
+  /* THE MIRROR IS GONE (v6.28), so the API is the only store and every case runs with it on
+     unless a case is explicitly about the API being unreachable. */
+  if (o.api === undefined) o.api = true;
   const store = Object.assign({ gk_user: JSON.stringify({ uid: 7, username: "ahmed" }) }, o.store || {});
   const writes = [], apiWrites = [];
   const ctx = {
@@ -61,10 +64,12 @@ function world(o) {
       if (u.includes("/api/fx/")) {
         if (!o.api) throw new Error("api 404");
         if (u.endsWith("/set")) {
+          if (o.writeFails) throw new Error("network");
           if (o.apiRefuses) return { ok: false, status: 409, json: async () => ({ ok: false, error: "refused-empty" }) };
           apiWrites.push(JSON.parse(String(opts.body)).fx);
           return { ok: true, status: 200, json: async () => ({ ok: true }) };
         }
+        if (o.readFails) throw new Error("network");
         return { ok: true, status: 200, json: async () => ({ ok: true, fx: o.server === undefined ? null : o.server }) };
       }
       if (opts && opts.method === "POST") {
@@ -85,11 +90,9 @@ function world(o) {
   ctx.__sync = () => vm.runInContext("FX_SYNC", ctx);
   return ctx;
 }
-const lastWrite = w => {
-  if (!w.__writes.length) return null;
-  const b = w.__writes[w.__writes.length - 1];
-  return JSON.parse(decodeURIComponent(b.split("&value=")[1]));
-};
+/* one store: a push is an API call, so that is where the record now is */
+const lastWrite = w => w.__apiWrites.length ? w.__apiWrites[w.__apiWrites.length - 1] : null;
+const writeCount = w => w.__apiWrites.length;
 
 console.log("\n1 · the thing the owner actually hit");
 {
@@ -116,7 +119,7 @@ console.log("\n2 · the failure rules — where a team gets eaten");
   const w = world({ squad: ["p", "q", "r"], store: { fx_at: "1000" }, readFails: true });
   await w.cloudPull();
   eq(w.squad.length, 3, "A FAILED READ IS NOT AN EMPTY TEAM — the local squad stands");
-  eq(w.__writes.length, 0, "and nothing is written on the back of a failed read");
+  eq(writeCount(w), 0, "and nothing is written on the back of a failed read");
   eq(w.__sync(), "offline", "it is reported as offline rather than saved");
 }
 {
@@ -159,13 +162,13 @@ console.log("\n2b · THE ONE THAT ACTUALLY HAPPENED");
   const w = world({ squad: [], store: { fx_at: "1" } });
   w.cloudPush(true);
   await new Promise(r => setTimeout(r, 40));
-  eq(w.__writes.length, 0, "an empty squad is never published — emptiness does not travel on its own");
+  eq(writeCount(w), 0, "an empty squad is never published — emptiness does not travel on its own");
 }
 {
   const w = world({ squad: [], store: { fx_at: "1" } });
   w.cloudPush(true, true);
   await new Promise(r => setTimeout(r, 40));
-  eq(w.__writes.length, 1, "except on an explicit reset, which IS allowed to clear the server");
+  eq(writeCount(w), 1, "except on an explicit reset, which IS allowed to clear the server");
 }
 {
   /* a brand-new device with nothing still accepts a real team, which is the whole point */
@@ -216,7 +219,7 @@ console.log("\n3 · whoever is newer wins");
   await w.cloudPull();
   await new Promise(r => setTimeout(r, 30));
   eq(w.squad.join(), "mine", "an older server record does not beat MY UNSENT edit");
-  ok(w.__writes.length === 1, "and mine is pushed up instead");
+  ok(writeCount(w) === 1, "and mine is pushed up instead");
 }
 {
   const w = world({ squad: ["mine"], store: { fx_at: "5000", fx_dirty: "1" },
@@ -267,7 +270,7 @@ console.log("\n3c · THE AUTHENTICATED STORE");
   w.cloudPush(true);
   await new Promise(r => setTimeout(r, 40));
   eq(w.__apiWrites.length, 1, "a push goes to the authenticated API");
-  eq(w.__writes.length, 0, "and NOT to the world-writable store when the API works");
+  eq(w.__writes.length, 0, "and the world-writable store is never touched — it is gone");
 }
 {
   const w = world({ api: true, squad: [], server: REC({ at: 5, squad: ["x", "y"] }) });
@@ -275,12 +278,14 @@ console.log("\n3c · THE AUTHENTICATED STORE");
   eq(w.squad.length, 2, "a pull reads the team from the API");
 }
 {
-  /* the window between the two deploys: the worker may not be live yet, and fantasy must keep
-     working in either order rather than breaking in one of them */
+  /* THE FALLBACK IS DELIBERATELY GONE. With the API unreachable a push must report offline
+     and change nothing — it must NOT reach for the old mirror, because reading that mirror
+     back later is what overwrote the owner's renamed team with its own stale copy. */
   const w = world({ api: false, squad: ["a"], store: { fx_at: "1" } });
   w.cloudPush(true);
   await new Promise(r => setTimeout(r, 40));
-  eq(w.__writes.length, 1, "with the API absent it falls back so nothing breaks mid-deploy");
+  eq(w.__writes.length, 0, "with the API unreachable NOTHING is written to the old mirror");
+  eq(w.__sync(), "offline", "and it says so instead of claiming it saved");
 }
 {
   /* THE ONE THAT MATTERS. A 409 is the SERVER refusing to blank a real team. Falling back to
@@ -289,7 +294,7 @@ console.log("\n3c · THE AUTHENTICATED STORE");
   const w = world({ api: true, apiRefuses: true, squad: ["a"], store: { fx_at: "1" } });
   w.cloudPush(true);
   await new Promise(r => setTimeout(r, 40));
-  eq(w.__writes.length, 0, "a server REFUSAL never falls back to the world-writable store");
+  eq(writeCount(w), 0, "a server REFUSAL never falls back to the world-writable store");
   eq(w.__sync(), "offline", "and it is reported rather than silently swallowed");
 }
 
@@ -325,7 +330,7 @@ console.log("\n5 · the things that must not happen");
 {
   const w = world({ store: { gk_user: "" }, squad: ["a"] });
   await w.cloudPull();
-  eq(w.__writes.length, 0, "signed out, nothing is read or written — there is no key to write to");
+  eq(writeCount(w), 0, "signed out, nothing is read or written — there is no key to write to");
 }
 {
   const w = world({ squad: ["a"], store: { fx_at: "1" }, writeFails: true });
@@ -337,9 +342,9 @@ console.log("\n5 · the things that must not happen");
   const w = world({ squad: ["a"], store: { fx_at: "1" } });
   w.cloudPush(); w.cloudPush(); w.cloudPush();
   await new Promise(r => setTimeout(r, 40));
-  eq(w.__writes.length, 0, "three taps in a row do not fire three writes immediately");
+  eq(writeCount(w), 0, "three taps in a row do not fire three writes immediately");
   await new Promise(r => setTimeout(r, 1400));
-  eq(w.__writes.length, 1, "they settle into exactly one");
+  eq(writeCount(w), 1, "they settle into exactly one");
 }
 
 console.log("\n" + "=".repeat(64));

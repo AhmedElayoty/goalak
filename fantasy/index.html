@@ -947,7 +947,7 @@ const SEASON_OPENS = "2026-08-21";
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.27";
+const FX_BUILD = "6.28";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -2379,24 +2379,10 @@ async function loadBoard(force){
      .map(m => ({name: m.name || m.mgr, mgr: m.mgr, squad: m.squad, cap: m.cap, vice: m.vice}));
    try{ localStorage.setItem(boardCacheKey(), JSON.stringify({at: Date.now(), rows: RIVAL_ROWS})); }catch(_){}
    render(); return;
-  }catch(_){ /* the API is not live yet — fall through to reading each record */ }
-  const accounts = await tdbRead("goalak_accounts");
-  if(!accounts || typeof accounts !== "object") return;
-  let me = null;
-  try{ me = JSON.parse(localStorage.getItem("gk_user") || "null"); }catch(_){}
-  const people = Object.keys(accounts).map(k => accounts[k])
-    .filter(a => a && a.uid && (!me || a.uid !== me.uid))
-    .sort((a, b) => (b.ts || 0) - (a.ts || 0))
-    .slice(0, BOARD_MAX);
-  const got = await Promise.all(people.map(a =>
-    tdbRead("goalak_fx_" + a.uid)
-      .then(r => (r && r.v === 1 && Array.isArray(r.squad) && r.squad.length)
-        ? {name: r.team || a.username, mgr: a.username, squad: r.squad, cap: r.cap || null, vice: r.vice || null}
-        : null)
-      .catch(() => null)));
-  RIVAL_ROWS = got.filter(Boolean);
-  try{ localStorage.setItem(boardCacheKey(), JSON.stringify({at: Date.now(), rows: RIVAL_ROWS})); }catch(_){}
-  render();
+  }catch(_){ fxSyncMark("offline"); }
+  /* the per-manager walk over textdb went with the rest of the mirror: it read the same
+     stale records, so a rival's old team name could reappear in the table long after
+     they had changed it */
  }catch(_){ /* offline: the table simply shows what it already had */ }
  finally{ _boardBusy = false; }
 }
@@ -3307,13 +3293,17 @@ function fxSyncMark(v){
 /* ON OPEN: whichever side is newer wins, and a failure changes nothing. */
 async function cloudPull(){
  const key = fxCloudKey(); if(!key) return;
- let rec = null, viaApi = false;
- /* the authenticated store first; textdb only if it is not reachable yet */
- try{ rec = (await fxApi("/api/fx/get")).fx; viaApi = true; }
- catch(_){
-  try{ rec = await tdbRead(key); }
-  catch(__){ fxSyncMark("offline"); return; }    /* a failed read is NOT an empty team */
- }
+ /* THE TEXTDB FALLBACK IS GONE, AND IT HAD TO GO.
+    It existed so the worker and the site could deploy in either order. The moment the worker
+    was live and every squad migrated, the mirror stopped being a safety net and became a
+    source of STALE data that overwrites good data. Measured, not feared: the owner renamed
+    his team to "Barca4ever FC", the Durable Object took it, and then a device read the old
+    "Goallak FC" out of textdb and pushed it back over the top. The authoritative store was
+    corrupted by its own obsolete mirror.
+    One store now. A failed read is still not an empty team - it only means offline. */
+ let rec = null;
+ try{ rec = (await fxApi("/api/fx/get")).fx; }
+ catch(_){ fxSyncMark("offline"); return; }
  /* THE TIMESTAMP EXISTS TO PROTECT A LOCAL SQUAD. WITH NOTHING LOCAL THERE IS NOTHING TO
     PROTECT, so a device holding no team ALWAYS accepts one from the server, whatever the
     clocks say. That is the rule the owner's phone needed: it had drifted ahead of the server
@@ -3356,16 +3346,10 @@ function cloudPush(now, wipe){
   _pushing = true; fxSyncMark("saving");
   const snap = fxSnapshot();
   if(wipe) snap.wipe = 1;                        /* the server refuses an empty squad without it */
-  try{
-   try{ await fxApi("/api/fx/set", {fx: snap}); }
-   catch(e){
-    /* 409 is the server refusing to blank a real team - that is the rule working, not a
-       network problem, and it must not fall through to the unauthenticated store */
-    if(/\b409\b/.test(String(e && e.message))) throw e;
-    await tdbWrite(key, snap);
-   }
-   fxClean(); fxSyncMark("saved");
-  }catch(_){ fxSyncMark("offline"); }
+  /* and nothing writes to textdb any more either: a write there is a stale record sitting
+     in a store somebody may still read back over the top of the real one */
+  try{ await fxApi("/api/fx/set", {fx: snap}); fxClean(); fxSyncMark("saved"); }
+  catch(_){ fxSyncMark("offline"); }
   finally{ _pushing = false; }
  };
  /* debounced, because save() runs on every tap while a squad is being built */

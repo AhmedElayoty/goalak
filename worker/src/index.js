@@ -14,6 +14,7 @@ import {
   openChatSocket,
   postChatMessage,
   renewChatSession,
+  roomStub,
   refreshMediaUrl,
   serveChatMedia,
   uploadChatMedia

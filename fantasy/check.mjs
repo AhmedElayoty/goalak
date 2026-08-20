@@ -180,8 +180,15 @@ if (!/await cloudPull\(\)/.test(body))
 if (!/cloudPush\(\);/.test(body))
   fail.push("cloudPush() is never called from save() — changes would never leave the device");
 /* and the one rule that decides whether this destroys teams or not */
-if (!/a failed read is NOT an empty team/.test(body))
-  fail.push("the failed-read guard is gone from cloudPull — an offline open would wipe the squad");
+/* THE SHAPE, NOT THE COMMENT. The first version of this matched the sentence explaining
+   the rule, so rewording the comment failed the build while the code was correct — a guard
+   that polices prose defends the wrong thing. cloudPull must RETURN from its catch: it may
+   never fall through to applying or writing anything on the back of a failed read. */
+const pullStart = body.indexOf("async function cloudPull()");
+const pullFn = pullStart < 0 ? "" : body.slice(pullStart, body.indexOf("\n}", pullStart));
+if (!pullFn) fail.push("cloudPull() is gone");
+else if (!/catch\s*\(\s*_\s*\)\s*\{[^}]*return\s*;/.test(pullFn))
+  fail.push("cloudPull no longer returns on a failed read — an offline open could wipe the squad");
 
 if (fail.length) { fail.forEach(f => console.log("  FAIL  " + f)); process.exit(1); }
 console.log("check.mjs: index.html parses, " + called.size + " handlers and "

@@ -185,7 +185,7 @@ export async function renewChatSession(session, env) {
   }
 }
 
-function roomStub(env) {
+export function roomStub(env) {
   return env.CHAT_ROOM.getByName(CHAT_ROOM_NAME, { locationHint: "me" });
 }
 

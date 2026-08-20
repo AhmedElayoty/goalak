@@ -862,10 +862,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.27";
+const APP_VERSION = "6.28";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-20-v627";
+const FORCE_RELOAD = "2026-08-20-v628";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -4118,7 +4118,13 @@ function renderChat(){
   log.innerHTML = '<div class="authcard"><div class="autxt">🔒 ' + esc(t("chatLocked")) + '</div><button type="button" class="retrybtn" onclick="openAuth(\'L\')">' + esc(t("login")) + "</button></div>";
   return;
  }
- if(!validChatSession()){
+ /* THE ROOM IS ALWAYS THERE. This returned an "expired session" card whenever the token
+    needed renewing — which is every time the app is opened after a while — so the chat
+    showed a spinner, then a red card, then finally the messages. The WC app painted its
+    cached room instantly and never blinked, because reading what you already have does not
+    need a session. Only SENDING does, and refreshChatBar already hides the composer.
+    The card is now the empty-handed case only. */
+ if(!validChatSession() && !chatMsgs.length){
   log.innerHTML = '<div class="authcard"><div class="autxt">🔐 ' + esc(t("chatSessionExpired")) + '</div><button type="button" class="retrybtn" onclick="chatReauth()">' + esc(t("chatReconnectBtn")) + "</button></div>";
   return;
  }
