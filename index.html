@@ -862,10 +862,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.26";
+const APP_VERSION = "6.27";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-20-v626";
+const FORCE_RELOAD = "2026-08-20-v627";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -3853,9 +3853,7 @@ let chatReconnectAttempt = 0;
 let chatManualClose = false;
 let chatConnState = "offline";
 let chatSeenTs = 0;
-let voiceRecorder = null;
 let voiceStream = null;
-let voiceChunks = [];
 let voiceStarted = 0;
 let voiceStopTimer = null;
 let chatClubMap = {};
@@ -4073,7 +4071,7 @@ function rxRow(m){
   const arr = m.rx[e], mine = gkUser && arr.indexOf(gkUser.uid) >= 0;
   return '<button type="button" class="rxchip' + (mine ? " mine" : "") + '" data-mid="' + esc(m.id)
    + '" data-emo="' + esc(e) + '" onclick="event.stopPropagation();toggleReaction(this.dataset.mid,this.dataset.emo)">'
-   + e + "<span>" + num(arr.length) + "</span></button>";
+   + e + "<span>" + arr.length + "</span></button>";   /* NOT num(): that helper lives in the fantasy page, and calling it here threw inside renderChat map, so ONE reaction blanked the whole room */
  }).join("");
  return chips ? '<div class="rxrow">' + chips + "</div>" : "";
 }
@@ -4245,7 +4243,11 @@ function pickChatMedia(kind){
  if(!validChatSession()) return chatReauth();
  const input = $("chatFile");
  input.dataset.kind = kind;
- input.accept = kind === "image" ? "image/jpeg,image/png,image/webp,image/gif" : "video/mp4,video/webm,video/quicktime";
+ /* WIDE ON PURPOSE. A named list rejects perfectly good files: Android pickers hand back
+    video/3gpp, image/heic and sometimes an EMPTY type, and the old list refused all three
+    while the WC app accepted image/*,video/* and worked everywhere. The server still checks
+    what actually arrives; this is only the picker's filter. */
+ input.accept = kind === "image" ? "image/*" : "video/*";
  input.value = "";
  input.click();
 }
@@ -4277,10 +4279,6 @@ async function uploadChatBlob(blob, durationMs){
   ["chatPhoto","chatVideo","chatVoice","chatSend"].forEach(id => { $(id).disabled = false; });
  }
 }
-function voiceMimeType(){
- const choices = ["audio/webm;codecs=opus","audio/mp4","audio/ogg;codecs=opus","audio/webm"];
- return choices.find(type => MediaRecorder.isTypeSupported(type)) || "";
-}
 /* delete one of YOUR OWN messages, for everyone (the worker re-checks ownership) */
 async function deleteChatMsg(id){
  if(!id || !gkUser) return;
@@ -4304,6 +4302,22 @@ async function deleteChatMsg(id){
 
 /* ---- voice note: record → PREVIEW (play / send / discard) → upload. Nothing uploads on stop. ---- */
 let vnPreview = null;   // {blob, durationMs, url}
+/* stop, flatten, downsample, encode — the only place a voice note becomes a file */
+function vnFinish(){
+ clearTimeout(voiceStopTimer);
+ const rate = vnCtx ? vnCtx.sampleRate : 48000;
+ const duration = Math.max(250, Date.now() - voiceStarted);
+ const flat = new Float32Array(vnLen);
+ let at = 0;
+ for(const part of vnParts){ flat.set(part, at); at += part.length; }
+ vnParts = []; vnLen = 0;
+ vnStop();
+ $("chatVoice").classList.remove("recording");
+ setChatStatus("");
+ if(!flat.length) return;
+ const blob = vnEncodeWav(vnDownsample(flat, rate, VN_RATE), VN_RATE);
+ if(blob.size) { vnPreview = {blob: blob, durationMs: duration, url: URL.createObjectURL(blob)}; vnRenderPreview(); }
+}
 function vnClearPreview(){
  if(vnPreview && vnPreview.url){ try{ URL.revokeObjectURL(vnPreview.url); }catch(_){} }
  vnPreview = null;
@@ -4326,36 +4340,81 @@ function vnSend(){
  vnClearPreview();
  uploadChatBlob(blob, dur);
 }
+/* A VOICE NOTE MUST PLAY ON EVERY PHONE, AND WEBM DOES NOT.
+   This recorded with MediaRecorder and preferred "audio/webm;codecs=opus" — which Android
+   Chrome produces happily and iOS Safari CANNOT PLAY AT ALL. So an Android voice note was
+   silent on every iPhone in the room, and the owner saw exactly that asymmetry.
+
+   The WC app never used MediaRecorder for this. It captures raw PCM through an AudioContext
+   and writes the WAV header itself, because WAV is the one container every browser on every
+   platform decodes. That is ported here verbatim in behaviour: mono, downsampled to 16 kHz,
+   16-bit — about 32 KB a second, which is the price of it working everywhere.
+
+   MediaRecorder is gone rather than kept as a fallback: a fallback that produces a file half
+   the room cannot open is not a fallback, it is the bug with extra steps. */
+function vnDownsample(buf, from, to){
+ if(!from || to >= from) return buf;
+ const ratio = from / to, outLen = Math.max(1, Math.round(buf.length / ratio));
+ const out = new Float32Array(outLen);
+ for(let i = 0; i < outLen; i++){
+  const start = Math.floor(i * ratio), end = Math.min(buf.length, Math.floor((i + 1) * ratio));
+  let sum = 0, n = 0;
+  for(let j = start; j < end; j++){ sum += buf[j]; n++; }
+  out[i] = n ? sum / n : 0;
+ }
+ return out;
+}
+function vnEncodeWav(samples, rate){
+ const n = samples.length, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+ const wr = (o, str) => { for(let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
+ wr(0, "RIFF"); v.setUint32(4, 36 + n * 2, true); wr(8, "WAVE"); wr(12, "fmt ");
+ v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+ v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true);
+ v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+ wr(36, "data"); v.setUint32(40, n * 2, true);
+ let o = 44;
+ for(let i = 0; i < n; i++){
+  const x = Math.max(-1, Math.min(1, samples[i]));
+  v.setInt16(o, x < 0 ? x * 0x8000 : x * 0x7FFF, true);
+  o += 2;
+ }
+ return new Blob([buf], {type: "audio/wav"});
+}
+const VN_RATE = 16000;
+let vnCtx = null, vnNode = null, vnParts = [], vnLen = 0;
+function vnStop(){
+ try{ if(vnNode) vnNode.disconnect(); }catch(_){}
+ try{ if(vnCtx) vnCtx.close(); }catch(_){}
+ vnNode = null; vnCtx = null;
+ if(voiceStream) voiceStream.getTracks().forEach(t => t.stop());
+ voiceStream = null;
+}
 async function toggleVoiceNote(){
- if(voiceRecorder && voiceRecorder.state === "recording"){ voiceRecorder.stop(); return; }
+ if(vnCtx){ vnFinish(); return; }
  vnClearPreview();
- if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !("MediaRecorder" in window)) return toastMsg(t("chatVoiceUnsupported"));
+ const AC = window.AudioContext || window.webkitAudioContext;
+ if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !AC) return toastMsg(t("chatVoiceUnsupported"));
  try{
   voiceStream = await navigator.mediaDevices.getUserMedia({audio:true});
-  const mimeType = voiceMimeType();
-  voiceChunks = [];
-  voiceRecorder = mimeType ? new MediaRecorder(voiceStream, {mimeType}) : new MediaRecorder(voiceStream);
-  voiceRecorder.ondataavailable = function(event){ if(event.data && event.data.size) voiceChunks.push(event.data); };
-  voiceRecorder.onstop = function(){
-   clearTimeout(voiceStopTimer);
-   const duration = Math.max(250, Date.now() - voiceStarted);
-   const type = voiceRecorder.mimeType || mimeType || "audio/webm";
-   const blob = new Blob(voiceChunks, {type:type});
-   if(voiceStream) voiceStream.getTracks().forEach(track => track.stop());
-   voiceStream = null; voiceRecorder = null; voiceChunks = [];
-   $("chatVoice").classList.remove("recording");
-   setChatStatus("");
-   /* preview instead of uploading straight away, so it can be sent or thrown away */
-   if(blob.size){ vnPreview = {blob:blob, durationMs:duration, url:URL.createObjectURL(blob)}; vnRenderPreview(); }
+  vnCtx = new AC();
+  const source = vnCtx.createMediaStreamSource(voiceStream);
+  vnNode = vnCtx.createScriptProcessor ? vnCtx.createScriptProcessor(4096, 1, 1) : null;
+  if(!vnNode){ vnStop(); return toastMsg(t("chatVoiceUnsupported")); }
+  vnParts = []; vnLen = 0;
+  vnNode.onaudioprocess = function(e){
+   const ch = e.inputBuffer.getChannelData(0);
+   const copy = new Float32Array(ch.length);
+   copy.set(ch);
+   vnParts.push(copy); vnLen += copy.length;
   };
-  voiceRecorder.start(500);
+  source.connect(vnNode);
+  vnNode.connect(vnCtx.destination);
   voiceStarted = Date.now();
   $("chatVoice").classList.add("recording");
   setChatStatus(t("chatRecording"));
-  voiceStopTimer = setTimeout(function(){ if(voiceRecorder && voiceRecorder.state === "recording") voiceRecorder.stop(); }, 90000);
+  voiceStopTimer = setTimeout(function(){ if(vnCtx) vnFinish(); }, 90000);
  }catch(_){
-  if(voiceStream) voiceStream.getTracks().forEach(track => track.stop());
-  voiceStream = null; voiceRecorder = null;
+  vnStop();
   toastMsg(t("chatMicDenied"));
  }
 }
