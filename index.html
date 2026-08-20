@@ -862,10 +862,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.28";
+const APP_VERSION = "6.29";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-20-v628";
+const FORCE_RELOAD = "2026-08-20-v629";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -3926,6 +3926,33 @@ function addChatMessage(message, notify){
  if(mainView === "chat") renderChat();
  updateChatBadge();
 }
+/* A DEAD SOCKET LOOKS EXACTLY LIKE A QUIET ROOM.
+   The WC app polled, so a broken connection healed itself. This app relies entirely on the
+   WebSocket, and when a phone switches network or sleeps, the socket dies without an error
+   the user can see: the room simply stops receiving, forever, until the app is reloaded.
+   A slow poll while the chat tab is open costs almost nothing and removes that failure. */
+let _chatPoll = null;
+function chatPollStart(){
+ clearInterval(_chatPoll);
+ _chatPoll = setInterval(function(){
+  if(mainView !== "chat" || document.hidden) return;
+  const dead = !chatSocket || chatSocket.readyState > 1;   /* CLOSING or CLOSED */
+  if(dead){ try{ connectChat(); }catch(_){} loadChatHistoryOnly(); }
+ }, 20000);
+}
+async function loadChatHistoryOnly(){
+ if(!validChatSession()) return;
+ try{
+  const r = await fetch(CHAT_API + "/api/chat/history", {headers: chatAuthHeaders(), cache: "no-store"});
+  const j = await r.json().catch(() => ({}));
+  if(r.ok && j.ok && Array.isArray(j.messages) && j.messages.length){
+   chatMsgs = normChat(j.messages);
+   cacheChat();
+   if(mainView === "chat") renderChat();
+   updateChatBadge();
+  }
+ }catch(_){}
+}
 async function loadChat(){
  if(!gkUser){ if(mainView === "chat") renderChat(); updateChatBadge(); return; }
  await renewStoredChatSession();
@@ -3945,6 +3972,7 @@ async function loadChat(){
   }
  }catch(_){ /* retain last-good cache; WebSocket reconnect continues */ }
  await clubsReady;
+ chatPollStart();
  if(mainView === "chat") renderChat();
  updateChatBadge();
 }
@@ -4007,7 +4035,9 @@ function renderChatMedia(m){
  if(!m.mediaUrl) return "";
  const url = esc(m.mediaUrl), key = esc(m.mediaKey || "");
  if(m.kind === "image") return '<div class="cmedia"><img loading="lazy" src="' + url + '" data-media-key="' + key + '" alt="' + esc(t("chatPhoto")) + '" onerror="refreshChatMedia(this)" onclick="event.stopPropagation();openLightbox(this.src)"></div>';
- if(m.kind === "video") return '<div class="cmedia"><video controls playsinline preload="metadata" src="' + url + '" data-media-key="' + key + '" onerror="refreshChatMedia(this)"></video></div>';
+ /* preload="metadata" gives the browser the first frame to draw; without a poster AND without
+   metadata a video is a black rectangle until somebody presses play. */
+ if(m.kind === "video") return '<div class="cmedia"><video controls playsinline preload="metadata" src="' + url + '#t=0.1" data-media-key="' + key + '" onerror="refreshChatMedia(this)"></video></div>';
  if(m.kind === "audio") return '<div class="cmedia"><audio controls preload="metadata" src="' + url + '" data-media-key="' + key + '" onerror="refreshChatMedia(this)"></audio></div>';
  return "";
 }
@@ -4257,13 +4287,49 @@ function pickChatMedia(kind){
  input.value = "";
  input.click();
 }
+/* A PHONE PHOTO IS 3-8 MB AND NOBODY NEEDS THAT IN A CHAT.
+   The WC app resized to 1600px and re-encoded at JPEG 0.82 before uploading; this app sent
+   the original. On a mobile connection that is a slow upload that often just fails, and the
+   8 MB ceiling above rejected perfectly ordinary photos outright — a modern phone camera
+   clears it easily. GIFs pass through untouched, because re-encoding one to JPEG throws away
+   the animation. */
+function compressImage(file){
+ return new Promise(function(resolve){
+  if(!file.type || file.type === "image/gif" || !/^image\//.test(file.type)) return resolve({blob: file, type: file.type});
+  const img = new Image();
+  const url = URL.createObjectURL(file);
+  img.onload = function(){
+   const max = 1600;
+   let w = img.width, h = img.height;
+   if(w > max || h > max){ const k = Math.min(max / w, max / h); w = Math.round(w * k); h = Math.round(h * k); }
+   const c = document.createElement("canvas");
+   c.width = w; c.height = h;
+   c.getContext("2d").drawImage(img, 0, 0, w, h);
+   c.toBlob(function(bl){
+    try{ URL.revokeObjectURL(url); }catch(_){}
+    /* if the canvas made it BIGGER (already-small or already-optimised images), keep the
+       original — compression that inflates a file is not compression */
+    resolve(bl && bl.size < file.size ? {blob: bl, type: "image/jpeg"} : {blob: file, type: file.type});
+   }, "image/jpeg", 0.82);
+  };
+  img.onerror = function(){ try{ URL.revokeObjectURL(url); }catch(_){} resolve({blob: file, type: file.type}); };
+  img.src = url;
+ });
+}
 async function chatFilePicked(input){
  const file = input.files && input.files[0], kind = input.dataset.kind;
  input.value = "";
  if(!file) return;
+ /* compress FIRST, then measure: the ceiling should reject what we are actually sending,
+    not what came out of the camera */
+ let send = file;
+ if(kind === "image"){
+  setChatStatus(t("chatUploading"));
+  try{ const out = await compressImage(file); send = out.blob; }catch(_){}
+ }
  const max = kind === "image" ? 8 * 1024 * 1024 : 50 * 1024 * 1024;
- if(file.size > max) return toastMsg(t("chatTooLarge"));
- await uploadChatBlob(file, 0);
+ if(send.size > max){ setChatStatus(""); return toastMsg(t("chatTooLarge")); }
+ await uploadChatBlob(send, 0);
 }
 async function uploadChatBlob(blob, durationMs){
  if(!validChatSession()) return chatReauth();
