@@ -758,8 +758,23 @@ async function main() {
       }
 
       await evaluate(`setView("board")`);
-      const sb = await evaluate(`JSON.stringify(__QA.scoreboard())`).then(JSON.parse);
-      const model = await evaluate(`JSON.stringify(boardRows().map(r=>({seed:r.seed,name:r.name,s:r.s,me:r.me})))`).then(JSON.parse);
+      /* ONE TICK FOR BOTH SIDES. setView paints the board immediately and ALSO kicks the async
+         rival fetch, whose completion repaints. Reading the DOM in one evaluate and the model
+         in a second one let the repaint land in between - a latent race that only surfaced
+         once the season started and rival totals stopped being zero. Repaint first, then read
+         the table and the model inside the same evaluation, where nothing can move. */
+      const both = await evaluate(`(function(){
+        /* the rival list arrives asynchronously; hydrate it from the suite's own seeded cache
+           synchronously so the ar and en passes read the same world, not different moments */
+        if(!RIVAL_ROWS.length){
+          try{ const c = JSON.parse(localStorage.getItem(boardCacheKey())||"null");
+               if(c && c.rows) RIVAL_ROWS = c.rows; }catch(e){}
+        }
+        renderBoard();
+        return JSON.stringify({ sb: __QA.scoreboard(),
+          model: boardRows().map(r=>({seed:r.seed,name:r.name,s:r.s,me:r.me})) });
+      })()`).then(JSON.parse);
+      const sb = both.sb, model = both.model;
       const season = await evaluate(`seasonTotal()`);
 
       /* the standings table must be a view of the model, not its own copy of it */
@@ -927,7 +942,9 @@ async function main() {
       chipPlays = [];                       /* simulate the app being reopened */
       load();
       out.chipAfterReload = chipPlays.length;
-      out.chipActive = activeChipFor(CURRENT_GW);
+      /* a chip applies to the round being PICKED FOR, which once the season is running is the
+         round AFTER the one in play - asking at CURRENT_GW encoded the old, wrong model */
+      out.chipActive = activeChipFor(liveGw());
       closeSheet();
       chipPlays = []; save();
       /* 3. THE STANDINGS: rivals come from real records, and nothing is invented */

@@ -355,6 +355,26 @@ console.log("\n5 · the things that must not happen");
   eq(writeCount(w), 1, "they settle into exactly one");
 }
 
+console.log("\n5b · a fabricated history never beats a real one");
+{
+  /* the hole: a phone that had not synced for a week boots after the deadline, BACKFILLS
+     round 1 from its stale squad, and plain mine-wins then let that estimate beat the PC's
+     genuine pre-deadline snapshot - and sync up, permanently. */
+  const w = world({ squad: [],
+    store: { fx_snap: JSON.stringify({ "1": { sq: ["stale1"], cap: "stale1", bf: 1 } }) },
+    server: REC({ at: 9000, squad: ["x", "y"], snap: { "1": { sq: ["real1"], cap: "real1" } } }) });
+  await w.cloudPull();
+  const merged = JSON.parse(w.__store.fx_snap);
+  eq(merged["1"].sq[0], "real1", "the server's REAL snapshot beats my backfilled estimate");
+
+  const w2 = world({ squad: [],
+    store: { fx_snap: JSON.stringify({ "1": { sq: ["mine1"], cap: "mine1" } }) },
+    server: REC({ at: 9000, squad: ["x", "y"], snap: { "1": { sq: ["theirs1"], cap: "theirs1" } } }) });
+  await w2.cloudPull();
+  const merged2 = JSON.parse(w2.__store.fx_snap);
+  eq(merged2["1"].sq[0], "mine1", "real vs real: mine wins, it may carry unsent saves");
+}
+
 console.log("\n6 · a lapsed session is not a flat network");
 {
   /* THE LIE THIS REPLACES: every failed call said "not saved — the network is down, it will

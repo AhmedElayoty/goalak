@@ -622,6 +622,12 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
 /* the local deadline sits under the round line, quieter than the round name but readable */
 .rndb__open{margin-block-start:3px;font-size:11.5px;font-weight:800;color:var(--fx-dim,#9aa7bd);
  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sealbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-block-end:10px;
+ padding:11px 14px;border-radius:12px;border:1px solid var(--fx-gold);
+ background:color-mix(in srgb, var(--fx-gold) 12%, transparent);font-size:12.5px;line-height:1.6}
+.sealbar b{color:var(--fx-gold)}
+.sealbar span{opacity:.9}
+.sealbar .btn{margin:0;inline-size:auto;padding:8px 14px;font-size:12.5px}
 .rndb__bar{margin-block-start:4px;block-size:3px;border-radius:2px;background:var(--fx-line-2);
  overflow:hidden}
 .rndb__fill{block-size:100%;background:linear-gradient(90deg,var(--fx-acc),var(--fx-gold))}
@@ -961,7 +967,7 @@ function seasonStarted(){ return Date.now() >= SEASON_OPENS_MS; }
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.36";
+const FX_BUILD = "6.37";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -1107,6 +1113,10 @@ const STR = {
  ftBlankOk:["تقدر تحتفظ بنادي مالوش ماتش في الجولة دي — ساعات ده أوفر من إنك تطلّعه وترجّعه.",
             "You may keep a club that has no match this round — sometimes that is cheaper than selling it and buying it back."],
  lockedNow:["مقفول","Locked"],
+ sealTtl:["الجولة {n} بتتلعب — تشكيلتها اتقفلت","Round {n} is being played — its lineup is sealed"],
+ sealBody:["أي تغيير من دلوقتي بيتحسب للجولة {n}، زي فانتازي الدوري الإنجليزي بالظبط.",
+           "Anything you change now counts for round {n} — exactly like FPL."],
+ sealGo:["عدّل فريق الجولة {n}","Edit your round {n} team"],
  roundInPlay:["بتتلعب دلوقتي","Being played now"],
  opensAt:["بتقفل عندك: {when}","Locks for you: {when}"],
  roundPicking:["بتختار للجولة دي","You are picking for this one"],
@@ -1325,7 +1335,9 @@ function snapBackfill(){
  let added = 0;
  for(let g = from; g <= to; g++){
   if(o[String(g)]) continue;
-  o[String(g)] = {sq: squad.slice(), cap: captain || "", vc: vice || ""};
+  /* bf marks a BACKFILL: our best estimate for a round nobody saved during, as opposed to a
+     lineup recorded before the deadline by a device that was actually there */
+  o[String(g)] = {sq: squad.slice(), cap: captain || "", vc: vice || "", bf: 1};
   added++;
  }
  if(added){ try{ localStorage.setItem("fx_snap", JSON.stringify(o)); }catch(_){} }
@@ -2077,10 +2089,11 @@ function crestHtml(c){
   + ' loading="lazy" decoding="async" width="44" height="44"'
   + ' onerror="this.parentNode.remove()"></span>';
 }
-function cardHtml(c, withPoints, gw, slotIndex){
+function cardHtml(c, withPoints, gw, slotIndex, capOverride){
  const g = gw == null ? CURRENT_GW : gw;
  const m = simMatch(c.id, g);
- const isCap = c.id === captain;
+ /* a sealed round's armband is the one it was SEALED with, not today's */
+ const isCap = c.id === (capOverride !== undefined ? capOverride : captain);
  /* LINE 2 IS THE REASON THIS CARD IS INTERESTING. Before the round it is who you play;
     after it, what you scored. Both change every week. The price never did. */
  /* Line 1 carries the venue, line 2 carries ONLY the opponent. Putting both on line 2 made it
@@ -2133,6 +2146,14 @@ function cardHtml(c, withPoints, gw, slotIndex){
   + "</span></button>";
 }
 /* The squad as a TEAM SHEET standing on a raked pitch — not a grid of squares. */
+/* IS THE ROUND ON SCREEN SEALED? In play or finished: its lineup is history and must be
+   drawn FROM history. The pitch used to draw the live squad whatever round the label said,
+   so the moment the owner edited during round 1 the screen showed his round-2 team under a
+   "Round 1 - being played" heading - which reads as "I just changed the team that is
+   playing", the exact alarm he raised. The score was never in danger (it comes from the
+   snapshot); the PICTURE was lying. */
+function viewSealed(gw){ return seasonStarted() && (gw || CURRENT_GW) <= playGw(); }
+function sealedSnap(gw){ return viewSealed(gw) ? snapFor(gw || CURRENT_GW) : null; }
 function pitchHtml(withPoints, gw){
  const rows = FORMATIONS[formation] || FORMATIONS["4-4-2"];
  /* The season state that drives the second act. All of it is derived from things the game
@@ -2171,7 +2192,12 @@ function pitchHtml(withPoints, gw){
       : t("groundProgress", {n: ledger().length, of: GROUND_AT})) + "</div>"
   + '<div class="st__cards">';
  let i = 0;
- const starters = squad.slice(0, START_SIZE);
+ /* a sealed round renders ITS lineup; only the open round renders the live squad */
+ const sn = sealedSnap(gw || CURRENT_GW);
+ const SQ = sn ? sn.sq : squad;
+ const CAP = sn ? (sn.cap || null) : captain;
+ const sealed = !!sn;
+ const starters = SQ.slice(0, START_SIZE);
  /* Rows, back to front. No percentages and no --depth: a row cannot slide off the grass if
     it is laid out inside it. */
  rows.forEach(count => {
@@ -2190,18 +2216,20 @@ function pitchHtml(withPoints, gw){
     continue;
    }
    h += '<div class="slot' + (swapFrom === i ? " armed" : "") + '"' + sh + '>'
-    + cardHtml(c, withPoints, gw, withPoints ? null : i)
+    + cardHtml(c, withPoints, gw, (withPoints || sealed) ? null : i, CAP)
     + '<span class="plinth"></span></div>';
   }
   h += "</div>";
  });
  h += "</div></div>";
- return h + dugoutHtml(withPoints, gw, shared);
+ return h + dugoutHtml(withPoints, gw, shared, sn);
 }
 /* THE DUGOUT — the bench lives at the touchline, below the pitch, where a real one does.
    A bench is not a compromise on the XI metaphor; it completes it. */
-function dugoutHtml(withPoints, gw, shared){
- const bench = squad.slice(START_SIZE);
+function dugoutHtml(withPoints, gw, shared, sn){
+ const SQ = sn ? sn.sq : squad;
+ const CAP = sn ? (sn.cap || null) : captain;
+ const bench = SQ.slice(START_SIZE);
  const res = withPoints ? scoreGw(gw) : null;
  shared = shared || new Set();
  let h = '<div class="dug" data-arm="' + (swapFrom !== null ? 1 : 0) + '">'
@@ -2220,7 +2248,7 @@ function dugoutHtml(withPoints, gw, shared){
   }
   const cameOn = res && res.used[c.id];
   h += '<div class="subslot' + (cameOn ? " on" : "") + (swapFrom === bi ? " armed" : "") + '"'
-   + (shared.has(c.id) ? ' data-shared="1"' : "") + ">" + cardHtml(c, withPoints, gw, bi)
+   + (shared.has(c.id) ? ' data-shared="1"' : "") + ">" + cardHtml(c, withPoints, gw, sn ? null : bi, CAP)
    + '<span class="ord" dir="ltr">' + num(i + 1) + "</span>"
    + (cameOn ? '<span class="camein">' + esc(t("cameOn")) + "</span>" : "") + "</div>";
  }
@@ -2307,7 +2335,19 @@ function renderTeam(){
     meter, the formation chips, the swap tip and the gameweek strip are all things you touch
     once and then never again — they move behind «عدّل فريقك». What is left above the pitch is
     the one thing worth 52px: who you are playing and by how much. */
- $("viewTeam").innerHTML = capNote + (squadWasRepaired ? '<div class="note">⚠️ ' + esc(t("repaired")) + "</div>" : "")
+ /* THE SEAL, SAID OUT LOUD. Under this calendar the rounds run back to back, so "locked"
+    can never mean "no editing" - it means edits count for the NEXT round, which is exactly
+    how the Premier League's own fantasy works. But a rule nobody states reads as a bug: the
+    owner edited during round 1, watched the pitch change, and reasonably concluded the lock
+    was broken. The banner states the rule at the moment it applies, and one tap moves the
+    view to the round the edits are actually for. */
+ const sealedNow = viewSealed(CURRENT_GW);
+ const sealBanner = sealedNow
+   ? '<div class="sealbar">🔒 <b>' + esc(t("sealTtl", {n: CURRENT_GW})) + "</b>"
+     + '<span>' + esc(t("sealBody", {n: liveGw()})) + "</span>"
+     + '<button type="button" class="btn" onclick="setGw(liveGw())">' + esc(t("sealGo", {n: liveGw()})) + "</button></div>"
+   : "";
+ $("viewTeam").innerHTML = sealBanner + capNote + (squadWasRepaired ? '<div class="note">⚠️ ' + esc(t("repaired")) + "</div>" : "")
   /* NO RIVAL COMPARISON ON THIS SCREEN. The head-to-head band lived here and the owner asked
      for it gone: on the screen where you look at YOUR team, a second manager's score sitting
      in 28px type next to your own is not context, it is an interruption — and it was the
@@ -2317,8 +2357,10 @@ function renderTeam(){
   + roundBarHtml()
   + roundStatusHtml()
   + pitchHtml(false)
-  + '<button type="button" class="btn stick" onclick="openPicker()">'
-  + esc(squad.length ? t("changeTeam") : t("startWiz")) + "</button>"
+  /* on a sealed round the buttons would edit a team the label says is playing - they move
+     the view to the open round first, so what happens next is what the screen says */
+  + '<button type="button" class="btn stick" onclick="' + (sealedNow ? "setGw(liveGw());openPicker()" : "openPicker()") + '">'
+  + esc(squad.length ? (sealedNow ? t("sealGo", {n: liveGw()}) : t("changeTeam")) : t("startWiz")) + "</button>"
   /* The eight chips were reachable only from the settings sheet, so the owner asked where the
      wildcards were - a fair question about a feature with no door on the screen that uses it. */
   + (squad.length === SQUAD_SIZE
@@ -2801,6 +2843,9 @@ let _capDropped = false;
 let swapFrom = null;                        /* index in `squad` currently armed for a swap */
 function isStarter(i){ return i < START_SIZE; }
 function swapArm(i){
+ /* a tap on a sealed pitch means "I want to change my team" - take them to the round where
+    that is true instead of silently editing under the wrong heading */
+ if(viewSealed(CURRENT_GW)){ setGw(liveGw()); return; }
  if(editBlocked()) return;
  if(i == null || i < 0 || i >= squad.length || !squad[i]) return;   /* empty slots are not swappable */
  if(swapFrom === i){ swapFrom = null; render(); return; }      /* tap again to cancel */
@@ -3599,8 +3644,19 @@ function fxApply(rec){
      covered went straight back to being scored from the live squad. A locked round's lineup is
      history: whoever HAS it keeps it, and neither side can delete the other's. */
   if(rec.snap && typeof rec.snap === "object"){
+   /* A REAL RECORD BEATS AN ESTIMATE, WHOEVER HOLDS IT. Plain mine-wins had a hole: a phone
+      that had not synced for a week boots after the deadline, BACKFILLS the round from its
+      stale squad, and that fabricated history then beat the PC's genuine pre-deadline
+      snapshot and synced up. Within the same class, mine wins (it may carry unsent saves). */
    let mine = {}; try{ mine = JSON.parse(localStorage.getItem("fx_snap") || "{}") || {}; }catch(_){}
-   localStorage.setItem("fx_snap", JSON.stringify(Object.assign({}, rec.snap, mine)));
+   const merged = {};
+   const keys = Object.keys(Object.assign({}, rec.snap, mine));
+   for(const k of keys){
+    const a = mine[k], b = rec.snap[k];
+    if(a && b) merged[k] = (a.bf && !b.bf) ? b : a;
+    else merged[k] = a || b;
+   }
+   localStorage.setItem("fx_snap", JSON.stringify(merged));
   }
   if(rec.ob) localStorage.setItem("fx_onboarded", rec.ob); else localStorage.removeItem("fx_onboarded");
   if(rec.sk) localStorage.setItem("fx_tut_skips", rec.sk); else localStorage.removeItem("fx_tut_skips");
@@ -3779,6 +3835,10 @@ function fxAskSignIn(){
     still arriving from the server would be offered onboarding he finished weeks ago on
     another device - and then his empty local state would be pushed up over the real one. */
  await cloudPull();
+ /* backfill runs twice on purpose: once before render so nothing can be edited into history,
+    and once after the pull so a fresh or stale device estimates any still-missing round from
+    the squad the server just handed it rather than from whatever it happened to hold */
+ snapBackfill();
  loadBoard();                    /* the table fills itself in the background */
  let onboarded = "", hold = "";
  try{ onboarded = localStorage.getItem("fx_onboarded") || ""; }catch(_){}

@@ -517,6 +517,7 @@ html[data-theme="light"] .bnav{background:linear-gradient(180deg,#ffffff,#e8edf8
 .userchip .signout{margin-inline-start:auto;font-size:11.5px;color:var(--red);font-weight:700}
 .userchip .uclub{font-size:11.5px;color:var(--gold);font-weight:700}
 /* the recovery nudge: quieter than an error, louder than a footnote */
+.shrow.mailrow{display:block}
 .mailnudge{display:block;inline-size:100%;margin-block-end:12px;padding:10px 14px;text-align:start;
  border-radius:12px;border:1px dashed var(--gold);background:transparent;color:var(--gold);
  font:inherit;font-size:12.5px;font-weight:800;cursor:pointer}
@@ -767,6 +768,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <div class="shtop"><span class="shttl" id="shTtl">الإعدادات</span></div>
   <button type="button" class="shinstall hide" id="installRow" onclick="installApp()">⬇️ <span id="instTxt">ثبّت التطبيق على جهازك</span></button>
   <div class="shrow"><span class="shlab" id="shAcct">الحساب</span><button type="button" class="lsegb" id="shAcctBtn" onclick="hdrAuthTap()">دخول</button></div>
+  <div class="shrow mailrow hide" id="shMailRow"></div>
   <div class="shrow"><label class="shlab" for="clubSel" id="shClub">⭐ فريقك المفضل</label><select id="clubSel" onchange="setClubFromSel(this)"></select></div>
   <div class="shrow"><span class="shlab" id="shAlerts">🔔 التنبيهات</span><div class="seg" role="radiogroup" aria-labelledby="shAlerts"><button type="button" id="pushOffB" class="on" onclick="setPush(false)">OFF</button><button type="button" id="pushOnB" onclick="setPush(true)">ON</button></div></div>
   <div class="shrow pushlgs hide" id="pushLgRow"></div>
@@ -898,10 +900,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.36";
+const APP_VERSION = "6.37";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-20-v636";
+const FORCE_RELOAD = "2026-08-21-v637";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -3581,6 +3583,7 @@ function acctInfoStore(u){
               pendingEmail:u.pendingEmail || null, needsEmail:!!u.needsEmail};
  try{ localStorage.setItem("gk_acct_info", JSON.stringify(_acctInfo)); }catch(_){}
  if(mainView === "pred") renderPred();
+ try{ refreshMailRow(); }catch(_){}
 }
 function acctInfo(){
  if(_acctInfo && gkUser && _acctInfo.uid === gkUser.uid) return _acctInfo;
@@ -4382,6 +4385,24 @@ function refreshHdrAuth(){
  if(b){ b.innerHTML = gkUser ? '👤 <span class="han">' + esc(gkUser.username) + "</span>" : "👤"; b.title = gkUser ? gkUser.username : t("login"); }
  const ab = $("shAcctBtn");
  if(ab) ab.textContent = gkUser ? gkUser.username : t("login");
+ refreshMailRow();
+}
+/* THE NUDGE LIVES IN SETTINGS TOO. Every account that predates the recovery flow has no email
+   on file, which means no way back from a forgotten password - and Settings is where people
+   go looking for exactly this kind of thing, so the Predictions-only chip was easy never to
+   meet. One row, three states: add an address, confirm the one that is pending, or nothing at
+   all once it is proven. */
+function refreshMailRow(){
+ const row = $("shMailRow");
+ if(!row) return;
+ if(!gkUser){ row.classList.add("hide"); row.innerHTML = ""; return; }
+ acctInfoEnsure();
+ const ai = acctInfo();
+ if(!ai || (!ai.needsEmail && !ai.pendingEmail)){ row.classList.add("hide"); row.innerHTML = ""; return; }
+ row.classList.remove("hide");
+ row.innerHTML = ai.pendingEmail
+  ? '<button type="button" class="mailnudge" style="margin:0" onclick="doResendVerify()">📩 ' + esc(t("confirmEmailBtn", {m: ai.pendingEmail})) + "</button>"
+  : '<button type="button" class="mailnudge" style="margin:0" onclick="openEmailSheet()">🔐 ' + esc(t("addEmailBtn")) + "</button>";
 }
 
 /* ============ real-time chat: Durable Object + protected R2 media ============ */
