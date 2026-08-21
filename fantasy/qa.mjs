@@ -1003,7 +1003,12 @@ async function main() {
       const seed = (playing) => {
         const ids = squad.map(id => [String(id), playing.indexOf(id) >= 0 ? 1 : 0]).filter(x => x[1]);
         FIXT = {}; fixtLoading = {}; FIXT[gw] = new Map(ids);
-        try{ localStorage.setItem("fx_fixt_"+gw, JSON.stringify({ids: ids, at: Date.now()})); }catch(e){}
+        /* the scorer reads real RESULTS since v6.39, so a seeded fixture needs one: a playing
+           club gets a finished 1-0, an absent club is genuinely blank - same as the loader */
+        REST = {}; REST[gw] = new Map(ids.map(x => [x[0], [{fin:1, live:0, gf:1, ga:0, opp:"0", home:true, ko:1}]]));
+        try{ localStorage.setItem("fx_fixt_"+gw, JSON.stringify({ids: ids,
+          res: ids.map(x => [x[0], [{fin:1, live:0, gf:1, ga:0, opp:"0", home:true, ko:1}]]),
+          at: Date.now(), full: true})); }catch(e){}
       };
       const b1 = squad[START_SIZE], b2 = squad[START_SIZE+1], b3 = squad[START_SIZE+2];
       out.benchPrices = squad.slice(START_SIZE).map(priceOf);
@@ -1080,7 +1085,12 @@ async function main() {
       const seed = (playing) => {
         const ids = squad.map(id => [String(id), playing.indexOf(id) >= 0 ? 1 : 0]).filter(x => x[1]);
         FIXT = {}; fixtLoading = {}; FIXT[gw] = new Map(ids);
-        try{ localStorage.setItem("fx_fixt_"+gw, JSON.stringify({ids: ids, at: Date.now()})); }catch(e){}
+        /* the scorer reads real RESULTS since v6.39, so a seeded fixture needs one: a playing
+           club gets a finished 1-0, an absent club is genuinely blank - same as the loader */
+        REST = {}; REST[gw] = new Map(ids.map(x => [x[0], [{fin:1, live:0, gf:1, ga:0, opp:"0", home:true, ko:1}]]));
+        try{ localStorage.setItem("fx_fixt_"+gw, JSON.stringify({ids: ids,
+          res: ids.map(x => [x[0], [{fin:1, live:0, gf:1, ga:0, opp:"0", home:true, ko:1}]]),
+          at: Date.now(), full: true})); }catch(e){}
       };
       const cap = captain, vc = vice;
       const others = squad.slice(0, START_SIZE).filter(id => id !== cap && id !== vc);
@@ -1227,9 +1237,12 @@ async function main() {
       const gw = CURRENT_GW, out = {};
       const seed = (fn) => {
         const ids = squad.map((id,i) => [String(id), fn(i)]).filter(x => x[1] > 0);
-        localStorage.setItem("fx_fixt_"+gw, JSON.stringify({ids: ids, at: Date.now()}));
+        localStorage.setItem("fx_fixt_"+gw, JSON.stringify({ids: ids,
+          res: ids.map(x => [x[0], [{fin:1, live:0, gf:1, ga:0, opp:"0", home:true, ko:1}]]),
+          at: Date.now(), full: true}));
         FIXT = {}; fixtLoading = {};
         FIXT[gw] = new Map(ids);
+        REST = {}; REST[gw] = new Map(ids.map(x => [x[0], [{fin:1, live:0, gf:1, ga:0, opp:"0", home:true, ko:1}]]));
         render();
         const el = document.querySelector("#viewTeam .rs");
         if(!el) return {missing:true};

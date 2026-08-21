@@ -967,7 +967,7 @@ function seasonStarted(){ return Date.now() >= SEASON_OPENS_MS; }
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.38";
+const FX_BUILD = "6.39";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -1487,8 +1487,17 @@ async function loadFixtures(gw){
      a map missing all twenty La Liga clubs, and every La Liga owner then read "no fixture"
      and scored nothing for that round, on that device, for ever. It expires now, and a map
      that did not hear from every league is not allowed to become the truth. */
-  const fresh = cached && cached.at && (Date.now() - cached.at) < 6 * 3600000;
-  if(cached && cached.ids && fresh && cached.full){ FIXT[gw] = new Map(cached.ids); render(); return; }
+  /* THE ROUND BEING PLAYED GOES STALE IN MINUTES, NOT HOURS. Six hours is right for a
+     finished round and for the future list; for the round in play it is a final whistle the
+     screen refuses to hear about. And a cache from before this build carries no results, so
+     it must not satisfy a scorer that now needs them. */
+  const ttl = gw === playGw() ? 10 * 60000 : 6 * 3600000;
+  const fresh = cached && cached.at && (Date.now() - cached.at) < ttl;
+  if(cached && cached.ids && cached.res && fresh && cached.full){
+   FIXT[gw] = new Map(cached.ids);
+   REST[gw] = new Map(cached.res);
+   render(); return;
+  }
  }catch(_){}
  const base = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
  /* ESPN's date range is INCLUSIVE at both ends, and consecutive rounds share an endpoint -
@@ -1533,15 +1542,30 @@ async function loadFixtures(gw){
     (e && e.status && e.status.type && e.status.type.name) ||
     (e && e.competitions && e.competitions[0] && e.competitions[0].status &&
      e.competitions[0].status.type && e.competitions[0].status.type.name) || "");
+  /* AND THE RESULTS, NOT JUST THE COUNT. This walk already holds everything the scorer
+     needs — the final score, who played whom, home or away, finished or still to come — and
+     it used to throw all of it away, keeping only "this club has a fixture". That is why the
+     scoring engine was still the pre-season simulator on the season's first day: there was
+     nothing real for it to read. Barcelona showed +8 before it had kicked a ball. */
+  const res = new Map();
+  const rec = (id, entry) => { const k = String(id); if(!res.has(k)) res.set(k, []); res.get(k).push(entry); };
   lists.forEach(j => ((j && j.events) || []).forEach(e => {
    if(evs.has(e.id)) return; evs.add(e.id);
    if(off(e)) return;
    /* THE ONE TEST THAT MEANS THE SAME THING EVERYWHERE */
    const ko = Date.parse(e.date) || 0;
    if(!ko || ko < openMs || ko >= endMs) return;
-   (e.competitions || []).forEach(c => (c.competitors || []).forEach(t => {
+   const comp = (e.competitions && e.competitions[0]) || {};
+   const cs = comp.competitors || [];
+   const st = (e.status && e.status.type && e.status.type.state) ||
+              (comp.status && comp.status.type && comp.status.type.state) || "pre";
+   cs.forEach(t => {
      const k = String(t.id); ids.set(k, (ids.get(k) || 0) + 1);
-   }));
+     const other = cs.find(x => x !== t) || {};
+     rec(k, {fin: st === "post" ? 1 : 0, live: st === "in" ? 1 : 0,
+             gf: +t.score || 0, ga: +other.score || 0,
+             opp: String(other.id || ""), home: t.homeAway === "home", ko: ko});
+   });
   }));
   /* An empty answer is not proof that nobody plays - it is far more likely the feed
      failed. Only a non-empty result is allowed to become the truth for a round. */
@@ -1551,7 +1575,9 @@ async function loadFixtures(gw){
      belongs on the map, not on the copy of it. */
   if(ids.size && heardAll){
    FIXT[gw] = ids;
-   try{ localStorage.setItem(key, JSON.stringify({ids: [...ids.entries()], at: Date.now(), full: heardAll})); }catch(_){}
+   REST[gw] = res;
+   try{ localStorage.setItem(key, JSON.stringify({ids: [...ids.entries()], res: [...res.entries()],
+        at: Date.now(), full: heardAll})); }catch(_){}
    render();
   }
  }catch(_){}
@@ -1731,7 +1757,55 @@ function gwEdgePair(gw, end, withYear){
  const y = withYear ? " " + String(r[end]).slice(0, 4) : "";
  return [gwDates(gw, "ar").split(" – ")[end] + y, gwDates(gw, "en").split(" – ")[end] + y];
 }
+let REST = {};                                   /* gw -> Map(clubId -> [match entries]) */
+const TIER_NUM = {elite:1, strong:2, mid:3, value:4, budget:5};
+/* THE REAL SCORER. Same rules, same shape, fed by results instead of a hash: win 6, draw 2,
+   goal +2, clean sheet +3, minus one per two conceded, and the opponent-strength bonus for
+   beating a stronger club. A club playing twice in a round is paid for both matches, which
+   the simulator never was. A match still to come is PENDING - not blank (they will play, so
+   no auto-sub takes their place) and not scored (nothing is invented). */
+function realMatch(clubId, gw){
+ /* two different absences: a ROUND we have not loaded returns null (the caller shows pending
+    and kicks the load), a CLUB with no entry in a loaded round is genuinely blank - conflating
+    them made a blank club spin the loader forever */
+ if(!REST[gw]) return null;
+ const list = REST[gw].get(String(clubId));
+ if(!list || !list.length) return {blank:true, pts:0, opp:null, home:false, oppTier:3};
+ let res = 0, clean = 0, goals = 0, conc = 0, tierBonus = 0, gf = 0, ga = 0, fin = 0;
+ let win = false, draw = false, oppTier = 3, opp = null, home = false;
+ for(const m of list){
+  /* the simulator hands back the opponent as a CLUB OBJECT and the card reads it that way */
+  if(!opp){ opp = CLUBS.find(x => x.id === String(m.opp)) || null; home = m.home; }
+  if(!m.fin) continue;
+  fin++;
+  const w = m.gf > m.ga, d = m.gf === m.ga;
+  if(fin === 1){ win = w; draw = d; oppTier = TIER_NUM[tierOf(m.opp)] || 3; }
+  res += w ? 6 : d ? 2 : 0;
+  clean += m.ga === 0 ? 3 : 0;
+  goals += m.gf * 2;
+  conc -= Math.floor(m.ga / 2);
+  gf += m.gf; ga += m.ga;
+  const ot = TIER_NUM[tierOf(m.opp)] || 3;
+  tierBonus += w ? [0,6,3,0,0,0][ot] : 0;
+ }
+ return {blank:false, pending: fin === 0, fin: fin, matches: list.length,
+         win, draw, gf, ga, oppTier, res, clean, goals, conc, tierBonus,
+         opp: opp, home: home, pts: res + clean + goals + conc + tierBonus};
+}
 function simMatch(clubId, gw){
+ /* A STARTED ROUND IS NEVER SIMULATED. The hash below exists for the pre-season demo and the
+    backtest, and the flag that kept it off the live screens was armed by the calendar without
+    real results behind it - so on the season's first morning Barcelona showed +8 for a match
+    it plays on the 23rd. For any round that has opened, the answer comes from the results
+    store or it is honestly PENDING; the hash is not an acceptable fallback for reality. */
+ if(seasonStarted() && gw <= playGw()){
+  const real = realMatch(clubId, gw);
+  if(real) return real;
+  loadFixtures(gw);                                /* kick the load; render() repaints on arrival */
+  return {blank:false, pending:true, loading:true, fin:0, matches:0, pts:0,
+          opp:null, home:false, oppTier:3, win:false, draw:false, gf:0, ga:0,
+          res:0, clean:0, goals:0, conc:0, tierBonus:0};
+ }
  /* No CLUBS.find() here. It used to look the club up and discard the result — a 126-item
     linear scan on every call, which at GW36 is ~340,000 wasted comparisons per leaderboard. */
  const h = hash(clubId + "|" + gw);
@@ -2105,10 +2179,17 @@ function cardHtml(c, withPoints, gw, slotIndex, capOverride){
  if(m.blank){
   l2 = t("noMatch");
  }else if(withPoints){
-  const p = m.pts * (isCap ? 2 : 1);
-  sign = ' data-sign="' + signOf(p) + '"';
-  l2 = signed(p);
-  ven = m.home ? "H" : "A";
+  /* NOT PLAYED IS NOT ZERO. A pending match printed "0", which reads as "played and scored
+     nothing" - the exact confusion between simulation and reality this build removes. */
+  if(m.pending){
+   l2 = "⏳";
+   ven = m.opp ? (m.home ? "H" : "A") : "";
+  } else {
+   const p = m.pts * (isCap ? 2 : 1);
+   sign = ' data-sign="' + signOf(p) + '"';
+   l2 = signed(p);
+   ven = m.home ? "H" : "A";
+  }
  }else{
   /* The opponent shown here is drawn from the same hash as the simulated result, so before
      the season starts it is a guess with a club's name on it. Until real fixtures feed this
@@ -3829,6 +3910,10 @@ function fxAskSignIn(){
  paintChrome();
  render();
  loadFixtures(CURRENT_GW);
+ /* the season total walks every played round, so every played round's results must exist —
+    at one round that is one request, and later in the season the caches carry it */
+ for(let g = Math.max(1, joinGw()); g <= playGw(); g++) loadFixtures(g);
+ loadFixtures(liveGw());
  /* Offered until he has a squad. `hold` is sessionStorage, so "later" means later - the
     next time he opens the game, not the next time this page happens to reload. */
  /* PULL BEFORE DECIDING ANYTHING. If the tutorial gate ran first, a manager whose squad is
