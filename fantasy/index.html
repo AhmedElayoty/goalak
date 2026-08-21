@@ -967,7 +967,7 @@ function seasonStarted(){ return Date.now() >= SEASON_OPENS_MS; }
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.37";
+const FX_BUILD = "6.38";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -1114,8 +1114,8 @@ const STR = {
             "You may keep a club that has no match this round — sometimes that is cheaper than selling it and buying it back."],
  lockedNow:["مقفول","Locked"],
  sealTtl:["الجولة {n} بتتلعب — تشكيلتها اتقفلت","Round {n} is being played — its lineup is sealed"],
- sealBody:["أي تغيير من دلوقتي بيتحسب للجولة {n}، زي فانتازي الدوري الإنجليزي بالظبط.",
-           "Anything you change now counts for round {n} — exactly like FPL."],
+ sealBody:["أي تغيير من دلوقتي بيتحسب للجولة {n}.",
+           "Anything you change now counts for round {n}."],
  sealGo:["عدّل فريق الجولة {n}","Edit your round {n} team"],
  roundInPlay:["بتتلعب دلوقتي","Being played now"],
  opensAt:["بتقفل عندك: {when}","Locks for you: {when}"],
