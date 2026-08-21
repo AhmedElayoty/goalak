@@ -763,7 +763,12 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
 .gwbar__top{display:flex;justify-content:space-between;align-items:baseline;
  padding:0 12px 7px;font-size:11.5px;color:var(--fx-ink-dim);gap:8px}
 .gwbar__top b{color:var(--fx-gold);font-size:15px}
-.gwbar__strip{display:flex;gap:6px;overflow-x:auto;scroll-snap-type:x mandatory;
+.gwbar__row{display:flex;align-items:center;gap:4px}
+.gwstep{flex:0 0 auto;inline-size:36px;block-size:44px;border-radius:11px;border:1px solid var(--fx-line);
+ background:var(--fx-surface-3);color:var(--fx-ink-dim);font-size:20px;font-weight:900;line-height:1;
+ display:flex;align-items:center;justify-content:center;cursor:pointer}
+.gwstep:disabled{opacity:.35;cursor:default}
+.gwbar__strip{display:flex;gap:6px;overflow-x:auto;scroll-snap-type:x mandatory;min-inline-size:0;flex:1;
  padding:0 12px 2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .gwbar__strip::-webkit-scrollbar{display:none}
 .gwchip{flex:0 0 auto;min-width:44px;height:44px;border-radius:11px;scroll-snap-align:center;
@@ -967,7 +972,7 @@ function seasonStarted(){ return Date.now() >= SEASON_OPENS_MS; }
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.39";
+const FX_BUILD = "6.40";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -1169,7 +1174,12 @@ const STR = {
  shareHint:["دوس مطوّل على الصورة عشان تحفظها وتبعتها لأصحابك","Press and hold the image to save it and send it to your friends"],
  chipsLab:["الجوكرات","Chips"],
  capCleared:["نزّلت الكابتن للدكة، فشيلنا الشارة. اختار كابتن جديد.","You benched your captain, so the armband was removed. Pick a new one."],
- scrubHint:["اسحب عشان تشوف نقط أي جولة","Swipe to see any round"],
+ scrubHint:["اسحب أو استخدم الأسهم","Swipe, or use the arrows"],
+ gwPrev:["الجولة السابقة","Previous round"],
+ gwNext:["الجولة الجاية","Next round"],
+ futTtl:["الجولة {n} لسه ما اتلعبتش","Round {n} has not been played yet"],
+ whoPlays:["مين بيلعب في الجولة دي؟","Who plays this round?"],
+ liveNote:["الجولة شغالة — النتايج بتتحدث كل شوية","Round in play — results refresh every few minutes"],
  repaired:["الأسعار اتغيرت، فشيلنا الأندية اللي مابقتش تدخل في ميزانيتك. اختار بدلها.",
            "Prices changed, so clubs that no longer fit your budget were removed. Pick replacements."],
  done:["تمام","Done"], next:["التالي","Next"], back:["رجوع","Back"], skip:["بعدين","Later"],
@@ -2374,7 +2384,7 @@ function patchTeamGw(){
  const num_ = $("gwNum"), strip = $("gwStrip");
  if(!num_ || !strip) return false;
  num_.textContent = num(CURRENT_GW);
- for(let g = 1; g <= 36; g++){
+ for(let g = 1; g <= gwCount(); g++){
   const c = $("gwc" + g); if(!c) continue;
   c.className = "gwchip" + (g === CURRENT_GW ? " on" : g < CURRENT_GW ? " done" : "");
   if(g === CURRENT_GW) c.setAttribute("aria-current", "true"); else c.removeAttribute("aria-current");
@@ -2392,15 +2402,30 @@ function patchTeamGw(){
 /* 36 rounds as a snapping strip: every chip a 44px target, the active one scrolled into view. */
 function gwBarHtml(){
  let chips = "";
- for(let g = 1; g <= 36; g++){
+ for(let g = 1; g <= gwCount(); g++){
   chips += '<button type="button" class="gwchip' + (g === CURRENT_GW ? " on" : g < CURRENT_GW ? " done" : "")
    + '" id="gwc' + g + '" onclick="setGw(' + g + ')" aria-label="' + esc(t("gwTitle")) + ' ' + g + '"'
    + (g === CURRENT_GW ? ' aria-current="true"' : "") + ' dir="ltr">' + num(g) + "</button>";
  }
+ /* A STRIP BUILT FOR A THUMB WAS NEARLY UNUSABLE WITH A MOUSE: the scrollbar is hidden, a
+    horizontal wheel is rare hardware, and a click-drag lands as a CLICK on whichever chip
+    happens to sit under the pointer at mouseup - which is precisely the owner's "it chooses
+    different game weeks". Two arrows give a mouse an exact step in either direction, and the
+    wheel handler lets an ordinary vertical wheel walk the strip. */
  return '<div class="gwbar"><div class="gwbar__top">'
   + '<span>' + esc(t("gwTitle")) + ' <b dir="ltr" id="gwNum">' + num(CURRENT_GW) + "</b></span>"
   + '<span class="muted">' + esc(t("scrubHint")) + "</span></div>"
-  + '<div class="gwbar__strip" id="gwStrip">' + chips + "</div></div>";
+  + '<div class="gwbar__row">'
+  +  '<button type="button" class="gwstep" onclick="setGw(CURRENT_GW-1)" aria-label="' + esc(t("gwPrev")) + '"'
+  +   (CURRENT_GW <= 1 ? " disabled" : "") + ' dir="ltr">‹</button>'
+  +  '<div class="gwbar__strip" id="gwStrip" onwheel="gwWheel(event)">' + chips + "</div>"
+  +  '<button type="button" class="gwstep" onclick="setGw(CURRENT_GW+1)" aria-label="' + esc(t("gwNext")) + '"'
+  +   (CURRENT_GW >= gwCount() ? " disabled" : "") + ' dir="ltr">›</button>'
+  + "</div></div>";
+}
+function gwWheel(e){
+ const strip = $("gwStrip"); if(!strip) return;
+ if(Math.abs(e.deltaY) > Math.abs(e.deltaX)){ e.preventDefault(); strip.scrollLeft += e.deltaY; }
 }
 function centreGwChip(){
  const el = $("gwc" + CURRENT_GW), strip = $("gwStrip");
@@ -2463,6 +2488,20 @@ function renderPoints(){
    + '<div class="muted">' + esc(t("preBody", {d: gwDates(1)})) + "</div></div>";
   centreGwChip(); return;
  }
+ /* A FUTURE ROUND HAS NO POINTS AND MUST NOT PRETEND TO. Scrubbing forward used to render a
+    full simulated pitch with scores and a small note calling them fake - on the season's first
+    day that is indistinguishable from the app being broken, and the owner read it exactly that
+    way. A round that has not opened shows when it opens, in the reader's own clock, and who
+    plays in it - and nothing that looks like a result. */
+ if(gw > playGw()){
+  $("viewPoints").innerHTML = gwBarHtml()
+   + '<div class="card" style="text-align:center"><div style="font-size:34px">⏳</div>'
+   + '<h3 style="margin:8px 0 4px">' + esc(t("futTtl", {n: gw})) + "</h3>"
+   + '<div class="muted">' + esc(t("opensAt", {when: gwOpensLocal(gw)})) + "</div>"
+   + '<button type="button" class="btn ghost" style="margin-top:12px" onclick="openRoundWho()">'
+   + esc(t("whoPlays")) + "</button></div>";
+  centreGwChip(); return;
+ }
  $("viewPoints").innerHTML = gwBarHtml()
   + '<div class="card"><div class="muted" style="text-align:center">' + esc(t("gwTitle")) + " " + num(gw)
   + (gwDates(gw) ? ' <span dir="ltr">· ' + esc(gwDates(gw)) + "</span>" : "") + "</div>"
@@ -2483,7 +2522,9 @@ function renderPoints(){
      and until now the app never told anyone. 100% rounds say nothing; the rest explain. */
   + (gwCoverage(gw) < 0.999
      ? '<div class="note">📅 ' + esc(t("covNote", {pct: Math.round(gwCoverage(gw) * 100)})) + "</div>" : "")
-  + '<div class="note">' + esc(t('simNote')) + '</div>'
+  /* the round in play refreshes every ten minutes; say so instead of apologising for a
+     simulator that no longer feeds this screen */
+  + (gw === playGw() ? '<div class="note">🔄 ' + esc(t("liveNote")) + "</div>" : "")
   + pitchHtml(true, gw);
  maybeCoach("pts", "viewPoints", "coachPts");
  centreGwChip();
