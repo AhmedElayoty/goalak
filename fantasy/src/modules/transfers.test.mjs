@@ -171,6 +171,30 @@ console.log("\n5 · before the season opens nothing costs anything");
   eq(w.transferState().cost, 0, "pre-season is free");
 }
 
+console.log("\n5b · the ledger heals itself and never charges a phantom round");
+{
+  /* join stamped in the future by the morning the lock sat wrongly at midnight: it quietly
+     turned round 1 from the manager's free build round into a charged one */
+  const w = world({ gw: 1, squad: S(15), saved: { gw: 1, banked: 1, base: S(15), join: 2 } });
+  const v = w.ftSync();
+  eq(v.join, 1, "a join round in the future clamps to the live round");
+}
+{
+  /* a -4 booked against a round that has not been played is erased on sight */
+  const w = world({ gw: 2, squad: S(15), saved: { gw: 2, banked: 1, base: S(15), join: 1, paid: { "5": 4 } } });
+  const v = w.ftSync();
+  ok(!v.paid || !v.paid["5"], "a hit on an unplayed round is erased");
+}
+{
+  /* the lock moved EARLIER (a deploy): the stored round is ahead of the live one, so nothing
+     closed and nothing may be banked or charged - even with six changes on the baseline */
+  const w = world({ gw: 1, squad: S(15), saved: { gw: 2, banked: 3,
+    base: S(9).concat(["y1","y2","y3","y4","y5","y6"]), join: 1 } });
+  const v = w.ftSync();
+  eq(v.gw, 1, "the baseline round resets to the live round");
+  ok(!v.paid || Object.keys(v.paid).length === 0, "and no hit is booked for a round that never closed");
+}
+
 console.log("\n6 · the things that must never happen");
 {
   const base = S(15);

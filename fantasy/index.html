@@ -972,7 +972,7 @@ function seasonStarted(){ return Date.now() >= SEASON_OPENS_MS; }
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.41";
+const FX_BUILD = "6.42";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -1643,7 +1643,26 @@ function ftSync(){
     without persisting it, so the first build was stamped at the following rollover instead, with
     a round the manager had nothing to do with */
  if(!v.join && squad.length) { v.join = gwNow; if(v.gw === gwNow){ ftSave(v); return v; } }
+ /* SELF-HEALING, twice over. The morning the lock sat wrongly at midnight, anyone who opened
+    the app was stamped join=2 - which quietly turned round 1 from their free build round into
+    a charged one - and could have had a -4 booked against a round 2 that had not begun.
+    Neither state can arise legitimately: your join round cannot be in the future (you hold a
+    squad NOW, in this round), and a hit can only exist for a round that has been PLAYED. Both
+    are erased on sight, so every affected manager heals on their next open. */
+ let healed = false;
+ if(v.join && v.join > gwNow){ v.join = gwNow; healed = true; }
+ if(v.paid && typeof v.paid === "object"){
+  for(const k of Object.keys(v.paid)) if(+k > playGw()){ delete v.paid[k]; healed = true; }
+ }
+ if(healed) ftSave(v);
  if(v.gw === gwNow) return v;
+ /* A ROLLOVER ONLY EVER GOES FORWARD. A stored round AHEAD of the live one means the lock
+    definition moved earlier (a deploy, not a week passing): nothing closed, so nothing may be
+    banked and nothing charged - reset the baseline and walk away. */
+ if(v.gw && gwNow < v.gw){
+  v.gw = gwNow; v.base = squad.slice(); ftSave(v);
+  return v;
+ }
  if(v.gw){
   const st = transferState(v, v.gw);
   /* ONE PER ROUND ELAPSED, not one per visit. Somebody who does not open the app for three
@@ -2452,9 +2471,13 @@ function gwWheel(e){
  if(Math.abs(e.deltaY) > Math.abs(e.deltaX)){ e.preventDefault(); strip.scrollLeft += e.deltaY; }
 }
 function centreGwChip(){
- const el = $("gwc" + CURRENT_GW), strip = $("gwStrip");
- if(!el || !strip) return;
- strip.scrollLeft = el.offsetLeft - (strip.clientWidth / 2) + (el.clientWidth / 2);
+ /* The hand-rolled math read el.offsetLeft, which is measured against the nearest POSITIONED
+    ancestor - and wrapping the strip in the arrow row changed which ancestor that is, so the
+    strip scrolled itself four chips past the start and rounds 1-4 were simply unreachable.
+    scrollIntoView is the browser's own answer to exactly this question, and it also gets RTL
+    right, which the arithmetic never did. */
+ const el = $("gwc" + CURRENT_GW);
+ if(el) try{ el.scrollIntoView({inline:"center", block:"nearest"}); }catch(_){ el.scrollIntoView(); }
 }
 function renderTeam(){
  const full = squad.length === SQUAD_SIZE;
