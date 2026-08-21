@@ -972,7 +972,7 @@ function seasonStarted(){ return Date.now() >= SEASON_OPENS_MS; }
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.40";
+const FX_BUILD = "6.41";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -1518,7 +1518,11 @@ async function loadFixtures(gw){
     half-open everywhere else in this app; the request now matches it. */
  /* ASK WIDE, COUNT EXACTLY. The request is padded by a day at each end so no fixture near a
     boundary can be missing from the answer; the filter below is what decides membership. */
- const openMs = gwLockMs(gw), endMs = gwEndMs(gw);
+ /* membership is the WINDOW, not the lock: the two parted ways when the lock moved to the
+    first whistle, and feeding the refined lock back into the fetch would shrink the round */
+ const r0 = gwRound(gw);
+ const openMs = r0 ? Date.parse(r0[0] + "T00:00:00Z") : NaN;
+ const endMs = gwEndMs(gw);
  if(!isFinite(openMs) || !isFinite(endMs)){ fixtLoading[gw] = 0; return; }
  const range = ymd(new Date(openMs - 864e5).toISOString().slice(0, 10))
              + "-" + ymd(new Date(endMs + 864e5).toISOString().slice(0, 10));
@@ -1703,12 +1707,32 @@ function transferCost(){ return transferState().cost; }
    fall outside the request, and then every event is filtered on its own timestamp. */
 function gwEndMs(gw){
  const n = gwCount();
- if(gw >= n){ const r = gwRound(gw); return r ? Date.parse(r[1] + "T00:00:00Z") : NaN; }
- return gwLockMs(gw + 1);
+ const r = gwRound(gw);
+ if(gw >= n) return r ? Date.parse(r[1] + "T00:00:00Z") : NaN;
+ /* the raw window boundary — NOT gwLockMs(gw+1), which now floats to the next round's first
+    kick-off and would open a gap between one round's end and the next one's start */
+ return r ? Date.parse(r[1] + "T00:00:00Z") : NaN;
+}
+/* WHEN DOES A ROUND ACTUALLY LOCK? Thirty minutes before its first kick-off - the FPL rule,
+   and the only one that makes sense. It used to lock at midnight UTC when the calendar window
+   opened, which on the season's first day meant the game shut at 04:00 Gulf time while the
+   first ball was not kicked until 22:30 that night: most of a day of editing time thrown away
+   for nothing, and the owner asked exactly the right question about it. The window opening is
+   kept as the FLOOR - it is what membership is defined by, it is all we know before the
+   fixtures load, and an unknown feed must fail toward locking EARLY, never late. */
+function gwFirstKoMs(gw){
+ const m = REST[gw];
+ if(!m || !m.size) return NaN;
+ let min = Infinity;
+ for(const [, list] of m) for(const x of list) if(x.ko && x.ko < min) min = x.ko;
+ return isFinite(min) ? min : NaN;
 }
 function gwLockMs(gw){
  const r = gwRound(gw);
- return r ? Date.parse(r[0] + "T00:00:00Z") : NaN;
+ const open = r ? Date.parse(r[0] + "T00:00:00Z") : NaN;
+ if(!isFinite(open)) return NaN;
+ const ko = gwFirstKoMs(gw);
+ return isFinite(ko) ? Math.max(open, ko - 30 * 60000) : open;
 }
 function roundLocked(gw){
  const ms = gwLockMs(gw);

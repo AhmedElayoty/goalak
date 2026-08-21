@@ -900,10 +900,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.40";
+const APP_VERSION = "6.41";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-21-v640";
+const FORCE_RELOAD = "2026-08-21-v641";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -3595,7 +3595,14 @@ function acctInfo(){
 }
 let _acctInfoAsked = false;
 function acctInfoEnsure(){
- if(acctInfo() || _acctInfoAsked || !gkUser || !validChatSession()) return;
+ /* A CACHE THAT NEVER RE-ASKS CANNOT LEARN. The owner confirmed his email from the mail we
+    sent; his PC re-fetched and dropped the nudge, his PHONE kept showing "confirm your email"
+    for ever, because this only ever asked the server when it held nothing at all. A SETTLED
+    state - confirmed address, nothing pending - is final and never re-fetched; an UNSETTLED
+    one is re-checked once per app open, which is exactly the moment a stale chip heals. */
+ const ai = acctInfo();
+ const settled = ai && ai.email && ai.verified && !ai.pendingEmail;
+ if(settled || _acctInfoAsked || !gkUser || !validChatSession()) return;
  _acctInfoAsked = true;
  apiAuthAuthed("me").then(function(res){ if(res.ok) acctInfoStore(res.j.user); }).catch(function(){});
 }
