@@ -271,8 +271,16 @@ html[data-theme="light"] .ico-sun{display:none}
 .morebtn{width:100%;padding:9px 0;font-size:12px;font-weight:700;color:var(--dim);background:var(--card2)}
 
 /* ---------- modal ---------- */
-#modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;display:flex;align-items:flex-end;justify-content:center}
-@media(min-width:520px){#modal{align-items:center}}
+#modal,#tmfx{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;display:flex;align-items:flex-end;justify-content:center}
+@media(min-width:520px){#modal,#tmfx{align-items:center}}
+.tmadd{display:flex;gap:6px;align-items:center;min-width:0}
+.tmadd select{min-width:0;max-width:180px}
+.tmchips{display:flex;flex-wrap:wrap;gap:6px}
+.tmchips .chip .x{margin-inline-start:6px;opacity:.7;font-weight:900}
+.tmstrip{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none}
+.tmstrip:empty{display:none}
+.tmstrip .chip{flex:0 0 auto}
+.tmnote{font-size:11px;color:var(--dim);line-height:1.7;width:100%}
 /* ---------- match detail tabs (summary / line-ups / stats) ---------- */
 /* z-index 30 + opaque background: the pitch chips (z2) and rating badges (z4) used to paint
    straight over this bar while scrolling the sheet (owner screenshot) */
@@ -385,7 +393,7 @@ html[dir="rtl"] .tlside.r{text-align:right}
 /* overscroll-behavior:contain stops the scroll from chaining into the page behind the sheet
    (owner: "when I scroll down it sometimes scrolls the main page with me") */
 .mbox{background:var(--card);border:1px solid var(--line2);border-radius:18px 18px 0 0;width:100%;max-width:520px;max-height:82vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:18px 16px 26px}
-#modal,#playerCard,#authModal{overscroll-behavior:contain;touch-action:none}
+#modal,#tmfx,#playerCard,#authModal{overscroll-behavior:contain;touch-action:none}
 .mbox{touch-action:pan-y}
 /* while a sheet is open the page underneath must not move at all */
 body.gk-lock{overflow:hidden}
@@ -775,6 +783,8 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <div class="shrow"><span class="shlab" id="shAcct">الحساب</span><button type="button" class="lsegb" id="shAcctBtn" onclick="hdrAuthTap()">دخول</button></div>
   <div class="shrow mailrow hide" id="shMailRow"></div>
   <div class="shrow"><label class="shlab" for="clubSel" id="shClub">⭐ فريقك المفضل</label><select id="clubSel" onchange="setClubFromSel(this)"></select></div>
+  <div class="shrow"><label class="shlab" for="teamsSel" id="shTeams">📌 فرقي</label><span class="tmadd"><select id="teamsSel"></select><button type="button" class="lsegb" id="teamsAddB" onclick="addTeamFromSel()">+</button></span></div>
+  <div class="shrow tmchips" id="teamsChips"></div>
   <div class="shrow"><span class="shlab" id="shAlerts">🔔 التنبيهات</span><div class="seg" role="radiogroup" aria-labelledby="shAlerts"><button type="button" id="pushOffB" class="on" onclick="setPush(false)">OFF</button><button type="button" id="pushOnB" onclick="setPush(true)">ON</button></div></div>
   <div class="shrow pushlgs hide" id="pushLgRow"></div>
   <div class="shrow"><label class="shlab" for="tzSel" id="shTz">المنطقة الزمنية</label><select id="tzSel" onchange="setTZ(this.value)" aria-label="Time zone"></select></div>
@@ -791,6 +801,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
  <main>
   <section id="home">
    <div id="clubHero"></div>
+   <div id="teamStrip" class="tmstrip"></div>
    <div class="livestrip hide" id="liveStrip"></div>
    <div class="dwrap"><div class="dstrip" id="dstrip"></div></div>
    <div class="cnt" id="cnt"></div>
@@ -832,6 +843,9 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 
 <div id="modal" class="hide">
  <div class="mbox" id="mbox"></div>
+</div>
+<div id="tmfx" class="hide">
+ <div class="mbox" id="tmfxBox"></div>
 </div>
 
 <div id="playerCard" class="hide">
@@ -905,10 +919,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.50";
+const APP_VERSION = "6.51";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-24-v650";
+const FORCE_RELOAD = "2026-08-24-v651";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1246,6 +1260,11 @@ const STR = {
  noUpcoming:["تبدأ توقعات دوري أبطال أوروبا بعد انتهاء التصفيات وظهور مباريات مرحلة الدوري","Champions League predictions will begin after the UCL qualifiers finish and the league-phase fixtures appear"],
  alertsLab:["🔔 التنبيهات","🔔 Match alerts"],
  pushLeagues:["بطولات التنبيهات:","Alert leagues:"],
+ myTeamsLab:["📌 فرقي","📌 My teams"],
+ teamsMax:["الحد الأقصى ١٠ فرق","Maximum 10 teams"],
+ teamsNote:["تنبيهات مباريات هذه الفرق تصلك حتى لو دوريها مقفول · اضغط على الفريق لمشاهدة مبارياته القادمة","You get these teams' match alerts even if their league is toggled off · tap a team to see its upcoming fixtures"],
+ tmfxTtl:["المباريات القادمة","Upcoming fixtures"],
+ tmfxNone:["لا توجد مباريات خلال الشهر القادم","No fixtures in the next month"],
  pushDenied:["التنبيهات محظورة من إعدادات المتصفح","Notifications are blocked in the browser settings"],
  pushUnsupported:["متصفحك لا يدعم التنبيهات","Notifications are not supported in this browser"],
  pushIosInstall:["على الآيفون: ثبّت التطبيق أولًا (مشاركة ← إضافة إلى الشاشة الرئيسية) ثم فعّل التنبيهات من داخل التطبيق","On iPhone: install the app first (Share → Add to Home Screen), then enable alerts inside it"],
@@ -1644,6 +1663,8 @@ function refreshSettingsUI(){
  if(cl) cl.textContent = t("favClub");
  if(typeof refreshHdrAuth === "function") refreshHdrAuth();
  if(typeof buildClubOptions === "function") buildClubOptions($("clubSel"));
+ if(typeof buildClubOptions === "function") buildClubOptions($("teamsSel"));
+ try{ $("shTeams").textContent = t("myTeamsLab"); renderTeamChips(); }catch(_){}
 }
 function tickClock(){
  const el = $("clock");
@@ -3199,7 +3220,7 @@ function lockScroll(on){
    fully reachable — Tab walks straight out of an open sheet into the match list underneath. One
    trap at the lowest common layer, driven by the SAME topmost-sheet order Escape uses, so a new
    sheet inherits it for free. */
-const SHEET_IDS = ["modal", "playerCard", "authModal"];       /* base -> topmost */
+const SHEET_IDS = ["modal", "tmfx", "playerCard", "authModal"];       /* base -> topmost */
 function anySheetOpen(){
  return SHEET_IDS.some(id => { const el = $(id); return el && !el.classList.contains("hide"); });
 }
@@ -3415,6 +3436,7 @@ function closeModal(){
  hideSheet("modal");
 }
 $("modal").addEventListener("click", function(ev){ if(ev.target === this) closeModal(); });
+$("tmfx").addEventListener("click", function(ev){ if(ev.target === this) closeTeamFx(); });
 /* Escape closes ONLY the topmost sheet — one press must never dismiss two layers at once */
 document.addEventListener("keydown", function(ev){
  if(ev.key !== "Escape") return;
@@ -4409,6 +4431,114 @@ async function trackedClubIds(){
  return ids;
 }
 function clubLabel(c){ return c ? clubAr({shortDisplayName:c.s, displayName:c.n}) : t("noClub"); }
+
+/* ============ my teams: up to ten clubs, followed by name ============
+   The favourite club is ONE club and drives the hero card and the pinned live card. These are
+   the other teams somebody actually follows - a Trabzonspor away in Europe, a Celtic derby -
+   and they carry two powers: their matches ALERT even when their league's toggle is off, and
+   one tap lists their coming month across league, Europe and friendlies. */
+let myTeams = [];
+try{ myTeams = JSON.parse(localStorage.getItem("gk_my_teams") || "[]") || []; }catch(_){}
+if(!Array.isArray(myTeams)) myTeams = [];
+function myTeamIds(){ return myTeams.map(x => String(x.id)); }
+function saveMyTeams(){
+ try{ localStorage.setItem("gk_my_teams", JSON.stringify(myTeams)); }catch(_){}
+ renderTeamChips(); renderTeamStrip();
+ /* the alert targeting lives on the push subscription; refresh it quietly if there is one */
+ try{ savePushSub().catch(function(){}); }catch(_){}
+}
+function addTeamFromSel(){
+ const sel = $("teamsSel");
+ const c = sel && clubFromSelValue(sel.value);
+ if(!c) return;
+ if(myTeams.some(x => String(x.id) === String(c.id))) return;
+ if(myTeams.length >= 10) return toastMsg(t("teamsMax"));
+ myTeams.push(c); saveMyTeams();
+}
+function removeTeam(id){
+ myTeams = myTeams.filter(x => String(x.id) !== String(id));
+ saveMyTeams();
+}
+function renderTeamChips(){
+ const box = $("teamsChips");
+ if(!box) return;
+ box.innerHTML = myTeams.map(c =>
+  '<button type="button" class="chip on" onclick="openTeamFx(\'' + esc(c.id) + '\')">' + esc(clubLabel(c))
+  + '<span class="x" onclick="event.stopPropagation();removeTeam(\'' + esc(c.id) + '\')" aria-label="✕">✕</span></button>').join("")
+  + (myTeams.length ? '<span class="tmnote">' + esc(t("teamsNote")) + "</span>" : "");
+}
+function renderTeamStrip(){
+ const box = $("teamStrip");
+ if(!box) return;
+ box.innerHTML = myTeams.map(c =>
+  '<button type="button" class="chip" onclick="openTeamFx(\'' + esc(c.id) + '\')">📅 ' + esc(clubLabel(c)) + "</button>").join("");
+}
+
+/* ---- the coming month, across every competition the club is in ---- */
+const TMFX_SLUGS_EU = ["uefa.champions", "uefa.europa", "uefa.europa.conf", "club.friendly"];
+async function teamFixtures(c){
+ const key = "gk_tmfx2_" + c.id;
+ try{
+  const cached = JSON.parse(localStorage.getItem(key) || "null");
+  if(cached && Date.now() - cached.at < 6 * 3600000) return cached.rows;
+ }catch(_){}
+ const lg = LEAGUES.find(l => l.id === c.lg);
+ const slugs = (lg ? [lg.slug] : []).concat(TMFX_SLUGS_EU);
+ const seen = {}, rows = [];
+ const from = Date.now() - 6 * 3600000, to = Date.now() + 35 * 86400000;
+ await Promise.all(slugs.map(async slug => {
+  try{
+   /* ESPN's schedule endpoint answers with PLAYED matches by default; the coming ones only
+      exist behind ?fixture=true - without it every club "had no fixtures" for ever */
+   const j = await jget(API + slug + "/teams/" + encodeURIComponent(c.id) + "/schedule?fixture=true");
+   for(const e of (j && j.events) || []){
+    const d = Date.parse(e.date);
+    if(!(d >= from && d <= to) || seen[e.id]) continue;
+    seen[e.id] = 1;
+    const cs = (e.competitions && e.competitions[0] && e.competitions[0].competitors) || [];
+    const me = cs.find(x => x.team && String(x.team.id) === String(c.id)) || {};
+    const opp = cs.find(x => x !== me) || {};
+    rows.push({d: d, iso: e.date, home: me.homeAway === "home",
+               opp: opp.team ? clubArabic(opp.team) : (e.shortName || ""),
+               comp: (j.league && (LANG === "ar" ? null : j.league.name)) || slugComp(slug)});
+   }
+  }catch(_){ /* a competition the club is not in simply contributes nothing */ }
+ }));
+ rows.sort((a, b) => a.d - b.d);
+ try{ localStorage.setItem(key, JSON.stringify({at: Date.now(), rows: rows})); }catch(_){}
+ return rows;
+}
+function slugComp(slug){
+ if(slug === "uefa.champions") return LANG === "ar" ? "أبطال أوروبا" : "UCL";
+ if(slug === "uefa.europa") return LANG === "ar" ? "الدوري الأوروبي" : "UEL";
+ if(slug === "uefa.europa.conf") return LANG === "ar" ? "المؤتمر الأوروبي" : "UECL";
+ if(slug === "club.friendly") return LANG === "ar" ? "ودية" : "Friendly";
+ const lg = LEAGUES.find(l => l.slug === slug);
+ return lg ? lgShort(lg) : "";
+}
+async function openTeamFx(id){
+ const c = myTeams.find(x => String(x.id) === String(id)) || (myClub && String(myClub.id) === String(id) ? myClub : null);
+ if(!c) return;
+ $("tmfxBox").innerHTML = '<div class="mdload"><span class="spinner"></span>' + esc(t("loading")) + "</div>";
+ $("tmfx").classList.remove("hide");
+ sheetOpened($("tmfx"));
+ lockScroll(true);
+ let rows = [];
+ try{ rows = await teamFixtures(c); }catch(_){}
+ if($("tmfx").classList.contains("hide")) return;
+ let h = '<div class="mdhead"><b>' + esc(clubLabel(c)) + " · " + esc(t("tmfxTtl")) + '</b>'
+  + '<button type="button" class="mdx" onclick="closeTeamFx()" aria-label="✕">✕</button></div>';
+ if(!rows.length) h += '<div class="empty"><div class="big">🗓️</div>' + esc(t("tmfxNone")) + "</div>";
+ let lastDay = "";
+ for(const r of rows){
+  const k = dkey(new Date(r.iso));
+  if(k !== lastDay){ lastDay = k; h += '<div class="dhead">' + esc(fmtDayFull(k)) + "</div>"; }
+  h += '<div class="mrow"><span class="tm tmh" style="flex:1"><i>' + (r.home ? "🏠 " : "✈️ ") + esc(r.opp) + "</i></span>"
+   + '<span class="mid"><span class="msc" dir="ltr">' + esc(fmtTime(r.iso)) + '</span><span class="msub">' + esc(r.comp) + "</span></span></div>";
+ }
+ $("tmfxBox").innerHTML = h;
+}
+function closeTeamFx(){ hideSheet("tmfx"); }
 async function buildClubOptions(sel){
  if(!sel) return;
  const lgs = await ensureTeams();
@@ -4478,6 +4608,7 @@ async function saveClubToAccount(){
 }
 let _clubSched = null;
 async function renderClubHero(force){
+ try{ renderTeamStrip(); }catch(_){}
  const el = $("clubHero");
  if(!el) return;
  if(!myClub){ el.innerHTML = ""; return; }
@@ -5343,7 +5474,8 @@ async function savePushSub(subObj){
   const sub = subObj || await reg.pushManager.getSubscription();
   if(!sub) return false;
   const j = sub.toJSON();
-  const rec = { endpoint:j.endpoint, keys:j.keys, lgs:pushLgs, lang:LANG, uid:gkUser ? gkUser.uid : null, name:gkUser ? gkUser.username : null, ts:Date.now() };
+  const rec = { endpoint:j.endpoint, keys:j.keys, lgs:pushLgs, teams:myTeamIds().slice(0, 10),
+                lang:LANG, uid:gkUser ? gkUser.uid : null, name:gkUser ? gkUser.username : null, ts:Date.now() };
   for(let i = 0; i < 3; i++){
    try{
     const listR = await tdbRead(PUSH_SUBS_KEY, null);

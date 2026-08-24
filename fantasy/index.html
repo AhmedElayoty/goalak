@@ -49,6 +49,8 @@ body{
  overflow-x:hidden;
 }
 body.gk-lock{position:fixed;width:100%;overflow:hidden}
+/* gk-lock is position:fixed, which snaps the page behind the sheet to the top - the lock
+   helpers below pin the body at the scroll it had and hand it back on close */
 button,input,select{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 :focus-visible{outline:3px solid var(--fx-gold);outline-offset:2px;border-radius:6px}
 .hide{display:none !important}
@@ -598,6 +600,11 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
 .subslot .cc__nm{font-size:8.5px;inset-block-end:33px}
 /* a sub that actually came on: the fourth official's board, lit */
 .subslot.on .cc{border-color:var(--fx-pos)}
+/* ON THE POINTS PITCH the bench keeps the starter aspect: the shorter 1.32 card clipped the
+   score plate off the bottom at phone widths, so the bench showed names and no numbers */
+.dug--pts .subslot .cc{block-size:calc(var(--cw-sub) * 1.5);filter:saturate(.92) brightness(.96)}
+.dug--pts .subslot.on .cc{filter:none}
+.dug--pts .subslot .cc__nm{inset-block-end:36px}
 .subslot.on .camein{font-size:8.5px;font-weight:900;color:#08210F;background:var(--fx-pos);
  padding:1px 5px;border-radius:4px;text-shadow:none}
 
@@ -628,10 +635,6 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
 .sealbar b{color:var(--fx-gold)}
 .sealbar span{opacity:.9}
 .sealbar .btn{margin:0;inline-size:auto;padding:8px 14px;font-size:12.5px}
-.ccsub{position:absolute;inset-block-end:14px;inset-inline-start:50%;transform:translateX(-50%);
- z-index:3;padding:2px 7px;border-radius:8px;background:var(--fx-gold);color:#12060B;
- font-size:10px;font-weight:900;white-space:nowrap;pointer-events:none}
-[dir="rtl"] .ccsub{transform:translateX(50%)}
 .rndb__bar{margin-block-start:4px;block-size:3px;border-radius:2px;background:var(--fx-line-2);
  overflow:hidden}
 .rndb__fill{block-size:100%;background:linear-gradient(90deg,var(--fx-acc),var(--fx-gold))}
@@ -976,7 +979,7 @@ function seasonStarted(){ return Date.now() >= SEASON_OPENS_MS; }
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.50";
+const FX_BUILD = "6.51";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -2234,7 +2237,7 @@ function crestHtml(c){
   + ' loading="lazy" decoding="async" width="44" height="44"'
   + ' onerror="this.parentNode.remove()"></span>';
 }
-function cardHtml(c, withPoints, gw, slotIndex, capOverride){
+function cardHtml(c, withPoints, gw, slotIndex, capOverride, subX){
  const g = gw == null ? CURRENT_GW : gw;
  const m = simMatch(c.id, g);
  /* a sealed round's armband is the one it was SEALED with, not today's */
@@ -2248,7 +2251,11 @@ function cardHtml(c, withPoints, gw, slotIndex, capOverride){
     word is on the card's aria-label, where width costs nothing. */
  let l2, sign = "", ven = "";
  if(m.blank){
-  l2 = t("noMatch");
+  /* a covered blank says WHO stepped in and what they brought, where the score always goes */
+  if(withPoints && subX){
+   l2 = "\ud83d\udd01 " + subX.code + " " + signed(subX.pts);
+   sign = ' data-sign="' + signOf(subX.pts) + '"';
+  } else l2 = t("noMatch");
  }else if(withPoints){
   /* NOT PLAYED IS NOT ZERO. A pending match printed "0", which reads as "played and scored
      nothing" - the exact confusion between simulation and reality this build removes. */
@@ -2293,7 +2300,7 @@ function cardHtml(c, withPoints, gw, slotIndex, capOverride){
   + '<span class="cc__plate">'
   +  '<span class="cc__l1"><span class="cc__code" dir="ltr">' + esc(c.code) + "</span>"
   +   '<span class="cc__ven" dir="ltr">' + esc(ven) + "</span></span>"
-  +  '<span class="cc__l2"><span class="cc__fx"' + sign + ' dir="' + (m.blank ? "auto" : "ltr") + '">'
+  +  '<span class="cc__l2"><span class="cc__fx"' + sign + ' dir="' + ((m.blank && !(withPoints && subX)) ? "auto" : "ltr") + '">'
   +   esc(l2) + "</span></span>"
   + "</span></button>";
 }
@@ -2344,10 +2351,10 @@ function pitchHtml(withPoints, gw){
       : t("groundProgress", {n: ledger().length, of: GROUND_AT})) + "</div>"
   + '<div class="st__cards">';
  let i = 0;
- /* WHO CAME ON FOR WHOM, said on the pitch itself. The substitution has always been paid
-    correctly in the total, but the only trace of it was a small "came on" tag down in the
-    dugout - the blanked starter's card just said "no match \u00b7 0" and the owner read the round
-    as missing points. The covered card now names its substitute and the points it brought. */
+ /* WHO CAME ON FOR WHOM, said on the card itself. The first version floated a pill over the
+    slot - but the slot was never position:relative, so every pill anchored to the ROW and
+    they stacked mid-pitch, one visible and wrong-looking, the rest hidden beneath it. The
+    covered card's own score line now carries the substitute and the points it brought. */
  const resv = withPoints ? scoreGw(gw || CURRENT_GW) : null;
  const subOf = {};
  if(resv && resv.lineup) for(const row of resv.lineup) if(row.sub) subOf[row.id] = row.sub;
@@ -2377,8 +2384,8 @@ function pitchHtml(withPoints, gw){
    const sb = subOf[c.id];
    const sbc = sb ? CLUBS.find(x => x.id === sb.id) : null;
    h += '<div class="slot' + (swapFrom === i ? " armed" : "") + '"' + sh + '>'
-    + cardHtml(c, withPoints, gw, (withPoints || sealed) ? null : i, CAP)
-    + (sbc ? '<span class="ccsub" dir="ltr">🔁 ' + esc(sbc.code || "") + " +" + num(sb.m.pts) + "</span>" : "")
+    + cardHtml(c, withPoints, gw, (withPoints || sealed) ? null : i, CAP,
+               sbc ? {code: sbc.code || "", pts: sb.m.pts} : null)
     + '<span class="plinth"></span></div>';
   }
   h += "</div>";
@@ -2394,7 +2401,7 @@ function dugoutHtml(withPoints, gw, shared, sn){
  const bench = SQ.slice(START_SIZE);
  const res = withPoints ? scoreGw(gw) : null;
  shared = shared || new Set();
- let h = '<div class="dug" data-arm="' + (swapFrom !== null ? 1 : 0) + '">'
+ let h = '<div class="dug' + (withPoints ? " dug--pts" : "") + '" data-arm="' + (swapFrom !== null ? 1 : 0) + '">'
   + '<div class="dug__lab">' + esc(t("benchLab")) + '</div><div class="dug__row">';
  for(let i = 0; i < BENCH_SIZE; i++){
   const id = bench[i];
@@ -2505,7 +2512,13 @@ function centreGwChip(){
     scrollIntoView is the browser's own answer to exactly this question, and it also gets RTL
     right, which the arithmetic never did. */
  const el = $("gwc" + CURRENT_GW);
- if(el) try{ el.scrollIntoView({inline:"center", block:"nearest"}); }catch(_){ el.scrollIntoView(); }
+ if(!el) return;
+ /* centring the chip is a HORIZONTAL affair, but scrollIntoView also walks the PAGE
+    vertically to the strip - which is what yanked the manager back up to the scrubber every
+    time a sheet closed or the round repainted. Pin the page where it was. */
+ const y = window.scrollY || 0;
+ try{ el.scrollIntoView({inline:"center", block:"nearest"}); }catch(_){ el.scrollIntoView(); }
+ window.scrollTo(0, y);
 }
 function renderTeam(){
  const full = squad.length === SQUAD_SIZE;
@@ -3135,14 +3148,31 @@ function swapLabel(i){
 
 /* ---------------- sheets ---------------- */
 function clearArm(){ swapFrom = null; }
+let _lockY = 0;
+function lockBody(){
+ _lockY = window.scrollY || 0;
+ document.body.classList.add("gk-lock");
+ document.body.style.top = (-_lockY) + "px";
+}
+function unlockBody(){
+ document.body.classList.remove("gk-lock");
+ document.body.style.top = "";
+ window.scrollTo(0, _lockY);
+}
 function openSheet(html){
  clearArm();
  $("sheetBox").innerHTML = '<button type="button" class="sx" onclick="closeSheet()" aria-label="' + esc(t("done")) + '">✕</button>' + html;
  $("sheet").classList.remove("hide");
- document.body.classList.add("gk-lock");
+ lockBody();
  $("sheetBox").focus({preventScroll:true});
 }
-function closeSheet(){ clearArm(); $("sheet").classList.add("hide"); document.body.classList.remove("gk-lock"); render(); }
+function closeSheet(){
+ clearArm(); $("sheet").classList.add("hide"); unlockBody(); render();
+ /* render() rebuilds the view and the browser clamps the scroll while the page is short -
+    hand the position back after the paint too, so closing a club sheet does not teleport
+    the manager to the top of the pitch */
+ requestAnimationFrame(function(){ window.scrollTo(0, _lockY); });
+}
 $("sheet").addEventListener("click", e => { if(e.target === $("sheet")) closeSheet(); });
 
 /* One gate for every action that changes the team, so a new one cannot be added without
@@ -3161,7 +3191,7 @@ function openPicker(){
  pickFilter = "all";
  paintPicker();
  $("sheet").classList.remove("hide");
- document.body.classList.add("gk-lock");
+ lockBody();
 }
 function paintPicker(){
  const lgs = [{id:"all", ar:t("allLg"), en:t("allLg")}].concat(LEAGUES);
@@ -3565,7 +3595,7 @@ function openWizard(){
   tutMount();
  }
  $("wiz").classList.remove("hide");
- document.body.classList.add("gk-lock");
+ lockBody();
 }
 $("wizBox").addEventListener("click", function(e){
  const el = e.target.closest("[data-tut-act]");
@@ -3639,7 +3669,7 @@ function closeWizard(){
     resets on load. Nobody had ever seen it. It plays when the pitch is first REVEALED. */
  _entryPlayed = false;
  $("wiz").classList.add("hide");
- document.body.classList.remove("gk-lock");
+ unlockBody();
  const built = squad.length >= SQUAD_SIZE;
  try{
   if(built){ localStorage.setItem("fx_onboarded", "1"); }
@@ -4002,8 +4032,13 @@ function cloudPush(now, wipe){
       the flapping 132/121 was this device's local state and the server's record disagreeing,
       each shown depending on which had painted last. After any push, they are the same thing. */
    if(r && r.fx && !wipe){
-    const mine = JSON.stringify({s:squad, c:captain, v:vice, ch:chipPlays});
-    const theirs = JSON.stringify({s:r.fx.squad, c:r.fx.cap||null, v:r.fx.vice||null, ch:r.fx.chips||[]});
+    /* THE GATE COMPARES HISTORY TOO. It used to check only the present (squad, armband,
+       chips, ledger) - so a device whose sealed rounds were still local ESTIMATES, with
+       everything else in sync, never adopted the server's real lineups and kept scoring its
+       own guess on the points page: the owner's PC said 121 while every leaderboard said 132. */
+    let sn = {}; try{ sn = JSON.parse(localStorage.getItem("fx_snap") || "{}") || {}; }catch(_){}
+    const mine = JSON.stringify({s:squad, c:captain, v:vice, ch:chipPlays, sn:sn});
+    const theirs = JSON.stringify({s:r.fx.squad, c:r.fx.cap||null, v:r.fx.vice||null, ch:r.fx.chips||[], sn:r.fx.snap||{}});
     if(mine !== theirs || JSON.stringify(ftLoad()) !== JSON.stringify(r.fx.ft)){
      fxApply(r.fx); paintChrome(); render();
     }
