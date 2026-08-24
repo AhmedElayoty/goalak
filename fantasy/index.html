@@ -976,7 +976,7 @@ function seasonStarted(){ return Date.now() >= SEASON_OPENS_MS; }
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.45";
+const FX_BUILD = "6.46";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -3988,7 +3988,22 @@ function cloudPush(now, wipe){
   if(wipe) snap.wipe = 1;                        /* the server refuses an empty squad without it */
   /* and nothing writes to textdb any more either: a write there is a stale record sitting
      in a store somebody may still read back over the top of the real one */
-  try{ await fxApi("/api/fx/set", {fx: snap}); fxClean(); fxSyncMark("saved"); }
+  try{
+   const r = await fxApi("/api/fx/set", {fx: snap});
+   fxClean();
+   /* THE SERVER MERGES EVERY WRITE FIELD BY FIELD and hands the merged record back - adopting
+      it here is what makes a stale device CONVERGE the moment it speaks, instead of fighting:
+      the flapping 132/121 was this device's local state and the server's record disagreeing,
+      each shown depending on which had painted last. After any push, they are the same thing. */
+   if(r && r.fx && !wipe){
+    const mine = JSON.stringify({s:squad, c:captain, v:vice, ch:chipPlays});
+    const theirs = JSON.stringify({s:r.fx.squad, c:r.fx.cap||null, v:r.fx.vice||null, ch:r.fx.chips||[]});
+    if(mine !== theirs || JSON.stringify(ftLoad()) !== JSON.stringify(r.fx.ft)){
+     fxApply(r.fx); paintChrome(); render();
+    }
+   }
+   fxSyncMark("saved");
+  }
   catch(_){ fxSyncFail(); }
   finally{ _pushing = false; }
  };
@@ -4099,7 +4114,10 @@ function fxAskSignIn(){
     and once after the pull so a fresh or stale device estimates any still-missing round from
     the squad the server just handed it rather than from whatever it happened to hold */
  snapBackfill();
- loadBoard();                    /* the table fills itself in the background */
+ /* FORCED, every open. "The score always refreshes when I open it - it only loads from the
+    server wherever I open it from" is the owner's requirement, verbatim, and a three-minute
+    cache serving the previous visit's rows is exactly what it forbids. */
+ loadBoard(true);                    /* the table fills itself in the background */
  let onboarded = "", hold = "";
  try{ onboarded = localStorage.getItem("fx_onboarded") || ""; }catch(_){}
  try{ hold = sessionStorage.getItem("fx_tut_hold") || ""; }catch(_){}
