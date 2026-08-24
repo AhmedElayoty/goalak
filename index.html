@@ -900,10 +900,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.46";
+const APP_VERSION = "6.47";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-24-v646";
+const FORCE_RELOAD = "2026-08-24-v647";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -2099,14 +2099,21 @@ function cairoMinuteKey(iso){
 function safeTvUrl(value){ return /^https:\/\//i.test(String(value || "")) ? String(value) : ""; }
 function broadcastFor(e, lg){
  if(!e || !lg || !isMenaBroadcastRegion()) return null;
- const pack = broadcastCache[dkey(new Date(e.date))];
- if(!pack) return null;
+ /* THE SOURCE LISTS BY CAIRO DATE, THE CACHE IS KEYED BY THE VIEWER'S. A 00:30 Gulf kick-off
+    is a 23:30 fixture on the previous Cairo day, so the listing that names its channel lives
+    in the NEIGHBOURING day's pack. Scan the match's own day first, then the days either side -
+    the best name+time score across all three decides, same threshold as before. */
+ const d0 = dkey(new Date(e.date));
+ const packs = [d0, addDaysKey(d0, -1), addDaysKey(d0, 1)]
+   .map(d => broadcastCache[d]).filter(Boolean);
+ if(!packs.length) return null;
+ const pack = packs[0];
  const comp = e.competitions && e.competitions[0] || {}, cs = comp.competitors || [];
  const H = cs.find(c => c.homeAway === "home") || cs[0] || {};
  const A = cs.find(c => c.homeAway === "away") || cs[1] || {};
  const home = clubArabic(H.team || {}), away = clubArabic(A.team || {}), cairo = cairoMinuteKey(e.date);
  let best = null, bestScore = -1;
- for(const m of pack.matches){
+ for(const m of packs.flatMap(p => p.matches)){
   if(m.leagueId && m.leagueId !== lg.id) continue;
   const nameScore = tvNameScore(home, m.home) + tvNameScore(away, m.away);
   if(nameScore < 5) continue;
@@ -2924,7 +2931,7 @@ function rtTrimM(m){ const o = {}; for(const k of RT_KEEP) if(m && m[k] != null)
 function rtSave(id, byId, motm){
  const b = {};
  for(const pid in byId){ const p = byId[pid]; b[pid] = {rating:p.rating, c:p.c, name:p.name, pos:p.pos, team:p.team, m:rtTrimM(p.m)}; }
- const payload = {byId:b, motm: motm ? {pid:motm.pid, name:motm.name, team:motm.team, rating:motm.rating, c:motm.c, m:rtTrimM(motm.m)} : null};
+ const payload = {at: Date.now(), byId:b, motm: motm ? {pid:motm.pid, name:motm.name, team:motm.team, rating:motm.rating, c:motm.c, m:rtTrimM(motm.m)} : null};
  try{ localStorage.setItem("gk_rt1_" + id, JSON.stringify(payload)); }
  catch(_){ try{ Object.keys(localStorage).filter(k => k.indexOf("gk_rt1_") === 0).forEach(k => localStorage.removeItem(k)); localStorage.setItem("gk_rt1_" + id, JSON.stringify(payload)); }catch(__){} }
 }
@@ -2934,10 +2941,20 @@ async function loadRatings(eid){
  try{
   const c = localStorage.getItem("gk_rt1_" + eid);
   if(c){ const d = JSON.parse(c); if(d && d.byId && Object.keys(d.byId).length){
+   /* A RATING SAVED AT THE WHISTLE IS PROVISIONAL. ESPN's stat feed keeps settling for a
+      while after full time, and this cache was permanent - so a rating computed one minute
+      into full time froze at the incomplete numbers for ever. A copy saved within three
+      hours of kick-off is re-computed on the next look a quarter-hour later; the fresh
+      result overwrites it and THAT copy is final. */
+   const ev0 = EV_INDEX[eid];
+   const ko0 = ev0 ? Date.parse(ev0.date) : 0;
+   const provisional = d.at && ko0 && (d.at - ko0) < 3 * 3600000 && (Date.now() - d.at) > 15 * 60000;
+   if(!provisional){
    let m = (d.motm && d.motm.pid) ? d.motm : null;
    if(!m) Object.keys(d.byId).forEach(pid => { const x = d.byId[pid]; if(x.name && (!m || x.rating > m.rating)) m = {pid:pid, name:x.name, team:x.team, rating:x.rating, m:x.m, c:x.c}; });
    return (_ratings[eid] = {ready:true, byId:d.byId, motm:m});
-  } }
+   } }
+  }
  }catch(_){}
  const e = EV_INDEX[eid];
  if(!e || evState(e) !== "post") return null;          /* full-time only */
@@ -4083,7 +4100,29 @@ function predResultRow(e){
   '<span class="tm tma">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span>" +
   "</div></div></div>";
 }
+/* A REPAINT MUST NEVER EAT WHAT SOMEBODY IS TYPING. The tab refreshes on a timer and on
+   every return to the app, and each refresh rebuilt the list wholesale - so a manager who had
+   typed 2 and 1 and paused to think got both fields blanked under their fingers, then a
+   "bad score" toast when they pressed save. Typed values and the caret now survive the paint. */
+function predInputsSave(){
+ const out = {vals:{}, focus:null, selStart:0};
+ try{
+  document.querySelectorAll(".pinp").forEach(function(i){
+   if(i.value) out.vals[i.id] = i.value;
+   if(i === document.activeElement){ out.focus = i.id; out.selStart = i.selectionStart; }
+  });
+ }catch(_){}
+ return out;
+}
+function predInputsRestore(st){
+ if(!st) return;
+ try{
+  for(const id in st.vals){ const i = $(id); if(i && !i.value) i.value = st.vals[id]; }
+  if(st.focus){ const f = $(st.focus); if(f){ f.focus(); try{ f.setSelectionRange(st.selStart, st.selStart); }catch(_){} } }
+ }catch(_){}
+}
 function renderPredMatches(){
+ const _typed = predInputsSave();
  const body = $("predBody");
  if(!predCache.at){ body.innerHTML = '<div class="skel"><span class="spinner"></span>' + esc(t("loading")) + "</div>"; return; }
  let h = "", lastDay = 0;
@@ -4100,6 +4139,7 @@ function renderPredMatches(){
   for(const e of done) h += predResultRow(e);
  }
  body.innerHTML = h;
+ predInputsRestore(_typed);
 }
 async function submitPredGk(eid, btn){
  if(!gkUser) return openAuth("C");
@@ -5319,7 +5359,12 @@ setInterval(function(){
     .then(function(){ try{ buildTopClubsBucket(d); }catch(_){} })))
    .then(function(){ if(view === "home" && mainView === "scores"){ renderLiveStrip(); paintHome(); } });
  }
- else if(view === "lg" && lgTab === "M") renderLgMatches();
+ else if(view === "lg"){
+  if(lgTab === "M") renderLgMatches();
+  /* a manager parked on the TABLE after full time deserves the new standings without
+     re-entering the tab; renderTable throttles itself to one fetch per two minutes */
+  else if(lgTab === "T") renderTable();
+ }
 }, 25000);
 document.addEventListener("visibilitychange", function(){
  if(document.hidden) return;

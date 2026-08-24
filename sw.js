@@ -1,5 +1,6 @@
 /* Goallak service worker
    CACHE changelog (bump on EVERY deploy, newest first):
+   goalak-v101 2026-08-24  v6.47 THE PREDICTIONS HARDENED BEFORE THE BALL ROLLS, plus the weekend sweep's last minors. The owner said it plainly: the World Cup app never had these problems, make sure predictions do not either. Three defects found and fixed before the Champions League starts. (1) TYPING NOW SURVIVES THE REPAINT - the tab rebuilds itself every ninety seconds, and anyone half-way through typing 2-1 had both fields blanked under their fingers; typed values and the caret are captured before every rebuild and restored after. (2) THE PHANTOM PUSH IS DEAD - the "predictions are open" notification keyed on the league FAMILY id, which qualifiers share with the real competition, so an August qualifier pushed everyone to an empty tab; it now keys on the exact competition slug. (3) NIGHT REMINDERS ARE DELAYED, NOT DROPPED - a lock reminder whose one-hour band fell overnight was skipped for ever; each mark now has a catch-up band to the next natural boundary, still one send per the ledger. And the sweep minors: the league TABLE refreshes on the tick for anyone parked on it at full time; the TV channel lookup scans the neighbouring day's listing, because the source lists by Cairo date and a 00:30 Gulf kick-off lives on the previous Cairo day; a player rating computed at the whistle is provisional and re-computed once the stat feed settles, instead of freezing incomplete numbers for ever; the phantom free transfer banked by a boot-time rollover flip is returned when the flip is detected; the push dedupe ledger is three times deeper so a busy weekend cannot evict a reminder whose band is still open; and a closed live match card STAYS closed - push delivery is unordered, so an update queued a tick before full time could arrive after the closing push and re-pin a frozen 90th-minute score; kills are now remembered for a quarter-hour and a resurrected card is closed in the same breath.
    goalak-v100 2026-08-24  v6.46 THE FIELD-LEVEL MERGE, BUILT - the owner called out the deferral and he was right to. Every fx write is now merged against the stored record under one rule per field class, each derived from what the field MEANS. THE PRESENT (squad, captain, vice, team name, onboarding, working ledger) belongs to the fresher writer: a stale device cannot rewrite it, and a client clock hours ahead is clamped so it buys no priority. HISTORY (sealed snapshots, booked hits) is written once: a real snapshot is never replaced - an estimate may be upgraded to a real record even by a STALE writer, because history outranks recency - a booked hit keeps its first value, join never increases, and the join round can never carry a hit. INTENTS (chip plays) keep the fresher list, and a stale device may ADD a play it alone knows but never remove one: losing a cancel to a stale device costs one tap, losing a played Triple Captain is a ruined round. AND THE MERGED RECORD TRAVELS BACK in every push response, which is the definitive end of the owner's flapping 132/121: that flap was his phone's local state and the server record disagreeing, each painted depending on which loaded last. Now a device CONVERGES the moment it speaks - push, receive the merge, adopt it - and the standings are forced fresh from the server on every open, never served from the previous visit's cache. fxmerge.test.mjs drives the real exported function through 18 assertions, including a replay of the returning -28 and the two-device Triple Captain race.
    goalak-v99  2026-08-24  v6.45 THE SWEEP CAUGHT MY OWN FIX BEING DEAD CODE, AND THE OWNER'S FALLING SCORE EXPLAINED. His 132 -> 102: the points tab applies his Triple Captain (x3) while the standings never applied CHIPS at all (x2) - two numbers for the same round, one tab apart - and his round is simply not over (Barcelona plays AGAIN on the 27th, Deportivo's match pending), so the verified-against-ESPN 102 will rise. The board now scores every row exactly as the points screen does: sealed lineup plus the round's chip, carried on the standings endpoint. THE BARCELONA FIX WAS DEAD ON ARRIVAL: the 90-second staleness rule lived inside ensureSummary and every caller short-circuited on the raw cache, so it never ran once a summary existed - and nothing repainted an open sheet anyway. Every reader now goes through the gate, and an open sheet on a live match repaints with the 25-second tick: score, clock, line-ups, substitutions. THE FANTASY LIVE ROUND REFRESHED ONLY ACROSS FULL RELOADS: the in-memory fixture guard never expired, so the ten-minute TTL was reachable only at page open - an app kept open through Saturday showed hourglasses from kick-off to the final whistles under a note promising refreshes. The round in play now re-fetches every two minutes while the page is visible, and on every return to the app. AND THE HERO CARD WAS CLOBBERING REALITY: it wrote its up-to-six-hour-old snapshot over the fresh event index on every repaint, so tapping the favourite club's LIVE match opened a sheet saying 'not started' with a countdown. Register, never overwrite. Plus: a club changed on one device now reaches the others through the account response that always carried it; the standings cache dies on sign-out and owner-switch; your own board row takes its name from the same record as everyone else's.
    goalak-v98  2026-08-24  v6.44 THE DAMAGE KEPT COMING BACK, BECAUSE A STALE SESSION KEPT PUSHING IT. An hour after yahianassef's ledger was repaired on the server, it was damaged again - join=2 and the phantom -28 - re-written by his own phone, whose open session had never pulled the repair and pushed its stale local ledger with every save. Repairing data a stale client can overwrite is not a repair. TWO INVARIANTS ARE NOW ENFORCED WHERE A STALE CLIENT CANNOT ARGUE, in the server's own write path, both derived from the game's laws: your JOIN round never increases (the first round you were ever in cannot get later), and your join round is a FREE build, so a hit charged against it is a contradiction and is dropped on sight. The record was repaired one final time BEHIND those guards; his session can push whatever it likes now. AND THE DAMAGED DEVICES HEAL THEMSELVES: the owner's PC showed HIM as zero while scoring everyone else - its local ledger still held Friday's join=2, and the normal pull could not fix it because a device with unsent changes skips the pull to protect them, which also protected the damage. The standings fetch is not blocked by that guard, so the healed server ledger now reconciles the local one there: join only ever travels DOWN, making the adoption always safe, and the free-round rule is mirrored locally in ftSync. Both damaged devices fix themselves on their next open, with nothing to tap.
@@ -98,7 +99,7 @@
    goalak-v2   2026-08-14  QA pass: WCup navy palette; precise shell matching vs SW scope; non-ok responses fall back to cached shell; redirected responses re-wrapped before use/caching; cache writes tied to event lifetime.
    goalak-v1   2026-08-14  v1.0 initial build: 7 leagues, all-leagues day view, league pages (matches / table / stats), AR/EN RTL.
 */
-const CACHE = "goalak-v100";
+const CACHE = "goalak-v101";
 /* top-clubs.js is a static DATA file (last season's top five per league + the ESPN competition-id
    map). It is cache-first like every other asset here, so it refreshes on the next CACHE bump —
    which is the right cadence: the club list only changes once a season. */
@@ -159,7 +160,16 @@ self.addEventListener("push", e => {
        follows left a frozen 90th-minute score behind for ever. */
     try {
       const shown = await self.registration.getNotifications();
-      if (d.close) for (const n of shown) if (n.tag === d.close) n.close();
+      if (d.close) {
+        for (const n of shown) if (n.tag === d.close) n.close();
+        /* remember the kill: push delivery is not ordered, and a live-card update queued a
+           tick before full time can arrive AFTER the closing push - re-pinning a frozen
+           90th-minute card for hours. The tombstone outlives the worker via the cache API. */
+        try {
+          const kc = await caches.open("gk-killed-cards");
+          await kc.put("/" + encodeURIComponent(d.close), new Response(String(Date.now())));
+        } catch (_) {}
+      }
       /* and a belt-and-braces sweep: any card older than three hours belongs to a match that
          finished while the phone was off, whose closing push has long since expired */
       const cut = Date.now() - 3 * 3600000;
@@ -170,7 +180,27 @@ self.addEventListener("push", e => {
         if (n.tag && n.tag.indexOf("card-") === 0 && n.timestamp && n.timestamp < cut) n.close();
       }
     } catch (_) { /* getNotifications is not everywhere; the card is still replaced by tag */ }
+    /* a push event must show SOMETHING or the browser shows its own generic notice - so a
+       resurrected card is shown silently and closed in the same breath: no buzz, no shade entry */
+    let resurrected = false;
+    if (opts.tag && opts.tag.indexOf("card-") === 0) {
+      try {
+        const kc = await caches.open("gk-killed-cards");
+        const hit = await kc.match("/" + encodeURIComponent(opts.tag));
+        if (hit) {
+          const t = Number(await hit.text()) || 0;
+          if (Date.now() - t < 15 * 60000) resurrected = true;
+          else await kc.delete("/" + encodeURIComponent(opts.tag));
+        }
+      } catch (_) {}
+    }
     await self.registration.showNotification(d.title || "Goallak", opts);
+    if (resurrected) {
+      try {
+        const ns = await self.registration.getNotifications({ tag: opts.tag });
+        for (const n of ns) n.close();
+      } catch (_) {}
+    }
   })());
 });
 

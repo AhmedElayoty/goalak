@@ -976,7 +976,7 @@ function seasonStarted(){ return Date.now() >= SEASON_OPENS_MS; }
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.46";
+const FX_BUILD = "6.47";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -1672,6 +1672,12 @@ function ftSync(){
     definition moved earlier (a deploy, not a week passing): nothing closed, so nothing may be
     banked and nothing charged - reset the baseline and walk away. */
  if(v.gw && gwNow < v.gw){
+  /* AND THE PHANTOM BANK GOES BACK. At boot, before the kick-off data arrives, the lock falls
+     back to the window-open time - so for a breath the live round reads one AHEAD, the forward
+     roll below fires and banks +1 as if a week had passed. This flip undid the round but kept
+     the free transfer it granted. Any hit the phantom roll booked is already erased by the
+     future-round sweep above. */
+  v.banked = Math.max(0, Math.min(FT_MAX, (v.banked || 1) - (v.gw - gwNow)));
   v.gw = gwNow; v.base = squad.slice(); ftSave(v);
   return v;
  }
