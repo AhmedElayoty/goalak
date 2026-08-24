@@ -34,5 +34,12 @@ eq(scorePredGk({h:1,a:1}, ev(1,1)), 3, "a first-leg draw with NO shootout is sti
 eq(scorePredGk({h:2,a:2}, ev(1,1)), 1, "and a different draw pick still pays the outcome");
 eq(scorePredGk({h:2,a:1}, ev(2,1,0,0)), 3, "zero-zero shootout fields mean no shootout (ESPN quirk)");
 
+/* the pens PICK - the WC toggle, ported */
+eq(scorePredGk({pens:1, w:"home"}, ev(1,1,4,2)), 3, "pens call + right winner pays full marks");
+eq(scorePredGk({pens:1, w:"home"}, ev(2,1)), 1, "right winner but decided in normal time pays 1");
+eq(scorePredGk({pens:1, w:"away"}, ev(1,1,4,2)), 0, "wrong pens winner pays 0");
+eq(scorePredGk({pens:1, w:"home"}, ev(1,1)), 0, "pens call on a genuine draw (a first leg) pays 0");
+eq(scorePredGk({pens:1, w:"away"}, ev(0,2)), 1, "pens call still pays the outcome point on a plain away win");
+
 console.log(fail ? "FAILED  " + fail + " of " + (pass + fail) : "PASSED  " + pass + " assertions, 0 failures");
 process.exit(fail ? 1 : 0);

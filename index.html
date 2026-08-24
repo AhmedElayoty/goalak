@@ -524,6 +524,11 @@ html[data-theme="light"] .bnav{background:linear-gradient(180deg,#ffffff,#e8edf8
 .pin{display:flex;align-items:center;gap:6px;justify-content:center}
 .pinp{width:44px;height:38px;text-align:center;font-size:17px;font-weight:900;background:var(--card2);border:1px solid var(--line2);border-radius:9px;color:var(--txt);font-family:inherit}
 .pdash{color:var(--dim2);font-weight:900}
+.pentog{margin-top:4px;padding:3px 10px;border-radius:8px;background:none;border:1px dashed var(--line2);color:var(--dim);font-size:11px;font-weight:700}
+.ppq{font-size:11.5px;font-weight:800;color:var(--gold)}
+.ppr{display:flex;gap:6px;justify-content:center;margin:4px 0}
+.ppw{padding:5px 10px;border-radius:9px;background:var(--card2);border:1px solid var(--line2);color:var(--txt);font-size:12px;font-weight:800;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ppw.on{background:var(--accdark);border-color:var(--acc);color:#fff}
 .pgo{margin-top:5px;padding:5px 18px;border-radius:9px;background:var(--accdark);border:1px solid var(--acc);color:#fff;font-size:12.5px;font-weight:800}
 .mypick{font-size:18.5px;font-weight:900;color:var(--gold)}
 .mypick.dimd{color:var(--dim2)}
@@ -900,10 +905,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.49";
+const APP_VERSION = "6.50";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-24-v649";
+const FORCE_RELOAD = "2026-08-24-v650";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1234,6 +1239,9 @@ const STR = {
  recentResults:["نتائج التوقعات الأخيرة","Recent prediction results"],
  lbEmpty:["لا يوجد لاعبون بعد · كن أول من يسجل!","No players yet · be the first!"],
  exactLabel:["نتائج مضبوطة:","Exact:"],
+ pensToggle:["\u26bd \u0647\u062a\u062a\u062d\u0633\u0645 \u0628\u0631\u0643\u0644\u0627\u062a \u0627\u0644\u062a\u0631\u062c\u064a\u062d\u061f \u062a\u0648\u0642\u0651\u0639 \u0627\u0644\u0641\u0627\u0626\u0632","\u26bd Going to pens? Pick the winner"],
+ pensBack:["\u21a9 \u062a\u0648\u0642\u0651\u0639 \u0646\u062a\u064a\u062c\u0629 \u0639\u0627\u062f\u064a\u0629","\u21a9 Predict a scoreline instead"],
+ pensWho:["\u0645\u0646 \u064a\u0641\u0648\u0632 \u0628\u0631\u0643\u0644\u0627\u062a \u0627\u0644\u062a\u0631\u062c\u064a\u062d\u061f","Who wins on penalties?"],
  scoringRule:["النتيجة المضبوطة 3 نقاط · الاتجاه الصحيح نقطة واحدة · توقع واحد لكل مباراة · القفل قبل البداية بنصف ساعة · الأدوار الإقصائية تُحسب على نتيجة الـ120 دقيقة وفائز الترجيح هو فائز المباراة","Exact score 3 pts · correct outcome 1 pt · one prediction per match · locks 30 min before kickoff · knockouts score on the 120-minute result and a shootout winner is the match winner"],
  noUpcoming:["تبدأ توقعات دوري أبطال أوروبا بعد انتهاء التصفيات وظهور مباريات مرحلة الدوري","Champions League predictions will begin after the UCL qualifiers finish and the league-phase fixtures appear"],
  alertsLab:["🔔 التنبيهات","🔔 Match alerts"],
@@ -4009,7 +4017,21 @@ async function loadPredData(force){
  try{ await p; } finally { if(_predInflight === p) _predInflight = null; }
 }
 function predLocked(e){ return Date.now() > (new Date(e.date).getTime() - 30 * 60000); }
-function pickTxt(pred){ return LANG === "ar" ? (pred.a + " - " + pred.h) : (pred.h + " - " + pred.a); }
+function pickTxt(pred, e){
+ if(pred && pred.pens){
+  /* a pens pick is a NAME, not a scoreline */
+  let nm = "";
+  if(e){ const cs = (e.competitions && e.competitions[0] || {}).competitors || [];
+   const T = cs.find(c => c.homeAway === pred.w); if(T) nm = teamName(T); }
+  return "\u26bd " + nm + (LANG === "ar" ? " \u0628\u0631\u0643\u0644\u0627\u062a \u0627\u0644\u062a\u0631\u062c\u064a\u062d" : " on pens");
+ }
+ return LANG === "ar" ? (pred.a + " - " + pred.h) : (pred.h + " - " + pred.a);
+}
+/* the pens-pick working state: which cards are in pens mode and which side is chosen.
+   Plain objects, module level - they survive the 90-second repaint by construction. */
+let predPenMode = {}, predPenPick = {};
+function togglePens(eid){ predPenMode[eid] = !predPenMode[eid]; renderPredMatches(); }
+function penPick(eid, w){ predPenPick[eid] = w; renderPredMatches(); }
 function scorePredGk(pred, e){
  const comp = e.competitions && e.competitions[0] || {};
  const cs = comp.competitors || [];
@@ -4026,6 +4048,14 @@ function scorePredGk(pred, e){
     February: the league phase cannot go to extra time. */
  const so = H.shootoutScore != null && A.shootoutScore != null
          && (+H.shootoutScore !== 0 || +A.shootoutScore !== 0);
+ if(pred.pens){
+  /* the WC pens PICK: full marks if it went to penalties AND the named side won them;
+     the outcome point if the named side won but it was decided in normal or extra time */
+  const winner = so ? (+H.shootoutScore > +A.shootoutScore ? "home" : "away")
+                    : (rh > ra ? "home" : ra > rh ? "away" : null);
+  if(so && pred.w === winner) return 3;
+  return pred.w === winner ? 1 : 0;
+ }
  if(!so && pred.h === rh && pred.a === ra) return 3;
  const sg = x => x > 0 ? 1 : x < 0 ? -1 : 0;
  const win = so ? (+H.shootoutScore > +A.shootoutScore ? 1 : -1) : sg(rh - ra);
@@ -4078,17 +4108,30 @@ function predCard(e){
  const locked = predLocked(e) || evState(e) !== "pre";
  let mid;
  if(mine){
-  mid = '<span class="mypick" dir="ltr">' + esc(pickTxt(mine)) + '</span><span class="msub">' + esc(t("yourPick")) + "</span>";
+  mid = '<span class="mypick" dir="auto">' + esc(pickTxt(mine, e)) + '</span><span class="msub">' + esc(t("yourPick")) + "</span>";
  } else if(locked){
   mid = '<span class="mypick dimd">–</span><span class="msub">' + esc(t("lockedNoPick")) + "</span>";
  } else if(!gkUser){
   mid = '<button type="button" class="pgo" onclick="openAuth(\'C\')">' + esc(t("joinShort")) + "</button>";
  } else {
-  const inH = '<input class="pinp" inputmode="numeric" pattern="[0-9]*" maxlength="2" id="ph_' + esc(e.id) + '" aria-label="' + esc(t("homeLab")) + '">';
-  const inA = '<input class="pinp" inputmode="numeric" pattern="[0-9]*" maxlength="2" id="pa_' + esc(e.id) + '" aria-label="' + esc(t("awayLab")) + '">';
-  const pair = LANG === "ar" ? (inA + '<span class="pdash">-</span>' + inH) : (inH + '<span class="pdash">-</span>' + inA);
-  mid = '<span class="pin" dir="ltr">' + pair + "</span>" +
-   '<button type="button" class="pgo" data-eid="' + esc(e.id) + '" onclick="submitPredGk(this.dataset.eid, this)">' + esc(t("saveBtn")) + "</button>";
+  /* THE PENS PICK, from the WC app. Offered only where a shootout is possible: the knockout
+     phase (February onward) and never a FIRST leg, which cannot end on penalties. The league
+     phase sees nothing. */
+  const penable = Date.parse(e.date) >= Date.UTC(2027, 1, 1) && !(comp.leg && +comp.leg.value === 1);
+  if(penable && predPenMode[e.id]){
+   const sel = predPenPick[e.id] || "";
+   const wbtn = (w, T) => '<button type="button" class="ppw' + (sel === w ? " on" : "") + '" data-eid="' + esc(e.id) + '" data-w="' + w + '" onclick="penPick(this.dataset.eid, this.dataset.w)">' + esc(teamName(T)) + "</button>";
+   mid = '<span class="ppq">' + esc(t("pensWho")) + '</span><span class="ppr">' + wbtn("home", H) + wbtn("away", A) + "</span>" +
+    '<button type="button" class="pgo" data-eid="' + esc(e.id) + '" onclick="submitPredGk(this.dataset.eid, this)">' + esc(t("saveBtn")) + "</button>" +
+    '<button type="button" class="pentog" data-eid="' + esc(e.id) + '" onclick="togglePens(this.dataset.eid)">' + esc(t("pensBack")) + "</button>";
+  } else {
+   const inH = '<input class="pinp" inputmode="numeric" pattern="[0-9]*" maxlength="2" id="ph_' + esc(e.id) + '" aria-label="' + esc(t("homeLab")) + '">';
+   const inA = '<input class="pinp" inputmode="numeric" pattern="[0-9]*" maxlength="2" id="pa_' + esc(e.id) + '" aria-label="' + esc(t("awayLab")) + '">';
+   const pair = LANG === "ar" ? (inA + '<span class="pdash">-</span>' + inH) : (inH + '<span class="pdash">-</span>' + inA);
+   mid = '<span class="pin" dir="ltr">' + pair + "</span>" +
+    '<button type="button" class="pgo" data-eid="' + esc(e.id) + '" onclick="submitPredGk(this.dataset.eid, this)">' + esc(t("saveBtn")) + "</button>" +
+    (penable ? '<button type="button" class="pentog" data-eid="' + esc(e.id) + '" onclick="togglePens(this.dataset.eid)">' + esc(t("pensToggle")) + "</button>" : "");
+  }
  }
  return '<div class="lgsec"><div class="lgbody"><div class="mrow prow">' +
   '<span class="tm tmh"><i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + "</span>" +
@@ -4103,7 +4146,7 @@ function predResultRow(e){
  const mine = myPreds[e.id];
  const pts = mine ? scorePredGk(mine, e) : null;
  let sub = mine
-  ? esc(t("yourPick")) + ' <span dir="ltr">' + esc(pickTxt(mine)) + "</span> · " + (pts === 3 ? "🎯 +3" : pts === 1 ? "✅ +1" : "0")
+  ? esc(t("yourPick")) + ' <span dir="auto">' + esc(pickTxt(mine, e)) + "</span> · " + (pts === 3 ? "🎯 +3" : pts === 1 ? "✅ +1" : "0")
   : esc(t("noPick"));
  /* how the match was decided, said where the points are judged - same idiom as the match rows */
  const sh = shootTxt(H, A);
@@ -4160,9 +4203,16 @@ async function submitPredGk(eid, btn){
  const e = EV_INDEX[eid];
  if(!e) return;
  if(predLocked(e) || evState(e) !== "pre"){ toastMsg(t("lockedNow")); renderPredMatches(); return; }
- const hv = $("ph_" + eid), av = $("pa_" + eid);
- const h = parseInt(hv && hv.value, 10), a = parseInt(av && av.value, 10);
- if(!(h >= 0 && h <= 20) || !(a >= 0 && a <= 20)) return toastMsg(t("badScore"));
+ const pensMode = !!predPenMode[eid];
+ let h = NaN, a = NaN, w = null;
+ if(pensMode){
+  w = predPenPick[eid];
+  if(w !== "home" && w !== "away") return toastMsg(t("pensWho"));
+ } else {
+  const hv = $("ph_" + eid), av = $("pa_" + eid);
+  h = parseInt(hv && hv.value, 10); a = parseInt(av && av.value, 10);
+  if(!(h >= 0 && h <= 20) || !(a >= 0 && a <= 20)) return toastMsg(t("badScore"));
+ }
  if(myPreds[eid]) return renderPredMatches();
  if(!validChatSession()){
   try{ await renewStoredChatSession(); }catch(_){}
@@ -4182,7 +4232,7 @@ async function submitPredGk(eid, btn){
   try{
    const r = await fetch(CHAT_API + "/api/pred/set", {
     method:"POST", headers:predAuthHeaders(), cache:"no-store",
-    body:JSON.stringify({pred:{n:gkUser.username, p:{[eid]:{h:h, a:a}}}})
+    body:JSON.stringify({pred:{n:gkUser.username, p:{[eid]: pensMode ? {pens:1, w:w} : {h:h, a:a}}}})
    });
    const j = await r.json().catch(() => ({}));
    if(r.ok && j.ok && j.pred && j.pred.p){ ok = true; landedAll = j.pred.p; }
@@ -4196,8 +4246,11 @@ async function submitPredGk(eid, btn){
  if(!ok) return toastMsg(t("authSaveFail"));
  myPreds = landedAll;
  try{ localStorage.setItem("gk_preds", JSON.stringify(myPreds)); }catch(_){}
+ delete predPenMode[eid]; delete predPenPick[eid];
  const landed = myPreds[eid];
- toastMsg(landed && (landed.h !== h || landed.a !== a) ? t("alreadyPicked") : t("savedOk"));
+ const same = landed && (landed.pens ? (pensMode && landed.w === w)
+                                     : (!pensMode && landed.h === h && landed.a === a));
+ toastMsg(same ? t("savedOk") : t("alreadyPicked"));
  renderPredMatches();
 }
 let lbCache = {at:0, rows:null};
