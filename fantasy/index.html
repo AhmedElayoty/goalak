@@ -628,6 +628,10 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
 .sealbar b{color:var(--fx-gold)}
 .sealbar span{opacity:.9}
 .sealbar .btn{margin:0;inline-size:auto;padding:8px 14px;font-size:12.5px}
+.ccsub{position:absolute;inset-block-end:14px;inset-inline-start:50%;transform:translateX(-50%);
+ z-index:3;padding:2px 7px;border-radius:8px;background:var(--fx-gold);color:#12060B;
+ font-size:10px;font-weight:900;white-space:nowrap;pointer-events:none}
+[dir="rtl"] .ccsub{transform:translateX(50%)}
 .rndb__bar{margin-block-start:4px;block-size:3px;border-radius:2px;background:var(--fx-line-2);
  overflow:hidden}
 .rndb__fill{block-size:100%;background:linear-gradient(90deg,var(--fx-acc),var(--fx-gold))}
@@ -972,7 +976,7 @@ function seasonStarted(){ return Date.now() >= SEASON_OPENS_MS; }
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.42";
+const FX_BUILD = "6.43";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -2326,6 +2330,13 @@ function pitchHtml(withPoints, gw){
       : t("groundProgress", {n: ledger().length, of: GROUND_AT})) + "</div>"
   + '<div class="st__cards">';
  let i = 0;
+ /* WHO CAME ON FOR WHOM, said on the pitch itself. The substitution has always been paid
+    correctly in the total, but the only trace of it was a small "came on" tag down in the
+    dugout - the blanked starter's card just said "no match \u00b7 0" and the owner read the round
+    as missing points. The covered card now names its substitute and the points it brought. */
+ const resv = withPoints ? scoreGw(gw || CURRENT_GW) : null;
+ const subOf = {};
+ if(resv && resv.lineup) for(const row of resv.lineup) if(row.sub) subOf[row.id] = row.sub;
  /* a sealed round renders ITS lineup; only the open round renders the live squad */
  const sn = sealedSnap(gw || CURRENT_GW);
  const SQ = sn ? sn.sq : squad;
@@ -2349,8 +2360,11 @@ function pitchHtml(withPoints, gw){
      + '<span class="plinth"></span></div>';
     continue;
    }
+   const sb = subOf[c.id];
+   const sbc = sb ? CLUBS.find(x => x.id === sb.id) : null;
    h += '<div class="slot' + (swapFrom === i ? " armed" : "") + '"' + sh + '>'
     + cardHtml(c, withPoints, gw, (withPoints || sealed) ? null : i, CAP)
+    + (sbc ? '<span class="ccsub" dir="ltr">🔁 ' + esc(sbc.code || "") + " +" + num(sb.m.pts) + "</span>" : "")
     + '<span class="plinth"></span></div>';
   }
   h += "</div>";
@@ -2789,14 +2803,14 @@ function groundOf(){ return ledger().length >= GROUND_AT ? "clean" : "base"; }
    returns the table instead. Capped meanwhile, newest accounts first, and cached for a few
    minutes so opening the tab twice does not refetch. */
 const BOARD_MAX = 60, BOARD_TTL = 180000;
-let RIVAL_ROWS = [], _boardBusy = false;
+let RIVAL_ROWS = [], MY_ROW = null, _boardBusy = false;
 function boardCacheKey(){ return "fx_board"; }
 async function loadBoard(force){
  if(_boardBusy) return;
  const myKey = fxCloudKey(); if(!myKey) return;
  try{
   const c = JSON.parse(localStorage.getItem(boardCacheKey()) || "null");
-  if(!force && c && Date.now() - c.at < BOARD_TTL){ RIVAL_ROWS = c.rows || []; render(); return; }
+  if(!force && c && Date.now() - c.at < BOARD_TTL){ RIVAL_ROWS = c.rows || []; MY_ROW = c.mine || null; render(); return; }
  }catch(_){}
  _boardBusy = true;
  try{
@@ -2808,8 +2822,16 @@ async function loadBoard(force){
    RIVAL_ROWS = (j.managers || [])
      .filter(m => !me || m.uid !== me.uid)
      .map(m => ({name: m.name || m.mgr, mgr: m.mgr, squad: m.squad, cap: m.cap, vice: m.vice,
-                 paid: m.paid || null, join: m.join || 1}));
-   try{ localStorage.setItem(boardCacheKey(), JSON.stringify({at: Date.now(), rows: RIVAL_ROWS})); }catch(_){}
+                 paid: m.paid || null, join: m.join || 1, snap: m.snap || null}));
+   /* MY OWN ROW COMES FROM THE SAME PLACE. The table used to score me from LOCAL state and
+      everyone else from their server records - so the same leaderboard said different numbers
+      on the owner's phone and his PC, depending on which device had synced last. One source,
+      every device agrees. Local remains the fallback for the moment before the board loads. */
+   MY_ROW = (j.managers || []).find(m => me && m.uid === me.uid) || null;
+   if(MY_ROW) MY_ROW = {name: MY_ROW.name || MY_ROW.mgr, mgr: MY_ROW.mgr, squad: MY_ROW.squad,
+                        cap: MY_ROW.cap, vice: MY_ROW.vice, paid: MY_ROW.paid || null,
+                        join: MY_ROW.join || 1, snap: MY_ROW.snap || null};
+   try{ localStorage.setItem(boardCacheKey(), JSON.stringify({at: Date.now(), rows: RIVAL_ROWS, mine: MY_ROW})); }catch(_){}
    render(); return;
   }catch(_){ fxSyncFail(); }
   /* the per-manager walk over textdb went with the rest of the mirror: it read the same
@@ -2833,18 +2855,30 @@ function rivalPaid(r, gw){
  for(let g = 1; g <= gw; g++) h += (+paid[g] || 0);
  return h;
 }
+/* ONE SCORER FOR EVERY ROW. A row's history comes from ITS sealed snapshots when the record
+   carries them, falling back to the current squad only for managers who have not synced since
+   snapshots shipped - without this, a rival's past rounds were silently re-scored from
+   whatever team they hold today, the exact drift bug fixed for the viewer in v6.34. */
+function recSnapFor(r, gw){
+ const o = r && r.snap && typeof r.snap === "object" ? r.snap[String(gw)] : null;
+ return o && Array.isArray(o.sq) && o.sq.length === SQUAD_SIZE ? o : null;
+}
 function rivalSeasonTotal(r){
  if(!seasonStarted()) return 0;
  let t = 0;
  const from = Math.max(1, +r.join || 1), upto = playGw();
- for(let g = from; g <= upto; g++) t += resolveSquad(r.squad, r.cap, g, r.vice).total;
+ for(let g = from; g <= upto; g++){
+  const sn = recSnapFor(r, g);
+  t += (sn ? resolveSquad(sn.sq, sn.cap || null, g, sn.vc || null)
+           : resolveSquad(r.squad, r.cap, g, r.vice)).total;
+ }
  return t - rivalPaid(r, upto);
 }
 function boardRows(){
  return RIVAL_ROWS.map((r, i) => ({i: i, seed: null, name: r.name, mgr: r.mgr,
                                    s: rivalSeasonTotal(r), me: false}))
    .concat([{i: -1, seed: null, name: teamName(), mgr: managerName(),
-             s: seasonTotal(), me: true}])
+             s: MY_ROW ? rivalSeasonTotal(MY_ROW) : seasonTotal(), me: true}])
    .sort((a, b) => b.s - a.s);
 }
 /* WHICH ROUND, AND WHEN. The owner's words: "i want it clear which game week are we in and

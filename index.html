@@ -900,10 +900,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.42";
+const APP_VERSION = "6.43";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-21-v642";
+const FORCE_RELOAD = "2026-08-24-v643";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -2028,7 +2028,14 @@ async function loadDay(force){
  const p = (async () => {
   let anyFail = true;
   try{
-   const loaded = await Promise.all([fetchDayInto(day, force), fetchBroadcastInto(day, force), fetchExtrasInto(day, force), fetchTopClubsInto(day, force)]);
+   /* A MATCH THAT KICKED OFF AT 23:30 IS STILL RUNNING AT 00:30 - on yesterday's card. The
+      live set scans today AND yesterday, but only the selected day was ever FETCHED, so
+      opening the app just after midnight showed tomorrow's fixtures and "zero live" until the
+      user thought to tap the previous date themselves. Whenever today loads, yesterday loads
+      with it; the TTLs make the extra call nearly free. */
+   const alsoYd = day === todayKey() ? addDaysKey(day, -1) : null;
+   const loaded = await Promise.all([fetchDayInto(day, force), fetchBroadcastInto(day, force), fetchExtrasInto(day, force), fetchTopClubsInto(day, force)]
+     .concat(alsoYd ? [fetchDayInto(alsoYd, false), fetchBroadcastInto(alsoYd, false)] : []));
    /* loaded[3] is deliberately NOT folded into anyFail. If the cross-competition feed goes down the
       app must look EXACTLY as it did before this feature existed — and the stale bar is a visible
       change. The league list is what the warning is about; it is unaffected either way. */
@@ -2583,18 +2590,27 @@ function slugForEvent(e){
 async function ensureSummary(eid){
  const c = sumCache[eid];
  if(c && c.json){
+  const ev = EV_INDEX[eid];
+  const st = ev ? evState(ev) : "post";
   /* a PRE-match summary with no line-ups yet must not be cached forever: ESPN publishes the XI
      roughly an hour before kick-off, so re-check it every couple of minutes until it appears */
-  const ev = EV_INDEX[eid];
-  const pending = ev && evState(ev) === "pre" && !((c.json.rosters || []).some(r => (r.roster || []).length));
-  if(!(pending && Date.now() - c.at > 120000)) return c.json;
+  const pending = st === "pre" && !((c.json.rosters || []).some(r => (r.roster || []).length));
+  /* A LIVE MATCH IS NOT A DOCUMENT, and this cache treated it as one: fetched once - usually
+     before kick-off - and returned for ever after. The owner watched Barcelona with the
+     pre-match XI frozen on screen and not one substitution ever appearing. While the match is
+     in play the summary goes stale in ninety seconds; and a summary CAPTURED before full time
+     is refreshed once more after it, so the final card carries the finished match. */
+  const liveStale = st === "in" && Date.now() - c.at > 90000;
+  const closeOut = st === "post" && c.st && c.st !== "post";
+  if(!(pending && Date.now() - c.at > 120000) && !liveStale && !closeOut) return c.json;
  } else if(c && c.failed && Date.now() - c.at < 60000) return null;
  const e0 = EV_INDEX[eid];
  const slug = slugForEvent(e0);
  if(!slug){ sumCache[eid] = {at:Date.now(), failed:true}; return null; }
  try{
   const j = await jget(API + slug + "/summary?event=" + encodeURIComponent(eid));
-  sumCache[eid] = {at:Date.now(), json:j};
+  const e1 = EV_INDEX[eid];
+  sumCache[eid] = {at:Date.now(), json:j, st: e1 ? evState(e1) : "post"};
   return j;
  }catch(_){ sumCache[eid] = {at:Date.now(), failed:true}; return null; }
 }
