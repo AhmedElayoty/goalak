@@ -271,8 +271,14 @@ html[data-theme="light"] .ico-sun{display:none}
 .morebtn{width:100%;padding:9px 0;font-size:12px;font-weight:700;color:var(--dim);background:var(--card2)}
 
 /* ---------- modal ---------- */
-#modal,#tmfx{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;display:flex;align-items:flex-end;justify-content:center}
-@media(min-width:520px){#modal,#tmfx{align-items:center}}
+#modal,#tmfx,#promo{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;display:flex;align-items:flex-end;justify-content:center}
+@media(min-width:520px){#modal,#tmfx,#promo{align-items:center}}
+.pmin{text-align:center;padding:8px 6px 4px}
+.pmoji{font-size:40px;line-height:1;margin-bottom:8px}
+.pmin h2{font-size:18px;font-weight:900;margin:0 0 8px}
+.pmin p{font-size:13.5px;line-height:1.9;color:var(--dim);margin:0 0 14px}
+.pmgo{display:block;width:100%;padding:12px;border-radius:12px;background:var(--accdark);border:1px solid var(--acc);color:#fff;font-size:14px;font-weight:900}
+.pmlater{display:block;width:100%;margin-top:8px;padding:9px;border-radius:10px;background:none;border:none;color:var(--dim);font-size:12.5px;font-weight:700}
 .tmadd{display:flex;gap:6px;align-items:center;min-width:0}
 .tmadd select{min-width:0;max-width:180px}
 .tmchips{display:flex;flex-wrap:wrap;gap:6px}
@@ -284,10 +290,11 @@ html[data-theme="light"] .ico-sun{display:none}
 .tmstrip:empty{display:none}
 .tmstrip .chip{flex:0 0 auto}
 .tmnote{font-size:11px;color:var(--dim);line-height:1.7;width:100%}
-.tmfxrow{display:flex;align-items:center;gap:10px;padding:9px 4px;border-block-end:1px solid var(--line)}
+#tmfxBox .dhead{font-size:14.5px;font-weight:900;color:var(--txt)}
+.tmfxrow{display:flex;align-items:center;gap:10px;padding:10px 4px;border-block-end:1px solid var(--line)}
 .tmfxrow:last-child{border-block-end:none}
-.tmfxrow .crest,.tmfxrow .crestfb{width:28px;height:28px;flex:0 0 28px}
-.tmfxrow .tfo{flex:1;min-width:0;font-weight:800;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tmfxrow .crest,.tmfxrow .crestfb{width:32px;height:32px;flex:0 0 32px}
+.tmfxrow .tfo{flex:1;min-width:0;font-weight:900;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tmfxrow .tft{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
 .tmfxrow .tft .msub{font-size:10.5px;color:var(--dim)}
 /* ---------- match detail tabs (summary / line-ups / stats) ---------- */
@@ -402,7 +409,7 @@ html[dir="rtl"] .tlside.r{text-align:right}
 /* overscroll-behavior:contain stops the scroll from chaining into the page behind the sheet
    (owner: "when I scroll down it sometimes scrolls the main page with me") */
 .mbox{background:var(--card);border:1px solid var(--line2);border-radius:18px 18px 0 0;width:100%;max-width:520px;max-height:82vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:18px 16px 26px}
-#modal,#tmfx,#playerCard,#authModal{overscroll-behavior:contain;touch-action:none}
+#modal,#tmfx,#promo,#playerCard,#authModal{overscroll-behavior:contain;touch-action:none}
 .mbox{touch-action:pan-y}
 /* while a sheet is open the page underneath must not move at all */
 body.gk-lock{overflow:hidden}
@@ -856,6 +863,9 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <div id="tmfx" class="hide">
  <div class="mbox" id="tmfxBox"></div>
 </div>
+<div id="promo" class="hide">
+ <div class="mbox" id="promoBox"></div>
+</div>
 
 <div id="playerCard" class="hide">
  <div class="mbox pcbox" id="pcBox"></div>
@@ -928,10 +938,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.54";
+const APP_VERSION = "6.55";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-24-v654";
+const FORCE_RELOAD = "2026-08-24-v655";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1280,6 +1290,10 @@ const STR = {
  pushOnOk:["تم تفعيل التنبيهات ✅","Alerts enabled ✅"],
  pushKeepOne:["اختر بطولة واحدة على الأقل، أو أضف فرقًا في 📌 فرقي لتصلك تنبيهات فرقك فقط","Keep at least one league — or add teams under 📌 My teams to get team-only alerts"],
  pickTeamPh:["اختر فريقًا…","Choose a team…"],
+ promoTtl:["جديد: تابع فرقك المفضلة!","New: Follow your teams!"],
+ promoBody:["دلوقتي تقدر تختار لحد 10 فرق بتشجعها من أي دوري، وهيجيلك إشعار بكل حاجة في ماتشاتهم — الأجوان والبداية والنتيجة — حتى لو الدوري نفسه مقفول عندك. وبضغطة واحدة على الفريق تشوف جدول ماتشاته الجاية في كل البطولات.","You can now follow up to 10 clubs from any league and get an alert for everything in their matches — goals, kickoff and full-time — even if that league is switched off. One tap on a team also shows its upcoming fixtures across every competition."],
+ promoGo:["⚙ افتح الإعدادات واختار فرقك","⚙ Open Settings & pick your teams"],
+ promoLater:["بعدين","Later"],
  pushOffNote:["🔕 التنبيهات مقفولة على هذا الجهاز — شغّلها بالأعلى لتصلك تنبيهات فرقك","🔕 Alerts are OFF on this device — switch them ON above to get your teams' alerts"],
  alreadyPicked:["سبق أن توقعت هذه المباراة من جهاز آخر","You already predicted this match on another device"],
  fantasyNav:["فانتازي","Fantasy"],
@@ -2367,6 +2381,8 @@ function gotoLeague(id){
 window.addEventListener("popstate", function(){
  const pc = $("playerCard");
  if(pc && !pc.classList.contains("hide")){ _pcPid = null; hideSheet("playerCard"); return; }
+ const pm = $("promo");
+ if(pm && !pm.classList.contains("hide")){ hideSheet("promo"); return; }
  const tf = $("tmfx");
  if(tf && !tf.classList.contains("hide")){ hideSheet("tmfx"); return; }
  const modal = $("modal");
@@ -3233,7 +3249,7 @@ function lockScroll(on){
    fully reachable — Tab walks straight out of an open sheet into the match list underneath. One
    trap at the lowest common layer, driven by the SAME topmost-sheet order Escape uses, so a new
    sheet inherits it for free. */
-const SHEET_IDS = ["modal", "tmfx", "playerCard", "authModal"];       /* base -> topmost */
+const SHEET_IDS = ["modal", "tmfx", "promo", "playerCard", "authModal"];       /* base -> topmost */
 function anySheetOpen(){
  return SHEET_IDS.some(id => { const el = $(id); return el && !el.classList.contains("hide"); });
 }
@@ -3450,12 +3466,15 @@ function closeModal(){
 }
 $("modal").addEventListener("click", function(ev){ if(ev.target === this) closeModal(); });
 $("tmfx").addEventListener("click", function(ev){ if(ev.target === this) closeTeamFx(); });
+$("promo").addEventListener("click", function(ev){ if(ev.target === this) closeTeamsPromo(false); });
 /* Escape closes ONLY the topmost sheet — one press must never dismiss two layers at once */
 document.addEventListener("keydown", function(ev){
  if(ev.key !== "Escape") return;
  const pc = $("playerCard"), au = $("authModal");
  if(au && !au.classList.contains("hide")) return closeAuth();
  if(pc && !pc.classList.contains("hide")) return closePlayerCard();
+ const pm = $("promo");
+ if(pm && !pm.classList.contains("hide")) return closeTeamsPromo(false);
  const tf = $("tmfx");
  if(tf && !tf.classList.contains("hide")) return closeTeamFx();
  closeModal();
@@ -4585,6 +4604,43 @@ async function openTeamFx(id){
  }
  $("tmfxBox").innerHTML = h;
 }
+/* ============ the one-time "follow your teams" announcement ============
+   Shown once per device, in the reader's language, after the app has settled. Anyone who
+   already holds teams (synced from the account) obviously knows the feature and is spared. */
+function promoSeenKey(){ return "gk_seen_teams_promo_" + (gkUser && gkUser.uid ? gkUser.uid : "guest"); }
+function maybeTeamsPromo(){
+ try{
+  if(navigator.webdriver) return;                 /* QA harnesses must never see it */
+  /* an announcement is news for ONE WEEK; from 1 September it is furniture and it retires */
+  if(Date.now() > Date.UTC(2026, 7, 31, 23, 59)) return;
+  if(localStorage.getItem(promoSeenKey())) return;
+  if(myTeams.length){ localStorage.setItem(promoSeenKey(), "1"); return; }
+  setTimeout(showTeamsPromo, 1800);
+ }catch(_){}
+}
+function showTeamsPromo(){
+ if(anySheetOpen()){ setTimeout(showTeamsPromo, 5000); return; }   /* never stack over auth or a match sheet */
+ $("promoBox").innerHTML = '<div class="pmin"><div class="pmoji">📌🔔</div>'
+  + "<h2>" + esc(t("promoTtl")) + "</h2>"
+  + "<p>" + esc(t("promoBody")) + "</p>"
+  + '<button type="button" class="pmgo" onclick="closeTeamsPromo(true)">' + esc(t("promoGo")) + "</button>"
+  + '<button type="button" class="pmlater" onclick="closeTeamsPromo(false)">' + esc(t("promoLater")) + "</button></div>";
+ $("promo").classList.remove("hide");
+ sheetOpened($("promo"));
+ lockScroll(true);
+ try{ history.pushState({gkp:1}, ""); }catch(_){}
+ try{ localStorage.setItem(promoSeenKey(), "1"); }catch(_){}   /* shown once per username */
+}
+function closeTeamsPromo(go){
+ if($("promo").classList.contains("hide")) return;
+ if(history.state && history.state.gkp){ try{ history.back(); }catch(_){ hideSheet("promo"); } }
+ else hideSheet("promo");
+ if(go) setTimeout(function(){
+  showMain("set");
+  const el = $("teamsSel");
+  if(el) try{ el.scrollIntoView({block: "center"}); }catch(_){}
+ }, 80);
+}
 function closeTeamFx(){
  if($("tmfx").classList.contains("hide")) return;
  if(history.state && history.state.gkt){ try{ history.back(); return; }catch(_){} }
@@ -5689,6 +5745,15 @@ async function gkVersionCheck(){
     read ON - and the same for a uid or language that changed some other way. It is one cheap
     write against a record we already hold, and it is the only thing that heals a stale one. */
  setTimeout(function(){ try{ if(Notification && Notification.permission === "granted") savePushSub(); }catch(_){} }, 4000);
+ /* THE ACCOUNT IS RE-READ ON EVERY OPEN. acctInfoEnsure deliberately re-asks only while the
+    account is UNSETTLED (its subject is the email nudge) - which meant a settled account
+    never heard about anything changed from another device: the owner picked ten teams on
+    the PC and his phone kept showing none, for ever. One "me" per open; the response carries
+    the club and the teams and acctInfoStore adopts whatever differs. */
+ if(gkUser && validChatSession()){
+  apiAuthAuthed("me").then(function(res){ if(res.ok) acctInfoStore(res.j.user); }).catch(function(){});
+ }
+ maybeTeamsPromo();
  loadDay(false);
  syncMyPreds();
  refreshPushUI();
