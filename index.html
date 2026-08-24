@@ -939,10 +939,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.58";
+const APP_VERSION = "6.59";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-24-v658";
+const FORCE_RELOAD = "2026-08-24-v659";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -4551,11 +4551,15 @@ function renderTeamStrip(){
 }
 
 /* ---- the coming month, across every competition the club is in ---- */
-const TMFX_SLUGS_EU = ["uefa.champions", "uefa.europa", "uefa.europa.conf", "club.friendly"];
+/* the QUALIFYING rounds are separate competitions on the feed - the same split that once
+   sent "predictions open" pushes for qualifiers. A club fighting through August qualifiers
+   is exactly the club whose fans check the list, so the quals are queried too. */
+const TMFX_SLUGS_EU = ["uefa.champions", "uefa.champions_qual", "uefa.europa", "uefa.europa_qual",
+                       "uefa.europa.conf", "uefa.europa.conf_qual", "club.friendly"];
 async function teamFixtures(c){
  /* the rows are stored LOCALIZED, so the language is part of the key - a 6-hour cache must
     not answer an English screen in Arabic after a language switch */
- const key = "gk_tmfx3_" + c.id + "_" + LANG;
+ const key = "gk_tmfx4_" + c.id + "_" + LANG;
  try{
   const cached = JSON.parse(localStorage.getItem(key) || "null");
   if(cached && Date.now() - cached.at < 6 * 3600000) return cached.rows;
@@ -4590,8 +4594,11 @@ async function teamFixtures(c){
 }
 function slugComp(slug){
  if(slug === "uefa.champions") return LANG === "ar" ? "أبطال أوروبا" : "UCL";
+ if(slug === "uefa.champions_qual") return LANG === "ar" ? "تصفيات الأبطال" : "UCL Qual";
  if(slug === "uefa.europa") return LANG === "ar" ? "الدوري الأوروبي" : "UEL";
+ if(slug === "uefa.europa_qual") return LANG === "ar" ? "تصفيات يوروبا" : "UEL Qual";
  if(slug === "uefa.europa.conf") return LANG === "ar" ? "المؤتمر الأوروبي" : "UECL";
+ if(slug === "uefa.europa.conf_qual") return LANG === "ar" ? "تصفيات المؤتمر" : "UECL Qual";
  if(slug === "club.friendly") return LANG === "ar" ? "ودية" : "Friendly";
  const lg = LEAGUES.find(l => l.slug === slug);
  return lg ? lgShort(lg) : "";
