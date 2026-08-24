@@ -276,11 +276,20 @@ html[data-theme="light"] .ico-sun{display:none}
 .tmadd{display:flex;gap:6px;align-items:center;min-width:0}
 .tmadd select{min-width:0;max-width:180px}
 .tmchips{display:flex;flex-wrap:wrap;gap:6px}
-.tmchips .chip .x{margin-inline-start:6px;opacity:.7;font-weight:900}
+.tmchips:empty{display:none}
+.tmchip{display:inline-flex;align-items:center;gap:2px;padding-block:0}
+.tmchip .tmo{padding:6px 2px 6px 6px;font:inherit;color:inherit}
+.tmchip .x{padding:6px 8px;min-width:28px;opacity:.75;font-weight:900;font:inherit;color:inherit}
 .tmstrip{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none}
 .tmstrip:empty{display:none}
 .tmstrip .chip{flex:0 0 auto}
 .tmnote{font-size:11px;color:var(--dim);line-height:1.7;width:100%}
+.tmfxrow{display:flex;align-items:center;gap:10px;padding:9px 4px;border-block-end:1px solid var(--line)}
+.tmfxrow:last-child{border-block-end:none}
+.tmfxrow .crest,.tmfxrow .crestfb{width:28px;height:28px;flex:0 0 28px}
+.tmfxrow .tfo{flex:1;min-width:0;font-weight:800;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tmfxrow .tft{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.tmfxrow .tft .msub{font-size:10.5px;color:var(--dim)}
 /* ---------- match detail tabs (summary / line-ups / stats) ---------- */
 /* z-index 30 + opaque background: the pitch chips (z2) and rating badges (z4) used to paint
    straight over this bar while scrolling the sheet (owner screenshot) */
@@ -919,10 +928,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.53";
+const APP_VERSION = "6.54";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-24-v653";
+const FORCE_RELOAD = "2026-08-24-v654";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1261,7 +1270,7 @@ const STR = {
  alertsLab:["🔔 التنبيهات","🔔 Match alerts"],
  pushLeagues:["بطولات التنبيهات:","Alert leagues:"],
  myTeamsLab:["📌 فرقي","📌 My teams"],
- teamsMax:["الحد الأقصى ١٠ فرق","Maximum 10 teams"],
+ teamsMax:["الحد الأقصى 10 فرق","Maximum 10 teams"],
  teamsNote:["تنبيهات مباريات هذه الفرق تصلك حتى لو دوريها مقفول · اضغط على الفريق لمشاهدة مبارياته القادمة","You get these teams' match alerts even if their league is toggled off · tap a team to see its upcoming fixtures"],
  tmfxTtl:["المباريات القادمة","Upcoming fixtures"],
  tmfxNone:["لا توجد مباريات خلال الشهر القادم","No fixtures in the next month"],
@@ -1270,6 +1279,7 @@ const STR = {
  pushIosInstall:["على الآيفون: ثبّت التطبيق أولًا (مشاركة ← إضافة إلى الشاشة الرئيسية) ثم فعّل التنبيهات من داخل التطبيق","On iPhone: install the app first (Share → Add to Home Screen), then enable alerts inside it"],
  pushOnOk:["تم تفعيل التنبيهات ✅","Alerts enabled ✅"],
  pushKeepOne:["اختر بطولة واحدة على الأقل، أو أضف فرقًا في 📌 فرقي لتصلك تنبيهات فرقك فقط","Keep at least one league — or add teams under 📌 My teams to get team-only alerts"],
+ pickTeamPh:["اختر فريقًا…","Choose a team…"],
  pushOffNote:["🔕 التنبيهات مقفولة على هذا الجهاز — شغّلها بالأعلى لتصلك تنبيهات فرقك","🔕 Alerts are OFF on this device — switch them ON above to get your teams' alerts"],
  alreadyPicked:["سبق أن توقعت هذه المباراة من جهاز آخر","You already predicted this match on another device"],
  fantasyNav:["فانتازي","Fantasy"],
@@ -1664,7 +1674,7 @@ function refreshSettingsUI(){
  if(cl) cl.textContent = t("favClub");
  if(typeof refreshHdrAuth === "function") refreshHdrAuth();
  if(typeof buildClubOptions === "function") buildClubOptions($("clubSel"));
- if(typeof buildClubOptions === "function") buildClubOptions($("teamsSel"));
+ if(typeof buildClubOptions === "function") buildClubOptions($("teamsSel"), true);
  try{ $("shTeams").textContent = t("myTeamsLab"); renderTeamChips(); }catch(_){}
 }
 function tickClock(){
@@ -2357,6 +2367,8 @@ function gotoLeague(id){
 window.addEventListener("popstate", function(){
  const pc = $("playerCard");
  if(pc && !pc.classList.contains("hide")){ _pcPid = null; hideSheet("playerCard"); return; }
+ const tf = $("tmfx");
+ if(tf && !tf.classList.contains("hide")){ hideSheet("tmfx"); return; }
  const modal = $("modal");
  if(!modal.classList.contains("hide")){ _mdEid = null; hideSheet("modal"); return; }
  const am = $("authModal");
@@ -3444,6 +3456,8 @@ document.addEventListener("keydown", function(ev){
  const pc = $("playerCard"), au = $("authModal");
  if(au && !au.classList.contains("hide")) return closeAuth();
  if(pc && !pc.classList.contains("hide")) return closePlayerCard();
+ const tf = $("tmfx");
+ if(tf && !tf.classList.contains("hide")) return closeTeamFx();
  closeModal();
 });
 $("playerCard").addEventListener("click", function(ev){ if(ev.target === this) closePlayerCard(); });
@@ -4484,8 +4498,10 @@ function renderTeamChips(){
  const box = $("teamsChips");
  if(!box) return;
  box.innerHTML = myTeams.map(c =>
-  '<button type="button" class="chip on" onclick="openTeamFx(\'' + esc(c.id) + '\')">' + esc(clubLabel(c))
-  + '<span class="x" onclick="event.stopPropagation();removeTeam(\'' + esc(c.id) + '\')" aria-label="✕">✕</span></button>').join("")
+  '<span class="chip on tmchip">'
+  + '<button type="button" class="tmo" onclick="openTeamFx(\'' + esc(c.id) + '\')">' + esc(clubLabel(c)) + "</button>"
+  + '<button type="button" class="x" onclick="removeTeam(\'' + esc(c.id) + '\')" aria-label="' + esc(clubLabel(c)) + ' ✕">✕</button>'
+  + "</span>").join("")
   + (myTeams.length ? '<span class="tmnote">' + esc(t("teamsNote")) + "</span>" : "")
   + (myTeams.length && !(("Notification" in window) && Notification.permission === "granted"
       && $("pushOnB") && $("pushOnB").classList.contains("on"))
@@ -4526,7 +4542,9 @@ async function teamFixtures(c){
     const opp = cs.find(x => x !== me) || {};
     rows.push({d: d, iso: e.date, home: me.homeAway === "home",
                opp: opp.team ? clubAr(opp.team) : (e.shortName || ""),
-               comp: (j.league && (LANG === "ar" ? null : j.league.name)) || slugComp(slug)});
+               /* the crest rides along - the schedule feed carries logos[0] for every club */
+               logo: (opp.team && (opp.team.logo || (opp.team.logos && opp.team.logos[0] && opp.team.logos[0].href))) || "",
+               comp: slugComp(slug)});
    }
   }catch(_){ /* a competition the club is not in simply contributes nothing */ }
  }));
@@ -4549,6 +4567,7 @@ async function openTeamFx(id){
  $("tmfx").classList.remove("hide");
  sheetOpened($("tmfx"));
  lockScroll(true);
+ try{ history.pushState({gkt:1}, ""); }catch(_){}
  let rows = [];
  try{ rows = await teamFixtures(c); }catch(_){}
  if($("tmfx").classList.contains("hide")) return;
@@ -4559,21 +4578,30 @@ async function openTeamFx(id){
  for(const r of rows){
   const k = dkey(new Date(r.iso));
   if(k !== lastDay){ lastDay = k; h += '<div class="dhead">' + esc(fmtDayFull(k)) + "</div>"; }
-  h += '<div class="mrow"><span class="tm tmh" style="flex:1"><i>' + (r.home ? "🏠 " : "✈️ ") + esc(r.opp) + "</i></span>"
-   + '<span class="mid"><span class="msc" dir="ltr">' + esc(fmtTime(r.iso)) + '</span><span class="msub">' + esc(r.comp) + "</span></span></div>";
+  h += '<div class="tmfxrow">'
+   + crestHtml({shortDisplayName: r.opp, logo: r.logo})
+   + '<span class="tfo"><i>' + (r.home ? "🏠 " : "✈️ ") + esc(r.opp) + "</i></span>"
+   + '<span class="tft"><span class="msc" dir="ltr">' + esc(fmtTime(r.iso)) + '</span><span class="msub">' + esc(r.comp) + "</span></span></div>";
  }
  $("tmfxBox").innerHTML = h;
 }
-function closeTeamFx(){ hideSheet("tmfx"); }
-async function buildClubOptions(sel){
+function closeTeamFx(){
+ if($("tmfx").classList.contains("hide")) return;
+ if(history.state && history.state.gkt){ try{ history.back(); return; }catch(_){} }
+ hideSheet("tmfx");
+}
+async function buildClubOptions(sel, forTeams){
  if(!sel) return;
  const lgs = await ensureTeams();
- let h = '<option value="">' + esc(t("noClub")) + "</option>";
+ /* the teams picker borrows this list but NOT the favourite-club behaviour: its placeholder
+    says what it is, and nothing is pre-selected - the pre-selected favourite meant one blind
+    tap on + added your favourite club to My teams */
+ let h = '<option value="">' + esc(forTeams ? t("pickTeamPh") : t("noClub")) + "</option>";
  for(const l of LEAGUES){
   if(l.uefa || !lgs[l.id] || !lgs[l.id].length) continue;
   const sorted = lgs[l.id].slice().sort((a, b) => clubAr({shortDisplayName:a.s, displayName:a.n}).localeCompare(clubAr({shortDisplayName:b.s, displayName:b.n}), LANG === "ar" ? "ar" : "en"));
   h += '<optgroup label="' + esc(lgName(l)) + '">' + sorted.map(tm =>
-   '<option value="' + esc(l.id + "|" + tm.id) + '"' + (myClub && myClub.id === tm.id ? " selected" : "") + ">" + esc(clubAr({shortDisplayName:tm.s, displayName:tm.n})) + "</option>").join("") + "</optgroup>";
+   '<option value="' + esc(l.id + "|" + tm.id) + '"' + (!forTeams && myClub && myClub.id === tm.id ? " selected" : "") + ">" + esc(clubAr({shortDisplayName:tm.s, displayName:tm.n})) + "</option>").join("") + "</optgroup>";
  }
  sel.innerHTML = h;
 }

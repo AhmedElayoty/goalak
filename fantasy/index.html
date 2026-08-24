@@ -810,13 +810,17 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
  from{opacity:0;transform:translate(var(--tx),-50%) translateY(14px) scale(.94)}
  to{opacity:1;transform:translate(var(--tx),-50%)}}
 @keyframes stCount{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-.st__pylon i{animation:stStrike 620ms cubic-bezier(.22,1,.36,1) both}
-.st__sky{animation:stLit 420ms linear both}
-.st__stand{animation:stCrowd 520ms cubic-bezier(.22,1,.36,1) both 160ms}
-.st__turf{animation:stLit 300ms linear both 120ms}
+/* ENTRY ONLY: these ran on every repaint, so each routine data refresh restruck the
+   floodlights and faded the crowd and the turf - the "flashing" the owner filmed. The same
+   st--enter gate that already protects the card walk-in protects the ground itself. */
+.st--enter .st__pylon i{animation:stStrike 620ms cubic-bezier(.22,1,.36,1) both}
+.st--enter .st__sky{animation:stLit 420ms linear both}
+.st--enter .st__stand{animation:stCrowd 520ms cubic-bezier(.22,1,.36,1) both 160ms}
+.st--enter .st__turf{animation:stLit 300ms linear both 120ms}
 .st--enter .slot{animation:stWalk 380ms cubic-bezier(.22,1,.36,1) both;
  animation-delay:calc(240ms + var(--i,0) * 62ms)}
 .ptsbig{animation:stCount 420ms cubic-bezier(.22,1,.36,1) both}
+body[data-entered="1"] .ptsbig{animation:none}
 
 /* the pitch reclaims the page's side padding only when the page IS the phone */
 @media(max-width:560px){
@@ -979,7 +983,7 @@ function seasonStarted(){ return Date.now() >= SEASON_OPENS_MS; }
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.53";
+const FX_BUILD = "6.54";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -1171,7 +1175,6 @@ const STR = {
  benchLab:["دكة البدلاء · بيدخلوا بالترتيب ده لو نادي مالوش ماتش",
            "The bench · they come on in this order when a starter has no match"],
  cameOn:["دخل","Came on"],
- swapWith:["بدّل","Swap"],
  swapHere:["حطه هنا","Put here"],
  swapCancel:["إلغاء","Cancel"],
  swapTip:["دوس على أي نادي، وبعدين على اللي عايز تبدله بيه","Tap a club, then tap the one you want to swap it with"],
@@ -1391,7 +1394,7 @@ function load(){
 /* A STORED squad can become illegal without the user touching anything: prices move, a club
    is relegated out of the pool, the rules change. Never trust what came out of storage —
    rebuild it into a legal state and say so, rather than rendering an over-budget team. */
-function validateSquad(){
+function validateSquad(quiet){
  const before = squad.length;
  squad = squad.filter(id => CLUBS.some(c => c.id === id));      /* club no longer in the pool */
  const kept = [], seenLg = {}, seenId = {};
@@ -1426,7 +1429,9 @@ function validateSquad(){
  /* a repair that drops the vice must appoint another one, or the armband silently falls
     through to whichever substitute happens to be first in the dugout */
  ensureVice();
- save();
+ /* an ADOPT calls this quiet: fxApply has already persisted every field, and the save() here
+    was the first stroke of the flashing-pitch engine - adopt, save, push, adopt, for ever */
+ if(!quiet) save();
 }
 
 /* ---------------- match simulation (until real results feed the scoring) ------------
@@ -1599,11 +1604,14 @@ async function loadFixtures(gw, force){
      band agreed, and the auto-sub burned bench slots covering matches that existed. The guard
      belongs on the map, not on the copy of it. */
   if(ids.size && heardAll){
+   /* the two-minute live tick lands here; if the results are byte-identical to what is
+      already held there is nothing to show and no reason to repaint the pitch */
+   const changed = !REST[gw] || JSON.stringify([...res.entries()]) !== JSON.stringify([...REST[gw].entries()]);
    FIXT[gw] = ids;
    REST[gw] = res;
    try{ localStorage.setItem(key, JSON.stringify({ids: [...ids.entries()], res: [...res.entries()],
         at: Date.now(), full: heardAll})); }catch(_){}
-   render();
+   if(changed) render();
   }
  }catch(_){}
  fixtLoading[gw] = 0;
@@ -2281,7 +2289,7 @@ function cardHtml(c, withPoints, gw, slotIndex, capOverride, subX){
  return '<button type="button" class="cc' + (m.blank ? " cc--blank" : "") + '"'
   + ' data-band="' + bandOf(c.id) + '" data-tier="' + m.oppTier + '"'
   + ' onclick="' + act + '" aria-label="' + esc(clubName(c)
-      + (m.blank ? " · " + t("noMatchFull")
+      + (m.blank ? " · " + t("noMatchFull") + (withPoints && subX ? " · 🔁 " + subX.code + " " + signed(subX.pts) : "")
                  : " · " + (m.opp ? clubName(m.opp) : "") + " · " + (m.home ? t("venH") : t("venA")))) + '">'
   + '<span class="cc__kit fxkit" data-pat="' + esc(c.pat) + '"'
   /* data-rim and --ink are computed at build time for all 126 clubs, are used by the picker,
@@ -2328,6 +2336,7 @@ function pitchHtml(withPoints, gw){
     the season slider strobed eleven staggered card animations per input event. */
  const enter = _entryPlayed ? "" : " st--enter";
  _entryPlayed = true;
+ try{ document.body.dataset.entered = "1"; }catch(_){}
  const full = squad.length >= SQUAD_SIZE;
  /* the differential set went with the head-to-head band; nothing on this screen dims now */
  const shared = new Set();
@@ -2383,9 +2392,12 @@ function pitchHtml(withPoints, gw){
    }
    const sb = subOf[c.id];
    const sbc = sb ? CLUBS.find(x => x.id === sb.id) : null;
+   /* the sub inherits the ARMBAND when it covers the captain, and the total pays double -
+      the card must print the number that is actually in the total */
+   const sbPts = sb ? sb.m.pts * (resv && c.id === resv.wearer ? 2 : 1) : 0;
    h += '<div class="slot' + (swapFrom === i ? " armed" : "") + '"' + sh + '>'
     + cardHtml(c, withPoints, gw, (withPoints || sealed) ? null : i, CAP,
-               sbc ? {code: sbc.code || "", pts: sb.m.pts} : null)
+               sbc ? {code: sbc.code || "", pts: sbPts} : null)
     + '<span class="plinth"></span></div>';
   }
   h += "</div>";
@@ -3893,7 +3905,12 @@ function fxTouch(force){ if(!squad.length && !force) return;
    the server or has already been sent to it. Only a device with unsent work of its own gets to
    argue about timestamps. */
 function fxDirty(){ try{ return localStorage.getItem("fx_dirty") === "1"; }catch(_){ return false; } }
-function fxClean(){ try{ localStorage.removeItem("fx_dirty"); }catch(_){} }
+function fxClean(){
+ try{ localStorage.removeItem("fx_dirty"); }catch(_){}
+ /* clean means NOTHING UNSENT - a push timer armed before the clean is a push with nothing
+    to say, and it was the second stroke of the engine */
+ if(typeof _pushT !== "undefined" && _pushT){ clearTimeout(_pushT); _pushT = null; }
+}
 function fxSnapshot(){
  let team = "", form = "", ledger = null, onboarded = "", skips = "";
  try{ team = localStorage.getItem("fx_team") || ""; }catch(_){}
@@ -3944,7 +3961,7 @@ function fxApply(rec){
   localStorage.setItem("fx_vice", vice || "");
   localStorage.setItem("fx_chips", JSON.stringify(chipPlays));
  }catch(_){}
- validateSquad();
+ validateSquad(true);
  fxClean();                       /* what we now hold IS the server's copy */
  return true;
 }
@@ -4032,13 +4049,23 @@ function cloudPush(now, wipe){
       the flapping 132/121 was this device's local state and the server's record disagreeing,
       each shown depending on which had painted last. After any push, they are the same thing. */
    if(r && r.fx && !wipe){
-    /* THE GATE COMPARES HISTORY TOO. It used to check only the present (squad, armband,
-       chips, ledger) - so a device whose sealed rounds were still local ESTIMATES, with
-       everything else in sync, never adopted the server's real lineups and kept scoring its
-       own guess on the points page: the owner's PC said 121 while every leaderboard said 132. */
+    /* THE GATE COMPARES WHAT ADOPTING WOULD CHANGE - not the raw records. Comparing local
+       snap against server snap could never settle: fxApply keeps the LOCAL entry when both
+       are real, the server keeps ITS OWN, so two real-but-different entries made the gate
+       true on every push for ever - and each adopt armed the next push. That was the
+       flashing pitch, strobing every second and a half on the owner's PC. The comparison now
+       runs fxApply's own merge rule first: if the post-merge state equals what is held, the
+       adopt is a no-op and does not run. */
     let sn = {}; try{ sn = JSON.parse(localStorage.getItem("fx_snap") || "{}") || {}; }catch(_){}
+    const rs = r.fx.snap && typeof r.fx.snap === "object" ? r.fx.snap : {};
+    const snMerged = {};
+    for(const k of Object.keys(Object.assign({}, rs, sn))){
+     const a = sn[k], b = rs[k];
+     if(a && b) snMerged[k] = (a.bf && !b.bf) ? b : a;
+     else snMerged[k] = a || b;
+    }
     const mine = JSON.stringify({s:squad, c:captain, v:vice, ch:chipPlays, sn:sn});
-    const theirs = JSON.stringify({s:r.fx.squad, c:r.fx.cap||null, v:r.fx.vice||null, ch:r.fx.chips||[], sn:r.fx.snap||{}});
+    const theirs = JSON.stringify({s:r.fx.squad, c:r.fx.cap||null, v:r.fx.vice||null, ch:r.fx.chips||[], sn:snMerged});
     if(mine !== theirs || JSON.stringify(ftLoad()) !== JSON.stringify(r.fx.ft)){
      fxApply(r.fx); paintChrome(); render();
     }
