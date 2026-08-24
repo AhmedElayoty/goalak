@@ -976,7 +976,7 @@ function seasonStarted(){ return Date.now() >= SEASON_OPENS_MS; }
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.44";
+const FX_BUILD = "6.45";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -1489,8 +1489,12 @@ function ymd(d){ return d.replace(/-/g, ""); }
 function fixtSlugs(){
  return (typeof LEAGUES !== "undefined" && LEAGUES ? LEAGUES : []).map(l => l.slug);
 }
-async function loadFixtures(gw){
- if(FIXT[gw] || fixtLoading[gw]) return;
+async function loadFixtures(gw, force){
+ /* `force` exists because the in-memory copy never expired: once a round's results were held,
+    this returned immediately for the rest of the session, so the 10-minute TTL only ever ran
+    at page open. A manager who kept the app open through Saturday saw hourglasses at 0 from
+    the 14:00 kick-offs to the final whistles - under a note promising results refresh. */
+ if((FIXT[gw] && !force) || fixtLoading[gw]) return;
  const r = gwRound(gw); if(!r) return;
  fixtLoading[gw] = 1;
  const key = "fx_fixt_" + gw;
@@ -1507,7 +1511,7 @@ async function loadFixtures(gw){
      it must not satisfy a scorer that now needs them. */
   const ttl = gw === playGw() ? 10 * 60000 : 6 * 3600000;
   const fresh = cached && cached.at && (Date.now() - cached.at) < ttl;
-  if(cached && cached.ids && cached.res && fresh && cached.full){
+  if(!force && cached && cached.ids && cached.res && fresh && cached.full){
    FIXT[gw] = new Map(cached.ids);
    REST[gw] = new Map(cached.res);
    render(); return;
@@ -2826,7 +2830,8 @@ async function loadBoard(force){
    RIVAL_ROWS = (j.managers || [])
      .filter(m => !me || m.uid !== me.uid)
      .map(m => ({name: m.name || m.mgr, mgr: m.mgr, squad: m.squad, cap: m.cap, vice: m.vice,
-                 paid: m.paid || null, join: m.join || 1, snap: m.snap || null}));
+                 paid: m.paid || null, join: m.join || 1, snap: m.snap || null,
+                 chips: m.chips || []}));
    /* MY OWN ROW COMES FROM THE SAME PLACE. The table used to score me from LOCAL state and
       everyone else from their server records - so the same leaderboard said different numbers
       on the owner's phone and his PC, depending on which device had synced last. One source,
@@ -2834,7 +2839,8 @@ async function loadBoard(force){
    MY_ROW = (j.managers || []).find(m => me && m.uid === me.uid) || null;
    if(MY_ROW) MY_ROW = {name: MY_ROW.name || MY_ROW.mgr, mgr: MY_ROW.mgr, squad: MY_ROW.squad,
                         cap: MY_ROW.cap, vice: MY_ROW.vice, paid: MY_ROW.paid || null,
-                        join: MY_ROW.join || 1, snap: MY_ROW.snap || null};
+                        join: MY_ROW.join || 1, snap: MY_ROW.snap || null,
+                        chips: MY_ROW.chips || []};
    /* A REPAIRED SERVER LEDGER MUST REACH A DAMAGED DEVICE, and the normal pull could not do it:
       a device holding unsent changes skips the pull to protect them, which also protected the
       damage - the owner's PC showed HIM as zero while scoring everyone else correctly. The
@@ -2882,21 +2888,35 @@ function recSnapFor(r, gw){
  const o = r && r.snap && typeof r.snap === "object" ? r.snap[String(gw)] : null;
  return o && Array.isArray(o.sq) && o.sq.length === SQUAD_SIZE ? o : null;
 }
+/* a row's round, scored EXACTLY as the points screen scores its own: lineup from the sealed
+   snapshot, and the round's chip applied - the board used to skip chips entirely, so a Triple
+   Captain round paid x2 here and x3 one tab away */
+function recordGwTotal(r, g){
+ const sn = recSnapFor(r, g);
+ const sq = sn ? sn.sq : r.squad;
+ const cap = sn ? (sn.cap || null) : r.cap;
+ const vc = sn ? (sn.vc || null) : r.vice;
+ const res = resolveSquad(sq, cap, g, vc);
+ const play = (r.chips || []).find(x => x && x.gw === g && x.state !== "cancelled");
+ if(!play || typeof applyChip !== "function") return res.total;
+ res.captain = cap; res.vice = vc;
+ res.bench = sq.slice(START_SIZE).map(cid => ({id: cid, m: simMatch(cid, g)}));
+ const out = applyChip(play.chip + "-" + play.half, res);
+ return (out || res).total;
+}
 function rivalSeasonTotal(r){
  if(!seasonStarted()) return 0;
  let t = 0;
  const from = Math.max(1, +r.join || 1), upto = playGw();
- for(let g = from; g <= upto; g++){
-  const sn = recSnapFor(r, g);
-  t += (sn ? resolveSquad(sn.sq, sn.cap || null, g, sn.vc || null)
-           : resolveSquad(r.squad, r.cap, g, r.vice)).total;
- }
+ for(let g = from; g <= upto; g++) t += recordGwTotal(r, g);
  return t - rivalPaid(r, upto);
 }
 function boardRows(){
  return RIVAL_ROWS.map((r, i) => ({i: i, seed: null, name: r.name, mgr: r.mgr,
                                    s: rivalSeasonTotal(r), me: false}))
-   .concat([{i: -1, seed: null, name: teamName(), mgr: managerName(),
+   .concat([{i: -1, seed: null,
+             name: MY_ROW ? MY_ROW.name : teamName(),
+             mgr: MY_ROW ? MY_ROW.mgr : managerName(),
              s: MY_ROW ? rivalSeasonTotal(MY_ROW) : seasonTotal(), me: true}])
    .sort((a, b) => b.s - a.s);
 }
@@ -3767,7 +3787,7 @@ function fxGuardOwner(){
   /* somebody else's team is in this browser - drop every trace of it before anything reads it */
   try{
    ["fx_squad","fx_cap","fx_vice","fx_chips","fx_team","fx_form","fx_ledger","fx_ft","fx_snap",
-    "fx_at","fx_dirty","fx_onboarded","fx_tut_skips","fx_coach","fx_gw"]
+    "fx_at","fx_dirty","fx_onboarded","fx_tut_skips","fx_coach","fx_gw","fx_board"]
     .forEach(function(k){ localStorage.removeItem(k); });
    for(let g = 1; g <= 40; g++) localStorage.removeItem("fx_fixt_" + g);
   }catch(_){}
@@ -4055,6 +4075,20 @@ function fxAskSignIn(){
     at one round that is one request, and later in the season the caches carry it */
  for(let g = Math.max(1, joinGw()); g <= playGw(); g++) loadFixtures(g);
  loadFixtures(liveGw());
+ /* THE FINAL WHISTLE REACHES AN OPEN APP. Every two minutes while the page is visible and the
+    season is running, the round in play is re-fetched and the screen repaints on arrival —
+    the memory guard above made the old TTL reachable only by a full reload. */
+ setInterval(function(){
+  if(document.hidden || !seasonStarted()) return;
+  const g = playGw();
+  if(g >= 1) loadFixtures(g, true);
+ }, 120000);
+ document.addEventListener("visibilitychange", function(){
+  if(document.hidden || !seasonStarted()) return;
+  const g = playGw();
+  if(g >= 1) loadFixtures(g, true);
+  loadBoard(true);
+ });
  /* Offered until he has a squad. `hold` is sessionStorage, so "later" means later - the
     next time he opens the game, not the next time this page happens to reload. */
  /* PULL BEFORE DECIDING ANYTHING. If the tutorial gate ran first, a manager whose squad is

@@ -900,10 +900,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.44";
+const APP_VERSION = "6.45";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-24-v644";
+const FORCE_RELOAD = "2026-08-24-v645";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -2951,7 +2951,10 @@ async function loadRatings(eid){
   /* names + positions come from the summary feed: the core roster's position is a bare $ref,
      so without this defenders get mis-classified as midfielders and rated on the wrong things */
   const sm = {};
-  const sum = (sumCache[eid] && sumCache[eid].json) || await ensureSummary(eid);
+  /* ALWAYS through ensureSummary: it returns the cache instantly when fresh, and it is the
+     only place the live-staleness rule lives - short-circuiting on the raw cache made the
+     v6.43 Barcelona fix dead code, because no caller ever reached it once a summary existed */
+  const sum = await ensureSummary(eid);
   if(sum) (sum.rosters || []).forEach(r => {
    const tn = (r.team && (r.team.displayName || r.team.shortDisplayName)) || "";
    (r.roster || []).forEach(p => { const a = p.athlete || {}; sm[String(a.id)] = {name:a.displayName || a.shortName || "", pos:(p.position && (p.position.abbreviation || p.position.name)) || "", team:tn}; });
@@ -3131,12 +3134,13 @@ async function renderMdBody(){
   body.innerHTML = (finished ? motmCardHtml(eid) : "") + mdEventsHtml(e, H, A, sumNow);
   if(finished){ const rt = _ratings[eid]; if(!rt || (!rt.ready && !rt.loading && (rt.failed || 0) < 3)) loadRatings(eid); }
   /* subs come from the summary feed: fetch once, then repaint the timeline with them */
-  if(!sumNow && (finished || evState(e) === "in")) ensureSummary(eid).then(function(s){ if(s && _mdEid === eid && _mdTab === "E") renderMdBody(); });
+  if(finished || evState(e) === "in") ensureSummary(eid).then(function(s){ if(s && _mdEid === eid && _mdTab === "E" && !sumNow) renderMdBody(); });
   return;
  }
  const cached = sumCache[eid] && sumCache[eid].json;
  if(!cached) body.innerHTML = '<div class="mdload"><span class="spinner"></span>' + esc(t("loading")) + "</div>";
- const sum = cached || await ensureSummary(eid);
+ /* the cache is only the spinner decision; the DATA must pass the staleness gate */
+ const sum = await ensureSummary(eid) || cached;
  if(_mdEid !== eid) return;                       /* user moved on while fetching */
  if(!sum){ body.innerHTML = '<div class="mnoev">' + esc(t("mdLoadFail")) + "</div>"; return; }
  body.innerHTML = _mdTab === "L" ? mdLineupsHtml(sum, H, A) : mdStatsHtml(sum, H, A);
@@ -3595,6 +3599,16 @@ async function doVerify(tok){
 let _acctInfo = null;
 function acctInfoStore(u){
  if(!u || !u.uid) return;
+ /* THE CLUB RIDES THE SAME RESPONSE and was thrown away - so a club changed on the PC never
+    reached an already-signed-in phone: the star, the hero card and the chat chip kept the old
+    club while the worker targeted the live match card by the new one. */
+ if(gkUser && u.uid === gkUser.uid && u.club && u.club.id && (!myClub || String(myClub.id) !== String(u.club.id))){
+  myClub = {id:String(u.club.id), n:u.club.n, s:u.club.s, lg:u.club.lg};
+  try{ localStorage.setItem("gk_club", JSON.stringify(myClub)); }catch(_){}
+  _clubSched = null;
+  try{ chatClubMap[String(u.uid)] = safeChatClub(myClub); }catch(_){}
+  try{ refreshSettingsUI(); }catch(_){}
+ }
  _acctInfo = {uid:u.uid, email:u.email || null, verified:!!u.verified,
               pendingEmail:u.pendingEmail || null, needsEmail:!!u.needsEmail};
  try{ localStorage.setItem("gk_acct_info", JSON.stringify(_acctInfo)); }catch(_){}
@@ -3852,7 +3866,7 @@ function signOut(){
   ["gk_user","gk_preds","gk_club","gk_chat_cache","gk_chat_seents","gk_acct_seen",
    "fx_squad","fx_cap","fx_vice","fx_chips","fx_team","fx_form","fx_ledger","fx_ft","fx_snap",
    "fx_at","fx_dirty","fx_onboarded","fx_tut_skips","fx_coach","fx_owner","fx_gw","fx_firstsub",
-   "gk_push_lgs","gk_acct_info"]
+   "gk_push_lgs","gk_acct_info","fx_board"]
    .forEach(function(k){ localStorage.removeItem(k); });
   _acctInfo = null; _acctInfoAsked = false;
   /* the cached fixture maps are per round, so they need the loop the fantasy page already uses */
@@ -4384,7 +4398,10 @@ function paintClubHero(){
  const comp = e.competitions && e.competitions[0] || {};
  const cs = comp.competitors || [];
  const H = cs.find(c => c.homeAway === "home") || cs[0] || {}, A = cs.find(c => c.homeAway === "away") || cs[1] || {};
- EV_INDEX[e.id] = e;
+ /* REGISTER, NEVER OVERWRITE. This wrote its up-to-six-hour-old snapshot over the fresh
+    event on every 25-second repaint - so tapping the favourite club's LIVE match opened a
+    sheet reading "not started", with a countdown, while the match was being played. */
+ if(!EV_INDEX[e.id]) EV_INDEX[e.id] = e;
  el.innerHTML = '<button type="button" class="clubhero" data-eid="' + esc(e.id) + '" onclick="openMatch(this.dataset.eid)">' +
   '<div class="chcap">⭐ ' + esc(t("clubNext")) + "</div>" +
   '<div class="chtm"><span class="tm tmh"><i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + '</span><span class="mtime" dir="ltr">' + esc(fmtTime(e.date)) + '</span><span class="tm tma">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span></div>" +
@@ -5276,6 +5293,14 @@ setInterval(function(){
  if(document.hidden) return;
  followToday();
  buildStrip(false); /* day rollover rebuilds the strip */
+ /* AN OPEN SHEET ON A LIVE MATCH FOLLOWS THE MATCH. The list behind the sheet repainted
+    every 25 seconds while the sheet itself froze at the moment it was opened - score, clock,
+    line-ups, substitutions, all of it. This is the second half of the Barcelona fix; the
+    staleness rule in ensureSummary is the first. */
+ if(_mdEid && !$("modal").classList.contains("hide")){
+  const me_ = EV_INDEX[_mdEid];
+  if(me_ && evState(me_) === "in"){ try{ renderMatchModal(_mdEid); }catch(_){} }
+ }
  if(mainView === "chat") return; /* chat has its own 12s poll */
  loadChat(); /* background room check keeps the unread badge honest */
  if(mainView === "pred"){ loadPredData(false); return; }
