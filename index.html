@@ -919,10 +919,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.51";
+const APP_VERSION = "6.52";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-24-v651";
+const FORCE_RELOAD = "2026-08-24-v652";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -4477,7 +4477,9 @@ function renderTeamStrip(){
 /* ---- the coming month, across every competition the club is in ---- */
 const TMFX_SLUGS_EU = ["uefa.champions", "uefa.europa", "uefa.europa.conf", "club.friendly"];
 async function teamFixtures(c){
- const key = "gk_tmfx2_" + c.id;
+ /* the rows are stored LOCALIZED, so the language is part of the key - a 6-hour cache must
+    not answer an English screen in Arabic after a language switch */
+ const key = "gk_tmfx3_" + c.id + "_" + LANG;
  try{
   const cached = JSON.parse(localStorage.getItem(key) || "null");
   if(cached && Date.now() - cached.at < 6 * 3600000) return cached.rows;
@@ -4499,7 +4501,7 @@ async function teamFixtures(c){
     const me = cs.find(x => x.team && String(x.team.id) === String(c.id)) || {};
     const opp = cs.find(x => x !== me) || {};
     rows.push({d: d, iso: e.date, home: me.homeAway === "home",
-               opp: opp.team ? clubArabic(opp.team) : (e.shortName || ""),
+               opp: opp.team ? clubAr(opp.team) : (e.shortName || ""),
                comp: (j.league && (LANG === "ar" ? null : j.league.name)) || slugComp(slug)});
    }
   }catch(_){ /* a competition the club is not in simply contributes nothing */ }
