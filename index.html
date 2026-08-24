@@ -783,10 +783,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
   <div class="shrow"><span class="shlab" id="shAcct">الحساب</span><button type="button" class="lsegb" id="shAcctBtn" onclick="hdrAuthTap()">دخول</button></div>
   <div class="shrow mailrow hide" id="shMailRow"></div>
   <div class="shrow"><label class="shlab" for="clubSel" id="shClub">⭐ فريقك المفضل</label><select id="clubSel" onchange="setClubFromSel(this)"></select></div>
-  <div class="shrow"><label class="shlab" for="teamsSel" id="shTeams">📌 فرقي</label><span class="tmadd"><select id="teamsSel"></select><button type="button" class="lsegb" id="teamsAddB" onclick="addTeamFromSel()">+</button></span></div>
-  <div class="shrow tmchips" id="teamsChips"></div>
   <div class="shrow"><span class="shlab" id="shAlerts">🔔 التنبيهات</span><div class="seg" role="radiogroup" aria-labelledby="shAlerts"><button type="button" id="pushOffB" class="on" onclick="setPush(false)">OFF</button><button type="button" id="pushOnB" onclick="setPush(true)">ON</button></div></div>
   <div class="shrow pushlgs hide" id="pushLgRow"></div>
+  <div class="shrow"><label class="shlab" for="teamsSel" id="shTeams">📌 فرقي</label><span class="tmadd"><select id="teamsSel"></select><button type="button" class="lsegb" id="teamsAddB" onclick="addTeamFromSel()">+</button></span></div>
+  <div class="shrow tmchips" id="teamsChips"></div>
   <div class="shrow"><label class="shlab" for="tzSel" id="shTz">المنطقة الزمنية</label><select id="tzSel" onchange="setTZ(this.value)" aria-label="Time zone"></select></div>
   <div class="shrow"><span class="shlab" id="shClock">نظام الوقت</span><div class="seg" role="radiogroup" aria-labelledby="shClock"><button type="button" id="h12b" class="on" onclick="setHour12(true)">AM·PM</button><button type="button" id="h24b" onclick="setHour12(false)">24H</button></div></div>
   <div class="shrow"><span class="shlab" id="shLang">اللغة</span><div class="seg" role="radiogroup" aria-labelledby="shLang"><button type="button" id="lgEn" onclick="setLang('en')">EN</button><button type="button" id="lgAr" class="on" onclick="setLang('ar')">عربي</button></div></div>
@@ -919,10 +919,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.52";
+const APP_VERSION = "6.53";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-24-v652";
+const FORCE_RELOAD = "2026-08-24-v653";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1269,7 +1269,8 @@ const STR = {
  pushUnsupported:["متصفحك لا يدعم التنبيهات","Notifications are not supported in this browser"],
  pushIosInstall:["على الآيفون: ثبّت التطبيق أولًا (مشاركة ← إضافة إلى الشاشة الرئيسية) ثم فعّل التنبيهات من داخل التطبيق","On iPhone: install the app first (Share → Add to Home Screen), then enable alerts inside it"],
  pushOnOk:["تم تفعيل التنبيهات ✅","Alerts enabled ✅"],
- pushKeepOne:["اختر بطولة واحدة على الأقل أو أوقف التنبيهات","Keep at least one league or turn alerts off"],
+ pushKeepOne:["اختر بطولة واحدة على الأقل، أو أضف فرقًا في 📌 فرقي لتصلك تنبيهات فرقك فقط","Keep at least one league — or add teams under 📌 My teams to get team-only alerts"],
+ pushOffNote:["🔕 التنبيهات مقفولة على هذا الجهاز — شغّلها بالأعلى لتصلك تنبيهات فرقك","🔕 Alerts are OFF on this device — switch them ON above to get your teams' alerts"],
  alreadyPicked:["سبق أن توقعت هذه المباراة من جهاز آخر","You already predicted this match on another device"],
  fantasyNav:["فانتازي","Fantasy"],
  soon:["قريبًا…","Soon…"],
@@ -3656,6 +3657,19 @@ function acctInfoStore(u){
   try{ chatClubMap[String(u.uid)] = safeChatClub(myClub); }catch(_){}
   try{ refreshSettingsUI(); }catch(_){}
  }
+ /* THE TEAMS RIDE THE SAME RESPONSE. Server list present: it is the account's truth and the
+    device adopts it. Server never saw teams but this device holds some (picked before this
+    shipped, or while signed out): they go up instead. */
+ if(gkUser && u.uid === gkUser.uid){
+  if(Array.isArray(u.teams)){
+   if(JSON.stringify(u.teams) !== JSON.stringify(myTeams)){
+    myTeams = u.teams.slice(0, 10);
+    try{ localStorage.setItem("gk_my_teams", JSON.stringify(myTeams)); }catch(_){}
+    try{ renderTeamChips(); renderTeamStrip(); }catch(_){}
+    try{ savePushSub().catch(function(){}); }catch(_){}
+   }
+  } else if(myTeams.length){ try{ saveTeamsToAccount(); }catch(_){} }
+ }
  _acctInfo = {uid:u.uid, email:u.email || null, verified:!!u.verified,
               pendingEmail:u.pendingEmail || null, needsEmail:!!u.needsEmail};
  try{ localStorage.setItem("gk_acct_info", JSON.stringify(_acctInfo)); }catch(_){}
@@ -4446,6 +4460,13 @@ function saveMyTeams(){
  renderTeamChips(); renderTeamStrip();
  /* the alert targeting lives on the push subscription; refresh it quietly if there is one */
  try{ savePushSub().catch(function(){}); }catch(_){}
+ saveTeamsToAccount();
+}
+/* THE TEAMS FOLLOW THE ACCOUNT, exactly like the favourite club: picked once on the PC,
+   known to the phone at the next sign-in or account refresh. */
+async function saveTeamsToAccount(){
+ if(!gkUser || !validChatSession()) return;
+ try{ await apiAuthAuthed("set-teams", {teams: myTeams.slice(0, 10)}); }catch(_){}
 }
 function addTeamFromSel(){
  const sel = $("teamsSel");
@@ -4465,7 +4486,10 @@ function renderTeamChips(){
  box.innerHTML = myTeams.map(c =>
   '<button type="button" class="chip on" onclick="openTeamFx(\'' + esc(c.id) + '\')">' + esc(clubLabel(c))
   + '<span class="x" onclick="event.stopPropagation();removeTeam(\'' + esc(c.id) + '\')" aria-label="✕">✕</span></button>').join("")
-  + (myTeams.length ? '<span class="tmnote">' + esc(t("teamsNote")) + "</span>" : "");
+  + (myTeams.length ? '<span class="tmnote">' + esc(t("teamsNote")) + "</span>" : "")
+  + (myTeams.length && !(("Notification" in window) && Notification.permission === "granted"
+      && $("pushOnB") && $("pushOnB").classList.contains("on"))
+     ? '<span class="tmnote">' + esc(t("pushOffNote")) + "</span>" : "");
 }
 function renderTeamStrip(){
  const box = $("teamStrip");
@@ -5415,9 +5439,15 @@ function togglePushLg(id){
  const all = allLgIds();
  if(!pushLgs.length) pushLgs = all.slice();
  if(pushLgs.includes(id)){
-  if(pushLgs.length === 1) return toastMsg(t("pushKeepOne"));
-  pushLgs = pushLgs.filter(x => x !== id);
- } else pushLgs = pushLgs.concat([id]);
+  /* TEAMS-ONLY IS A REAL MODE NOW. The last league used to be un-turn-off-able, because the
+     empty list is overloaded to mean "all leagues" - but somebody following five clubs does
+     not want five whole leagues buzzing. With teams picked, the last league may go dark: the
+     sentinel "none" is a non-empty list that matches no league, so only team alerts pass. */
+  if(pushLgs.length === 1){
+   if(!myTeams.length) return toastMsg(t("pushKeepOne"));
+   pushLgs = ["none"];
+  } else pushLgs = pushLgs.filter(x => x !== id);
+ } else pushLgs = pushLgs.filter(x => x !== "none").concat([id]);
  if(pushLgs.length === all.length) pushLgs = [];
  const before = pushLgs.slice();
  renderPushLgs();
