@@ -976,7 +976,7 @@ function seasonStarted(){ return Date.now() >= SEASON_OPENS_MS; }
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.43";
+const FX_BUILD = "6.44";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -1657,6 +1657,10 @@ function ftSync(){
  if(v.join && v.join > gwNow){ v.join = gwNow; healed = true; }
  if(v.paid && typeof v.paid === "object"){
   for(const k of Object.keys(v.paid)) if(+k > playGw()){ delete v.paid[k]; healed = true; }
+  /* the join round is a FREE build, so a hit charged against it is a contradiction - this is
+     the local mirror of the server's own rule, and it is what finally clears a damaged device
+     whose stale session had been re-writing the same phantom charge for hours */
+  if(v.join && v.paid[String(v.join)] != null){ delete v.paid[String(v.join)]; healed = true; }
  }
  if(healed) ftSave(v);
  if(v.gw === gwNow) return v;
@@ -2831,6 +2835,21 @@ async function loadBoard(force){
    if(MY_ROW) MY_ROW = {name: MY_ROW.name || MY_ROW.mgr, mgr: MY_ROW.mgr, squad: MY_ROW.squad,
                         cap: MY_ROW.cap, vice: MY_ROW.vice, paid: MY_ROW.paid || null,
                         join: MY_ROW.join || 1, snap: MY_ROW.snap || null};
+   /* A REPAIRED SERVER LEDGER MUST REACH A DAMAGED DEVICE, and the normal pull could not do it:
+      a device holding unsent changes skips the pull to protect them, which also protected the
+      damage - the owner's PC showed HIM as zero while scoring everyone else correctly. The
+      board fetch is not blocked by that guard, and join only ever travels DOWN, so adopting
+      the smaller value is always safe. */
+   if(MY_ROW){
+    try{
+     const v = ftLoad(); let fix = false;
+     if(MY_ROW.join && (+v.join || 99) > MY_ROW.join){ v.join = MY_ROW.join; fix = true; }
+     if(v.paid && typeof v.paid === "object" && v.join && v.paid[String(v.join)] != null){
+      delete v.paid[String(v.join)]; fix = true;
+     }
+     if(fix){ ftSave(v); render(); }
+    }catch(_){}
+   }
    try{ localStorage.setItem(boardCacheKey(), JSON.stringify({at: Date.now(), rows: RIVAL_ROWS, mine: MY_ROW})); }catch(_){}
    render(); return;
   }catch(_){ fxSyncFail(); }
