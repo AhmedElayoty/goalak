@@ -938,10 +938,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.55";
+const APP_VERSION = "6.56";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-24-v655";
+const FORCE_RELOAD = "2026-08-24-v656";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -3694,7 +3694,13 @@ function acctInfoStore(u){
     device adopts it. Server never saw teams but this device holds some (picked before this
     shipped, or while signed out): they go up instead. */
  if(gkUser && u.uid === gkUser.uid){
-  if(Array.isArray(u.teams)){
+  let tdirty = false;
+  try{ tdirty = !!localStorage.getItem("gk_teams_dirty"); }catch(_){}
+  if(tdirty){
+   /* an unconfirmed local change outranks the server's older list - push it up instead of
+      adopting backwards over the user's own action */
+   try{ saveTeamsToAccount(); }catch(_){}
+  } else if(Array.isArray(u.teams)){
    if(JSON.stringify(u.teams) !== JSON.stringify(myTeams)){
     myTeams = u.teams.slice(0, 10);
     try{ localStorage.setItem("gk_my_teams", JSON.stringify(myTeams)); }catch(_){}
@@ -4493,13 +4499,20 @@ function saveMyTeams(){
  renderTeamChips(); renderTeamStrip();
  /* the alert targeting lives on the push subscription; refresh it quietly if there is one */
  try{ savePushSub().catch(function(){}); }catch(_){}
+ /* the change is DIRTY until the server confirms it - otherwise a save that failed on a bad
+    connection is silently reverted by the next open's adoption, and a deliberate change is
+    a lost user action */
+ try{ localStorage.setItem("gk_teams_dirty", "1"); }catch(_){}
  saveTeamsToAccount();
 }
 /* THE TEAMS FOLLOW THE ACCOUNT, exactly like the favourite club: picked once on the PC,
    known to the phone at the next sign-in or account refresh. */
 async function saveTeamsToAccount(){
  if(!gkUser || !validChatSession()) return;
- try{ await apiAuthAuthed("set-teams", {teams: myTeams.slice(0, 10)}); }catch(_){}
+ try{
+  const res = await apiAuthAuthed("set-teams", {teams: myTeams.slice(0, 10)});
+  if(res && res.ok){ try{ localStorage.removeItem("gk_teams_dirty"); }catch(_){} }
+ }catch(_){}
 }
 function addTeamFromSel(){
  const sel = $("teamsSel");
@@ -5681,9 +5694,18 @@ setInterval(function(){
   else if(lgTab === "T") renderTable();
  }
 }, 25000);
+let _lastMeAt = 0;
 document.addEventListener("visibilitychange", function(){
  if(document.hidden) return;
  followToday();          /* resumed after midnight: move to today before anything repaints */
+ /* A WARM RESUME IS AN OPEN TOO. The boot-time account re-read only runs on a page LOAD, but
+    an installed app resumed from memory never loads - so a phone brought back from the
+    background missed teams picked on the PC until the OS happened to evict the page. Once
+    per five minutes is plenty; the response is tiny and adoption is idempotent. */
+ if(gkUser && validChatSession() && Date.now() - _lastMeAt > 300000){
+  _lastMeAt = Date.now();
+  apiAuthAuthed("me").then(function(res){ if(res.ok) acctInfoStore(res.j.user); }).catch(function(){});
+ }
  /* a PC left open on the predictions tab learns of picks made on the phone the moment it is
     looked at again, not on the next tab re-entry */
  if(mainView === "pred"){ syncMyPreds(); loadPredData(false); }
@@ -5751,6 +5773,7 @@ async function gkVersionCheck(){
     the PC and his phone kept showing none, for ever. One "me" per open; the response carries
     the club and the teams and acctInfoStore adopts whatever differs. */
  if(gkUser && validChatSession()){
+  _lastMeAt = Date.now();
   apiAuthAuthed("me").then(function(res){ if(res.ok) acctInfoStore(res.j.user); }).catch(function(){});
  }
  maybeTeamsPromo();
