@@ -900,10 +900,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.48";
+const APP_VERSION = "6.49";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-24-v648";
+const FORCE_RELOAD = "2026-08-24-v649";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1234,7 +1234,7 @@ const STR = {
  recentResults:["نتائج التوقعات الأخيرة","Recent prediction results"],
  lbEmpty:["لا يوجد لاعبون بعد · كن أول من يسجل!","No players yet · be the first!"],
  exactLabel:["نتائج مضبوطة:","Exact:"],
- scoringRule:["النتيجة المضبوطة 3 نقاط · الاتجاه الصحيح نقطة واحدة · توقع واحد لكل مباراة · القفل قبل البداية بنصف ساعة","Exact score 3 pts · correct outcome 1 pt · one prediction per match · locks 30 min before kickoff"],
+ scoringRule:["النتيجة المضبوطة 3 نقاط · الاتجاه الصحيح نقطة واحدة · توقع واحد لكل مباراة · القفل قبل البداية بنصف ساعة · الأدوار الإقصائية تُحسب على نتيجة الـ120 دقيقة وفائز الترجيح هو فائز المباراة","Exact score 3 pts · correct outcome 1 pt · one prediction per match · locks 30 min before kickoff · knockouts score on the 120-minute result and a shootout winner is the match winner"],
  noUpcoming:["تبدأ توقعات دوري أبطال أوروبا بعد انتهاء التصفيات وظهور مباريات مرحلة الدوري","Champions League predictions will begin after the UCL qualifiers finish and the league-phase fixtures appear"],
  alertsLab:["🔔 التنبيهات","🔔 Match alerts"],
  pushLeagues:["بطولات التنبيهات:","Alert leagues:"],
@@ -4016,9 +4016,20 @@ function scorePredGk(pred, e){
  const H = cs.find(c => c.homeAway === "home") || {}, A = cs.find(c => c.homeAway === "away") || {};
  const rh = parseInt(H.score, 10), ra = parseInt(A.score, 10);
  if(!(rh >= 0) || !(ra >= 0)) return 0;
- if(pred.h === rh && pred.a === ra) return 3;
+ /* THE WORLD CUP APP'S KNOCKOUT RULES, PORTED WHOLE - they carried a full tournament there.
+    ESPN's score for an extra-time match is already the 120-minute score, and a shootout
+    arrives separately as shootoutScore. So: the match is scored on the 120-minute result;
+    EXACT additionally requires that no shootout happened (a scoreline pick did not predict
+    "level, then penalties"); and when it went to penalties, the shootout winner IS the match
+    winner for the outcome point - predicting the draw on a pens match scores nothing, the
+    match had a winner. A genuine draw (a first leg) still pays the outcome point. Inert until
+    February: the league phase cannot go to extra time. */
+ const so = H.shootoutScore != null && A.shootoutScore != null
+         && (+H.shootoutScore !== 0 || +A.shootoutScore !== 0);
+ if(!so && pred.h === rh && pred.a === ra) return 3;
  const sg = x => x > 0 ? 1 : x < 0 ? -1 : 0;
- return sg(pred.h - pred.a) === sg(rh - ra) ? 1 : 0;
+ const win = so ? (+H.shootoutScore > +A.shootoutScore ? 1 : -1) : sg(rh - ra);
+ return sg(pred.h - pred.a) === win ? 1 : 0;
 }
 function renderPred(){
  const top = $("predTop");
@@ -4091,9 +4102,12 @@ function predResultRow(e){
  const H = cs.find(c => c.homeAway === "home") || cs[0] || {}, A = cs.find(c => c.homeAway === "away") || cs[1] || {};
  const mine = myPreds[e.id];
  const pts = mine ? scorePredGk(mine, e) : null;
- const sub = mine
+ let sub = mine
   ? esc(t("yourPick")) + ' <span dir="ltr">' + esc(pickTxt(mine)) + "</span> · " + (pts === 3 ? "🎯 +3" : pts === 1 ? "✅ +1" : "0")
   : esc(t("noPick"));
+ /* how the match was decided, said where the points are judged - same idiom as the match rows */
+ const sh = shootTxt(H, A);
+ if(sh) sub += " · " + esc(t("pens")) + ' <span dir="ltr">' + sh + "</span>";
  return '<div class="lgsec"><div class="lgbody"><div class="mrow prow">' +
   '<span class="tm tmh"><i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + "</span>" +
   '<span class="mid"><span class="msc" dir="ltr">' + scoreTxt(H, A) + '</span><span class="msub">' + sub + "</span></span>" +
