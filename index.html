@@ -938,10 +938,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.56";
+const APP_VERSION = "6.57";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-24-v656";
+const FORCE_RELOAD = "2026-08-24-v657";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -4620,14 +4620,15 @@ async function openTeamFx(id){
 /* ============ the one-time "follow your teams" announcement ============
    Shown once per device, in the reader's language, after the app has settled. Anyone who
    already holds teams (synced from the account) obviously knows the feature and is spared. */
-function promoSeenKey(){ return "gk_seen_teams_promo_" + (gkUser && gkUser.uid ? gkUser.uid : "guest"); }
+function promoSeenKey(){ return "gk_seen_teams_promo2_" + (gkUser && gkUser.uid ? gkUser.uid : "guest"); }
 function maybeTeamsPromo(){
  try{
   if(navigator.webdriver) return;                 /* QA harnesses must never see it */
   /* an announcement is news for ONE WEEK; from 1 September it is furniture and it retires */
   if(Date.now() > Date.UTC(2026, 7, 31, 23, 59)) return;
   if(localStorage.getItem(promoSeenKey())) return;
-  if(myTeams.length){ localStorage.setItem(promoSeenKey(), "1"); return; }
+  /* holding teams already does NOT skip the announcement - the owner asked for EVERYONE to
+     hear it once, and the first person it skipped by that cleverness was the owner himself */
   setTimeout(showTeamsPromo, 1800);
  }catch(_){}
 }
