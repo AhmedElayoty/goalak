@@ -363,6 +363,7 @@ html[data-theme="light"] .motm .msb,html[data-theme="light"] .motm .mtag{color:#
 .lncols>div{min-width:0;overflow:hidden}
 @media(max-width:430px){.lncols{grid-template-columns:1fr;gap:2px}}
 .lnhead{font-size:11px;font-weight:800;color:var(--dim2);padding:8px 2px 4px;letter-spacing:.3px}
+.lnrow.unused{opacity:.6}
 .lnrow{display:flex;align-items:center;gap:6px;padding:4px 2px;font-size:12.5px;border-bottom:1px solid var(--line);min-width:0;overflow:hidden;cursor:pointer}
 .lnrow:last-child{border-bottom:none}
 .lnnum{flex:0 0 20px;text-align:center;font-size:10.5px;font-weight:900;color:var(--dim2)}
@@ -940,10 +941,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.60";
+const APP_VERSION = "6.61";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-25-v660";
+const FORCE_RELOAD = "2026-08-25-v661";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -2714,13 +2715,21 @@ function lineupCol(r, benchOnly){
  /* bench players carry formationPlace "0", so only a positive place (or an explicit starter flag) counts */
  const isStart = p => p && (p.starter === true || Number(p.formationPlace) > 0);
  const starters = list.filter(isStart).slice().sort((x, y) => (Number(x.formationPlace) || 99) - (Number(y.formationPlace) || 99));
- const bench = list.filter(p => !isStart(p) && (didSub(p.subbedIn) || pstat(p, "appearances") > 0 || pstat(p, "subIns") > 0));
+ /* THE BENCH IS PART OF THE TEAM SHEET. This used to list only substitutes who had already
+    come ON - so before kickoff the section was empty and during the match it grew one name
+    at a time, while the feed carried the full named bench from the moment the sheets were
+    published. Everyone on the bench shows now: the ones who played first, with their minute,
+    the unused dimmed below them. */
+ const cameOn = p => didSub(p.subbedIn) || pstat(p, "appearances") > 0 || pstat(p, "subIns") > 0;
+ const bench = list.filter(p => !isStart(p)).slice()
+  .sort((x, y) => (cameOn(y) ? 1 : 0) - (cameOn(x) ? 1 : 0));
  const rt = (_mdEid && _ratings[_mdEid] && _ratings[_mdEid].ready) ? _ratings[_mdEid].byId : null;
  const row = p => {
   const a = p.athlete || {};
   const min = (didSub(p.subbedIn) || didSub(p.subbedOut)) ? subMinute(p) : "";
   const rr = rt && a.id ? rt[String(a.id)] : null;
-  return '<div class="lnrow" data-pid="' + esc(a.id || "") + '" onclick="openPlayerCard(this.dataset.pid)"><span class="lnnum" dir="ltr">' + esc(p.jersey || a.jersey || "") + "</span>" +
+  const unused = !isStart(p) && !cameOn(p);
+  return '<div class="lnrow' + (unused ? " unused" : "") + '" data-pid="' + esc(a.id || "") + '" onclick="openPlayerCard(this.dataset.pid)"><span class="lnnum" dir="ltr">' + esc(p.jersey || a.jersey || "") + "</span>" +
    '<span class="lnname">' + esc(a.displayName || "?") + "</span>" +
    (min ? '<span class="lnpos" dir="ltr">' + esc(min) + "</span>" : "") +
    '<span class="lnpos">' + esc((p.position && (p.position.abbreviation || p.position.name)) || "") + "</span>" +
