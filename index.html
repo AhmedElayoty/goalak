@@ -546,6 +546,7 @@ html[data-theme="light"] .bnav{background:linear-gradient(180deg,#ffffff,#e8edf8
 .mailnudge{display:block;inline-size:100%;margin-block-end:12px;padding:10px 14px;text-align:start;
  border-radius:12px;border:1px dashed var(--gold);background:transparent;color:var(--gold);
  font:inherit;font-size:12.5px;font-weight:800;cursor:pointer}
+.mailnudge.mailalt{border-color:var(--line2);color:var(--dim);font-weight:700;padding:7px 14px}
 .pin{display:flex;align-items:center;gap:6px;justify-content:center}
 .pinp{width:44px;height:38px;text-align:center;font-size:17px;font-weight:900;background:var(--card2);border:1px solid var(--line2);border-radius:9px;color:var(--txt);font-family:inherit}
 .pdash{color:var(--dim2);font-weight:900}
@@ -939,10 +940,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.59";
+const APP_VERSION = "6.60";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-24-v659";
+const FORCE_RELOAD = "2026-08-25-v660";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1234,6 +1235,7 @@ const STR = {
              "Resets only work if your account has an email. If you never added one, sign in and add it from the Predictions tab."],
  addEmailTitle:["إيميل الاسترجاع","Recovery email"],
  addEmailBtn:["أضف إيميل — عشان تقدر ترجّع كلمة السر","Add an email so you can recover your password"],
+ wrongEmailBtn:["✏️ كتبت الإيميل غلط؟ غيّره من هنا","✏️ Wrong address? Change it here"],
  confirmEmailBtn:["أكّد إيميلك ({m}) — ابعت اللينك تاني","Confirm {m} — resend the link"],
  addEmailNote:["ده الطريق الوحيد لاسترجاع الحساب لو نسيت كلمة السر. هيوصلك لينك تأكيد.",
                "This is the only way back if you forget your password. A confirmation link will be sent."],
@@ -4155,8 +4157,9 @@ function renderPred(){
      confirmed address, one line, one tap, gone for good once the link is clicked */
   acctInfoEnsure();
   const ai = acctInfo();
-  if(ai && ai.pendingEmail){
-   top.innerHTML += '<button type="button" class="mailnudge" onclick="doResendVerify()">📩 ' + esc(t("confirmEmailBtn", {m: ai.pendingEmail})) + "</button>";
+  if(ai && (ai.pendingEmail || (ai.email && !ai.verified))){
+   top.innerHTML += '<button type="button" class="mailnudge" onclick="doResendVerify()">📩 ' + esc(t("confirmEmailBtn", {m: ai.pendingEmail || ai.email})) + "</button>"
+    + '<button type="button" class="mailnudge mailalt" onclick="openEmailSheet()">' + esc(t("wrongEmailBtn")) + "</button>";
   } else if(ai && ai.needsEmail){
    top.innerHTML += '<button type="button" class="mailnudge" onclick="openEmailSheet()">🔐 ' + esc(t("addEmailBtn")) + "</button>";
   }
@@ -4811,10 +4814,17 @@ function refreshMailRow(){
  if(!gkUser){ row.classList.add("hide"); row.innerHTML = ""; return; }
  acctInfoEnsure();
  const ai = acctInfo();
- if(!ai || (!ai.needsEmail && !ai.pendingEmail)){ row.classList.add("hide"); row.innerHTML = ""; return; }
+ /* THREE states need the row, not two. A signup-time typo lands in the account directly
+    (unverified, nothing pending) - and in that state both old conditions were false, so the
+    person whose confirmation "never came" saw NO nudge, NO resend and NO way out anywhere.
+    And whoever is waiting on a pending address must be offered the exit for a typo: resending
+    to a wrong address for ever is not a flow, it is a wall. */
+ const unconfirmed = ai && (ai.pendingEmail || (ai.email && !ai.verified));
+ if(!ai || (!ai.needsEmail && !unconfirmed)){ row.classList.add("hide"); row.innerHTML = ""; return; }
  row.classList.remove("hide");
- row.innerHTML = ai.pendingEmail
-  ? '<button type="button" class="mailnudge" style="margin:0" onclick="doResendVerify()">📩 ' + esc(t("confirmEmailBtn", {m: ai.pendingEmail})) + "</button>"
+ row.innerHTML = unconfirmed
+  ? '<button type="button" class="mailnudge" style="margin:0" onclick="doResendVerify()">📩 ' + esc(t("confirmEmailBtn", {m: ai.pendingEmail || ai.email})) + "</button>"
+    + '<button type="button" class="mailnudge mailalt" style="margin:6px 0 0" onclick="openEmailSheet()">' + esc(t("wrongEmailBtn")) + "</button>"
   : '<button type="button" class="mailnudge" style="margin:0" onclick="openEmailSheet()">🔐 ' + esc(t("addEmailBtn")) + "</button>";
 }
 
