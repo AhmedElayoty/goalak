@@ -983,7 +983,7 @@ function seasonStarted(){ return Date.now() >= SEASON_OPENS_MS; }
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.61";
+const FX_BUILD = "6.62";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -1548,9 +1548,13 @@ async function loadFixtures(gw, force){
   /* ESPN answers a bad request with HTTP 400 AND a valid JSON body, so `.catch()` never sees
      it and `j.events` is simply undefined. A league that answered nothing has to be told
      apart from a league with no matches. */
-  const lists = await Promise.all(slugs.map(sl =>
-   fetch(base + sl + "/scoreboard?dates=" + range + "&limit=300")
-    .then(x => x.ok ? x.json() : null).catch(() => null)));
+  /* the edge first - one cached copy for the whole audience, and a route that works from
+     networks where ESPN itself does not; direct ESPN remains the fallback */
+  const espnGet = path =>
+   fetch(FX_API + "/api/espn/apis/site/v2/sports/soccer/" + path)
+    .then(x => { if(!x.ok) throw 0; return x.json(); })
+    .catch(() => fetch(base + path).then(x => x.ok ? x.json() : null).catch(() => null));
+  const lists = await Promise.all(slugs.map(sl => espnGet(sl + "/scoreboard?dates=" + range + "&limit=300")));
   const heardAll = lists.every(j => j && Array.isArray(j.events));
   /* COUNT the matches, do not just record that there is one. A round is a slice of time, not a
      matchday, and the seven leagues start four weeks apart - Scotland 31 Jul, Turkey 14 Aug,

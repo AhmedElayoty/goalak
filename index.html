@@ -941,10 +941,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.61";
+const APP_VERSION = "6.62";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-25-v661";
+const FORCE_RELOAD = "2026-08-25-v662";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1502,14 +1502,32 @@ function shootTxt(H, A){
 }
 
 /* ============ fetch layer (never blank UI; last-good kept) ============ */
-async function jget(url){
+async function jgetAt(url, ms){
  const ctl = new AbortController();
- const to = setTimeout(() => ctl.abort(), 12000);
+ const to = setTimeout(() => ctl.abort(), ms);
  try{
   const r = await fetch(url, {cache:"no-store", signal:ctl.signal});
   if(!r.ok) throw new Error("http " + r.status);
   return await r.json();
  } finally { clearTimeout(to); }
+}
+/* THE EDGE CARRIES THE MATCHES NOW. Every phone used to talk to ESPN directly, so the app
+   lived or died by each user's own route to it - "could not connect · last saved data" on a
+   whole circle of phones while the worker's feed monitor read perfectly healthy, an empty
+   team picker on a brand-new Samsung, a fantasy page of zeros - all one outage, all between
+   THEIR networks and ESPN. Match data now goes through the worker: one cached copy at the
+   edge serves everyone, stale is served honestly when upstream fails, and if the edge itself
+   is unreachable the request falls back to ESPN directly - never worse than before. */
+const ESPN_EDGE = "https://goalak-push.ahmed-ayoty.workers.dev/api/espn/";
+function espnEdgeUrl(url){
+ const m = String(url).match(/^https:\/\/site\.api\.espn\.com\/(apis\/.+)$/);
+ return m ? ESPN_EDGE + m[1] : null;
+}
+async function jget(url){
+ const edge = espnEdgeUrl(url);
+ if(!edge) return jgetAt(url, 12000);
+ try{ return await jgetAt(edge, 8000); }
+ catch(_){ return jgetAt(url, 12000); }
 }
 
 /* ============ state ============ */
