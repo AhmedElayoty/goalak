@@ -410,7 +410,16 @@ html[data-theme="light"] .lgsec[data-lg="uel"]{--lgc:#9A6430}
 /* ---------- match detail tabs (summary / line-ups / stats) ---------- */
 /* z-index 30 + opaque background: the pitch chips (z2) and rating badges (z4) used to paint
    straight over this bar while scrolling the sheet (owner screenshot) */
-.mdtabs{display:flex;gap:6px;padding:10px 0 6px;position:sticky;top:-1px;background:var(--card);z-index:30;box-shadow:0 6px 10px -6px rgba(0,0,0,.55)}
+/* -19px, NOT -1px, and the sheet's OWN colour. Two faults met here and the owner filmed
+   both. The offset of a sticky child is measured from the scroll container's PADDING edge,
+   and .mbox carries padding-top:18px - so top:-1px pinned the bar eighteen pixels BELOW the
+   sheet's top edge and left a transparent strip above it that the stats slid up through:
+   "Possession %" floated over the tab bar with its numbers cut off. -19px is that padding
+   plus the original 1px of seam, which lands the bar flush. And the background was var(--card)
+   while .mbox is var(--card3), so the pinned bar read as a foreign darker band across the
+   sheet; it now paints the same token the sheet does, in either theme. Both measured: the gap
+   went 18px -> 0px, and the other five sheets that share .mbox are untouched. */
+.mdtabs{display:flex;gap:6px;padding:10px 0 6px;position:sticky;top:-19px;background:var(--card3);z-index:30;box-shadow:0 6px 10px -6px rgba(0,0,0,.55)}
 .mdtab{flex:1;padding:8px 0;border-radius:10px;background:var(--card2);border:1px solid var(--line);font-size:var(--fs-md);font-weight:800;color:var(--dim)}
 .mdtab.on{background:var(--accdark);border-color:var(--acc);color:#fff}
 .mdload{text-align:center;padding:26px 0;color:var(--dim2);font-size:13px}
@@ -458,7 +467,13 @@ html[data-theme="light"] .motm .msb,html[data-theme="light"] .motm .mtag{color:#
 /* isolate: keeps every chip/badge z-index INSIDE the pitch so nothing can climb over the tab bar */
 /* the fantasy's muted turf, not the saturated greens that shouted over the navy sheet */
 .pitch{position:relative;z-index:0;isolation:isolate;width:100%;padding-bottom:150%;border-radius:14px;overflow:hidden;background:repeating-linear-gradient(0deg,#0E5E33 0,#0E5E33 10%,#0A4A2A 10%,#0A4A2A 20%)}
-.pitch svg{position:absolute;inset:0;width:100%;height:100%}
+/* DIRECT CHILD, and this is why. The pitch line-work is one <svg> child of .pitch, but as a
+   DESCENDANT rule this also matched every .gkic sprite inside the chips - and at (0,1,1) it
+   outranks .gkic's (0,1,0). So each card, ball and sub arrow was stretched to the full chip
+   (74x40 measured) and absolutely positioned over the shirt number and the name: the owner's
+   Trabzonspor-Ferencvaros sheet showed two yellows, a red and a ball covering the numbers
+   they belonged to. Only the line-work is a child of .pitch; the sprites are grandchildren. */
+.pitch>svg{position:absolute;inset:0;width:100%;height:100%}
 .pchip{position:absolute;transform:translate(-50%,-50%);width:19%;text-align:center;z-index:2;background:none;border:none;padding:0;cursor:pointer}
 .pnum{width:26px;height:26px;margin:0 auto;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;color:#fff;border:1.5px solid rgba(255,255,255,.75);box-shadow:0 1px 3px rgba(0,0,0,.5)}
 /* white on the home orange measured 2.59:1 - the one contrast failure left in the app.
@@ -1142,10 +1157,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.79";
+const APP_VERSION = "6.80";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-27-v679";
+const FORCE_RELOAD = "2026-08-27-v680";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -3241,8 +3256,15 @@ function mdStatsHtml(sum, H, A){
  const find = tm => teams.find(x => x.team && tm && tm.team && String(x.team.id) === String(tm.team.id)) || null;
  const th = find(H) || teams[0], ta = find(A) || teams[1];
  let h = "";
+ /* ESPN SENDS SOME PERCENTAGES AS A FRACTION. The Trabzonspor-Ferencvaros qualifier came
+    back with passPct 0.9 and 0.8, so the sheet printed "0.9%" pass accuracy next to 189
+    passes - and scaled the bars from the same two numbers, so the picture agreed with the
+    lie. Nothing on a row measured in percent legitimately sits at or below 1, so a value in
+    that range is a fraction and is scaled once, to one decimal (0.9 * 100 is 90.00000000000001
+    in binary floating point, which is not a number to print). */
+ const asPct = (v, isPct) => (isPct && v != null && v > 0 && v <= 1) ? Math.round(v * 1000) / 10 : v;
  for(const row of MD_STAT_ROWS){
-  const vh = tstat(th, row.n), va = tstat(ta, row.n);
+  const vh = asPct(tstat(th, row.n), row.pct), va = asPct(tstat(ta, row.n), row.pct);
   if(vh == null && va == null) continue;
   const a = vh || 0, b = va || 0, tot = a + b;
   /* POSSESSION IS THE HERO STAT and gets the genre treatment: one split pill, the two
