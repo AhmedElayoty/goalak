@@ -947,10 +947,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.66";
+const APP_VERSION = "6.67";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-25-v666";
+const FORCE_RELOAD = "2026-08-25-v667";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1302,6 +1302,9 @@ const STR = {
  pushOnOk:["تم تفعيل التنبيهات ✅","Alerts enabled ✅"],
  pushKeepOne:["اختر بطولة واحدة على الأقل، أو أضف فرقًا في 📌 فرقي لتصلك تنبيهات فرقك فقط","Keep at least one league — or add teams under 📌 My teams to get team-only alerts"],
  pickTeamPh:["اختر فريقًا…","Choose a team…"],
+ predPromoTtl:["توقعات دوري الأبطال بدأت! 🏆","Champions League predictions are OPEN! 🏆"],
+ predPromoBody:["القرعة اتعملت والماتشات نزلت في تبويب التوقعات — ادخل توقّع نتايج الجولة الأولى من دلوقتي. كل ماتش بيقفل قبل بدايته بنص ساعة، والنتيجة المضبوطة بـ 3 نقط. ورّينا شطارتك! 😉","The draw is done and the fixtures are in the Predictions tab — predict Matchday 1 now. Each match locks 30 minutes before kickoff, and an exact score is worth 3 points. Show us what you know! 😉"],
+ predPromoGo:["🎯 افتح التوقعات","🎯 Open Predictions"],
  promoTtl:["جديد: تابع فرقك المفضلة!","New: Follow your teams!"],
  promoBody:["دلوقتي تقدر تختار لحد 10 فرق بتشجعها من أي دوري، وهيجيلك إشعار بكل حاجة في ماتشاتهم — الأجوان والبداية والنتيجة — حتى لو الدوري نفسه مقفول عندك. وبضغطة واحدة على الفريق تشوف جدول ماتشاته الجاية في كل البطولات.","You can now follow up to 10 clubs from any league and get an alert for everything in their matches — goals, kickoff and full-time — even if that league is switched off. One tap on a team also shows its upcoming fixtures across every competition."],
  promoGo:["⚙ افتح الإعدادات واختار فرقك","⚙ Open Settings & pick your teams"],
@@ -2422,7 +2425,11 @@ function gotoLeague(id){
  window.scrollTo(0, 0);
 }
 /* Android/installed-PWA back button: close overlays first, then leave the league page, never exit-with-overlay */
+let _promoPop = false;
 window.addEventListener("popstate", function(){
+ /* a promo close pops its OWN history entry; that pop must not be interpreted as the user
+    pressing Back - it raced the go-button's navigation and yanked people to Scores */
+ if(_promoPop){ _promoPop = false; return; }
  const pc = $("playerCard");
  if(pc && !pc.classList.contains("hide")){ _pcPid = null; hideSheet("playerCard"); return; }
  const pm = $("promo");
@@ -4659,6 +4666,45 @@ async function openTeamFx(id){
  }
  $("tmfxBox").innerHTML = h;
 }
+let _promoShownThisSession = false;
+/* ============ the one-time "predictions are open" announcement ============
+   Data-triggered, not date-triggered: it appears only once the drawn fixtures are actually
+   LISTED in the predictions tab - announcing an empty tab would be the qualifier-push mistake
+   all over again. News for the few days after the draw (hard retirement 1 September), once
+   per username, and never a second pop-up in the same session. */
+function predPromoKey(){ return "gk_seen_pred_promo_" + (gkUser && gkUser.uid ? gkUser.uid : "guest"); }
+async function maybePredPromo(){
+ try{
+  if(navigator.webdriver) return;
+  if(Date.now() > Date.UTC(2026, 8, 1, 23, 59)) return;
+  if(localStorage.getItem(predPromoKey())) return;
+  await loadPredData(false);
+  if(!(predCache && Array.isArray(predCache.up) && predCache.up.length)) return;   /* the draw has not landed yet */
+  setTimeout(showPredPromo, 2200);
+ }catch(_){}
+}
+function showPredPromo(){
+ if(_promoShownThisSession) return;                                /* next open gets it instead */
+ if(anySheetOpen()){ setTimeout(showPredPromo, 5000); return; }
+ _promoShownThisSession = true;
+ $("promoBox").innerHTML = '<div class="pmin"><div class="pmoji">🏆🎯</div>'
+  + "<h2>" + esc(t("predPromoTtl")) + "</h2>"
+  + "<p>" + esc(t("predPromoBody")) + "</p>"
+  + '<button type="button" class="pmgo" onclick="closePredPromo(true)">' + esc(t("predPromoGo")) + "</button>"
+  + '<button type="button" class="pmlater" onclick="closePredPromo(false)">' + esc(t("promoLater")) + "</button></div>";
+ $("promo").classList.remove("hide");
+ sheetOpened($("promo"));
+ lockScroll(true);
+ try{ history.pushState({gkp:1}, ""); }catch(_){}
+ try{ localStorage.setItem(predPromoKey(), "1"); }catch(_){}
+}
+function closePredPromo(go){
+ if($("promo").classList.contains("hide")) return;
+ hideSheet("promo");
+ if(history.state && history.state.gkp){ _promoPop = true; try{ history.back(); }catch(_){ _promoPop = false; } }
+ if(go) setTimeout(function(){ showMain("pred"); }, 120);
+}
+
 /* ============ the one-time "follow your teams" announcement ============
    Shown once per device, in the reader's language, after the app has settled. Anyone who
    already holds teams (synced from the account) obviously knows the feature and is spared. */
@@ -4675,7 +4721,9 @@ function maybeTeamsPromo(){
  }catch(_){}
 }
 function showTeamsPromo(){
+ if(_promoShownThisSession) return;                                /* one announcement per session */
  if(anySheetOpen()){ setTimeout(showTeamsPromo, 5000); return; }   /* never stack over auth or a match sheet */
+ _promoShownThisSession = true;
  $("promoBox").innerHTML = '<div class="pmin"><div class="pmoji">📌🔔</div>'
   + "<h2>" + esc(t("promoTtl")) + "</h2>"
   + "<p>" + esc(t("promoBody")) + "</p>"
@@ -4689,13 +4737,13 @@ function showTeamsPromo(){
 }
 function closeTeamsPromo(go){
  if($("promo").classList.contains("hide")) return;
- if(history.state && history.state.gkp){ try{ history.back(); }catch(_){ hideSheet("promo"); } }
- else hideSheet("promo");
+ hideSheet("promo");
+ if(history.state && history.state.gkp){ _promoPop = true; try{ history.back(); }catch(_){ _promoPop = false; } }
  if(go) setTimeout(function(){
   showMain("set");
   const el = $("teamsSel");
   if(el) try{ el.scrollIntoView({block: "center"}); }catch(_){}
- }, 80);
+ }, 120);
 }
 function closeTeamFx(){
  if($("tmfx").classList.contains("hide")) return;
@@ -5812,6 +5860,7 @@ async function gkVersionCheck(){
    apiAuthAuthed("me").then(function(res){ if(res.ok) acctInfoStore(res.j.user); }).catch(function(){});
   }
  })();
+ maybePredPromo();
  maybeTeamsPromo();
  loadDay(false);
  syncMyPreds();
