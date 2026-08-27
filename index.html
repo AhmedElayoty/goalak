@@ -96,7 +96,13 @@ html[data-theme="light"]{
 html[data-theme="light"] .stale{background:#fff3d6;border-color:#d9b64a;color:#7a5d00}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html{background:var(--bg)}
-body{background:var(--bg);color:var(--txt);font-family:'Cairo',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:15px;line-height:1.5;min-height:100vh}
+/* AN INSTALLED APP DOES NOT RUBBER-BAND INTO A BROWSER. Without this, dragging down at the
+   top summoned Chrome's circular pull-to-refresh button - the single most "this is a web
+   page" gesture there is - and edge swipes could trigger browser history navigation inside
+   the app. The app refreshes itself every 25 seconds and on every resume; the browser's
+   gesture added nothing but web-feel. */
+html,body{overscroll-behavior:none}
+body{background:var(--bg);color:var(--txt);font-family:'Cairo',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:15px;line-height:1.5;min-height:100vh;-webkit-tap-highlight-color:transparent}
 button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer}
 img{max-width:100%}
 .hide{display:none!important}
@@ -1015,10 +1021,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.69";
+const APP_VERSION = "6.70";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-25-v669";
+const FORCE_RELOAD = "2026-08-25-v670";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
