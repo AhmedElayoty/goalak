@@ -1165,10 +1165,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.81";
+const APP_VERSION = "6.82";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-27-v681";
+const FORCE_RELOAD = "2026-08-27-v682";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1777,13 +1777,109 @@ function scoreTxt(H, A){
  const h = esc(H.score == null ? "0" : H.score), a = esc(A.score == null ? "0" : A.score);
  return LANG === "ar" ? a + " - " + h : h + " - " + a;
 }
-/* the two-legged tie: shown only when the aggregate actually differs from this leg, so a
-   one-off match never grows a meaningless second scoreline */
-function aggTxt(H, A){
- const hs = H.aggregateScore, as = A.aggregateScore;
- if(hs == null || as == null) return "";
- if(String(hs) === String(H.score) && String(as) === String(A.score)) return "";
- return LANG === "ar" ? as + " - " + hs : hs + " - " + as;
+/* ============ TWO-LEGGED TIES ============
+   THE AGGREGATE IS THE MOST INTERESTING NUMBER ON THE SCREEN AND IT WAS SHOWN LAST.
+   aggTxt existed, read the feed's own aggregateScore, and had exactly ONE caller - inside
+   mrow's FINISHED branch. So a qualifier's second leg showed no aggregate at all while it was
+   being played, and the match sheet never showed one at any point, ever. Two gaps, one cause:
+   nobody wired it to the live path or to the sheet.
+
+   Fixing it by moving the feed's field into the live branch would have been two lines and a
+   guess: it is not known whether ESPN keeps aggregateScore current DURING a second leg or
+   only fills it at full time, and this sandbox cannot reach ESPN to find out. A number
+   labelled "Agg" that is silently one leg behind is worse than no number at all in an app
+   whose entire job is scores.
+
+   So the running aggregate is COMPUTED - the earlier meeting's score plus this leg's, per
+   club - which is correct while the match is in play no matter what the feed does with its
+   own field. The feed's value stays as the fallback for a tie whose first leg we do not hold,
+   which is exactly what shipped before this and is reliable once a tie is over.
+
+   THE DANGEROUS CASE IS THE FALSE POSITIVE. Two clubs meeting twice in a league phase is not
+   a tie and has no aggregate; printing one would invent a result. So twoLegged() is a set of
+   POSITIVE signals and the default is no. */
+const legIdx = {};        /* `${slug}|${idLo}|${idHi}` -> [{eid, ts, score:{[teamId]:goals}}] */
+const legFetched = {};    /* `${slug}|${dayKey}` -> at */
+
+function legPairKey(slug, a, b){
+ const x = String(a == null ? "" : a), y = String(b == null ? "" : b);
+ if(!x || !y || !slug) return "";
+ return slug + "|" + (x < y ? x + "|" + y : y + "|" + x);
+}
+/* one record per FINISHED meeting, keyed by the pair, so the reverse fixture is a lookup and
+   not a second request. Home and away are not stored - scores are kept per team id, because
+   the club that is home tonight was away in the first leg. */
+function legIndexEvents(slug, events){
+ let added = 0;
+ for(const ev of (events || [])){
+  if(!ev || !ev.id) continue;
+  if(evState(ev) !== "post" || voidedKey(ev)) continue;   /* an unfinished leg has no score to carry */
+  const cs = (ev.competitions && ev.competitions[0] && ev.competitions[0].competitors) || [];
+  if(cs.length < 2) continue;
+  const k = legPairKey(slug, cs[0].team && cs[0].team.id, cs[1].team && cs[1].team.id);
+  if(!k) continue;
+  const ts = Date.parse(ev.date) || 0;
+  if(!ts) continue;
+  const score = {};
+  let ok = true;
+  for(const c of cs){
+   const v = Number(c && c.score);
+   const id = String((c && c.team && c.team.id) == null ? "" : c.team.id);
+   if(!id || !isFinite(v)){ ok = false; break; }
+   score[id] = v;
+  }
+  if(!ok) continue;
+  const list = legIdx[k] = legIdx[k] || [];
+  if(list.some(r => r.eid === String(ev.id))) continue;
+  list.push({eid:String(ev.id), ts:ts, score:score});
+  added++;
+ }
+ return added;
+}
+/* IS THIS A TWO-LEGGED TIE? Cheapest signal first, every one of them a positive. */
+function twoLegged(e, H, A){
+ /* 1. the feed says so. Present at full time for certain - it is what the old aggTxt read. */
+ if(H && H.aggregateScore != null) return true;
+ if(A && A.aggregateScore != null) return true;
+ /* 2. the round names itself. ESPN labels these "... - Leg 2 of 2" in the competition notes. */
+ const notes = ((e && e.competitions && e.competitions[0] && e.competitions[0].notes) || [])
+  .map(n => String((n && (n.headline || n.text)) || "")).join(" ");
+ if(/leg\s*2|2nd\s*leg|second\s*leg/i.test(notes)) return true;
+ /* 3. a qualifying round. Every UEFA qualifying tie is played over two legs, and _gkQual is
+       stamped at cache time by whichever fetcher read the qualifying slug. */
+ return !!(e && e._gkQual);
+}
+/* the running aggregate, per club. null when this is not a tie or nothing can be said. */
+function aggNow(e, H, A){
+ if(!e || !H || !A || !twoLegged(e, H, A)) return null;
+ const hid = String((H.team && H.team.id) == null ? "" : H.team.id);
+ const aid = String((A.team && A.team.id) == null ? "" : A.team.id);
+ if(!hid || !aid) return null;
+ const hs = Number(H.score), as = Number(A.score);
+ const now = Date.parse(e.date) || 0;
+ const list = legIdx[legPairKey(slugForEvent(e) || "", hid, aid)] || [];
+ let prev = null;
+ for(const r of list){
+  if(r.eid === String(e.id)) continue;          /* never aggregate a match with itself */
+  if(!(r.ts < now)) continue;                    /* only an EARLIER meeting is a first leg */
+  if(r.score[hid] == null || r.score[aid] == null) continue;
+  if(!prev || r.ts > prev.ts) prev = r;           /* the most recent one before this */
+ }
+ if(prev && isFinite(hs) && isFinite(as))
+  return {h: prev.score[hid] + hs, a: prev.score[aid] + as, computed: true};
+ const fh = Number(H.aggregateScore), fa = Number(A.aggregateScore);
+ if(isFinite(fh) && isFinite(fa)) return {h: fh, a: fa, computed: false};
+ return null;
+}
+/* the old rule, still true of the FALLBACK path: the feed's aggregate on a one-off match just
+   reads its own scoreline twice over and says nothing. A COMPUTED aggregate is never
+   suppressed - a 0-0 first leg makes the aggregate equal this leg's score, and that is worth
+   saying, because it tells the reader the tie stands exactly where the scoreline does. */
+function aggTxt(e, H, A){
+ const g = aggNow(e, H, A);
+ if(!g) return "";
+ if(!g.computed && String(g.h) === String(H.score) && String(g.a) === String(A.score)) return "";
+ return LANG === "ar" ? g.a + " - " + g.h : g.h + " - " + g.a;
 }
 /* the fantasy build already knows all 126 clubs' kit colours; the hero card borrows them so
    a Barcelona fan's card is washed in blaugrana. One fetch per session, absent = no wash. */
@@ -2107,6 +2203,36 @@ async function fetchBroadcastInto(day, force){
   };
   return false;
  }catch(_){ return true; /* keep the last good channel list; scores remain independent */ }
+}
+/* THE FIRST LEG, FETCHED ONCE PER COMPETITION PER DAY. Not per match and never from a render
+   path: one scoreboard call covers every tie that competition is playing that day. It runs
+   only when the day actually holds a fixture that could be a second leg, so an ordinary
+   Saturday of league football makes no extra request at all. */
+async function fetchLegsInto(day, force){
+ const want = new Set();
+ for(const lg of LEAGUES){
+  if(!lg.uefa) continue;                         /* two-legged ties live in the UEFA competitions */
+  for(const ev of (eventsFor(lg, day) || [])){
+   const cs = (ev.competitions && ev.competitions[0] && ev.competitions[0].competitors) || [];
+   const H = cs.find(c => c.homeAway === "home") || cs[0] || {};
+   const A = cs.find(c => c.homeAway === "away") || cs[1] || {};
+   if(twoLegged(ev, H, A)) want.add(slugForEvent(ev) || lg.slug);
+  }
+ }
+ if(!want.size) return false;
+ let added = 0;
+ await Promise.all([...want].map(async function(slug){
+  const k = slug + "|" + day;
+  if(!force && legFetched[k] && Date.now() - legFetched[k] < 3600000) return;
+  try{
+   /* three weeks back: a European first leg is a week earlier, and a fortnight of slack
+      covers a rescheduled or replayed leg without needing a second request */
+   const j = await jget(sbUrl(slug, rangeParam(day, 21, 0)));
+   added += legIndexEvents(slug, (j && j.events) || []);
+   legFetched[k] = Date.now();
+  }catch(_){ /* no first leg in hand: aggNow falls back to the feed's own aggregateScore */ }
+ }));
+ return added > 0;
 }
 
 /* ============ home: data ============ */
@@ -2437,6 +2563,11 @@ async function loadDay(force){
       app must look EXACTLY as it did before this feature existed — and the stale bar is a visible
       change. The league list is what the warning is about; it is unaffected either way. */
    anyFail = loaded[0] || loaded[2];
+   /* SECOND LEGS NEED THE DAY'S FIXTURES IN HAND, so this runs after them rather than beside
+      them - and it never delays the scores: it repaints only if it actually learned something. */
+   fetchLegsInto(day, force).then(function(gained){
+    if(gained && view === "home" && selDay === day && mainView === "scores") paintHome();
+   }).catch(function(){});
   } finally {
    /* in the finally, and after the others rather than beside them: it reads their caches to avoid
       double-counting, and it must write its bucket on EVERY path or a silent group reads as an
@@ -2550,6 +2681,9 @@ function mrow(e, lg){
   mid = '<span class="msc live" dir="ltr">' + scoreTxt(H, A) + "</span>";
   const clock = isHT(e) ? t("ht") : ((e.status && e.status.displayClock) || "");
   sub = '<span class="lvm"><span class="lvdot"></span><span dir="ltr">' + esc(clock) + "</span></span>";
+  /* and the aggregate WHILE IT IS BEING PLAYED, which is the whole point of an aggregate */
+  const agLive = aggTxt(e, H, A);
+  if(agLive) sub += " · " + esc(t("agg")) + ' <span dir="ltr">' + agLive + "</span>";
  } else {
   mid = '<span class="msc" dir="ltr">' + scoreTxt(H, A) + "</span>";
   /* EXTRA TIME AND THE AGGREGATE ARE BOTH IN THE FEED AND NEITHER WAS EVER SHOWN. A 1-1
@@ -2558,7 +2692,7 @@ function mrow(e, lg){
   sub = esc(statusName(e) === "STATUS_FINAL_AET" ? t("aet") : t("ft"));
   const sh = shootTxt(H, A);
   if(sh) sub += " · " + esc(t("pens")) + ' <span dir="ltr">' + sh + "</span>";
-  const ag = aggTxt(H, A);
+  const ag = aggTxt(e, H, A);
   if(ag) sub += " · " + esc(t("agg")) + ' <span dir="ltr">' + ag + "</span>";
  }
  if(e._gkQual) sub += " · " + esc(t("qualTag"));
@@ -4033,6 +4167,10 @@ function renderMatchModal(eid){
  const statusTxt = vk ? t(vk) : s === "pre" ? t("notStarted") : live ? (isHT(e) ? t("ht") : ((e.status && e.status.displayClock) || t("live"))) : t("ft");
  let meta = esc(fmtDayFull(dkey(new Date(e.date)))) + " · " + (clockLive ? "<span dir='ltr'>" + esc(statusTxt) + "</span>" : esc(statusTxt));
  if(!vk && s === "post"){ const sh = shootTxt(H, A); if(sh) meta += " · " + esc(t("pens")) + " <span dir='ltr'>" + sh + "</span>"; }
+ /* THE SHEET NEVER SHOWED AN AGGREGATE AT ALL - not before kick-off, not in play, not after.
+    Tap into a second leg and the one number that decides who goes through was missing. */
+ const agSheet = vk ? "" : aggTxt(e, H, A);
+ if(agSheet) meta += " · " + esc(t("agg")) + " <span dir='ltr'>" + agSheet + "</span>";
  if(e._gkQual) meta += " · " + esc(t("qualTag"));
  const extraCompetition = eventCompetitionName(e);
  if(extraCompetition) meta += " · " + esc(extraCompetition);
