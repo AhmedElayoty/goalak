@@ -480,8 +480,16 @@ html[data-theme="light"] .motm .msb,html[data-theme="light"] .motm .mtag{color:#
    Dark ink on the warm chip reads 6.93:1; the away blue keeps white at 4.7:1. */
 .pnum.pn-h{color:#0d1533}
 .gkPname{display:block;font-size:10px;color:#fff;margin-top:2px;line-height:1.1;text-shadow:0 1px 2px rgba(0,0,0,.95);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.gkPname .pic{font-size:9px;letter-spacing:0}
-.gkPname .pic .gkic{vertical-align:-.12em}
+/* THE BADGE HANGS OFF THE NUMBER, BECAUSE OFF THE NAME IT DISAPPEARED. Sitting inline after
+   the name put every card and goal inside .gkPname's own overflow:hidden, so the moment a
+   name filled the 19% chip the badge was clipped away - and in RTL it was pushed off the
+   start edge first, which is why Malinovskyi's RED CARD and Lopes Cabral's yellow showed
+   nothing at all while Savic's and Onuachu's survived. A red card is not optional
+   information and it cannot depend on the length of a man's name. Anchored to the circle it
+   is the same size for everybody: the lower start-side corner, clear of the digits (which
+   sit within +-5px of centre) and clear of .prate, which owns the top corner. */
+.pchip .pic{position:absolute;top:14px;inset-inline-start:calc(50% + 7px);display:flex;gap:1px;z-index:3;line-height:0}
+.pchip .pic .gkic{width:11px;height:11px;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.7))}
 .prate{position:absolute;top:-7px;inset-inline-start:58%;min-width:19px;height:15px;border-radius:4px;font-weight:900;font-size:9.5px;color:#0d1533;display:flex;align-items:center;justify-content:center;padding:0 2px;z-index:4;box-shadow:0 1px 2px rgba(0,0,0,.6)}
 .prate.rhi{background:#37d27f}.prate.rmd{background:#9fd957}.prate.rok{background:#e8c552}.prate.rlo{background:#dd8a55}
 .lnform{display:flex;justify-content:space-between;gap:8px;padding:10px 2px 8px;font-size:12px;font-weight:800;color:var(--gold)}
@@ -1157,10 +1165,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.80";
+const APP_VERSION = "6.81";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-27-v680";
+const FORCE_RELOAD = "2026-08-27-v681";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -3048,7 +3056,14 @@ async function ensureSummary(eid){
      pre-match XI frozen on screen and not one substitution ever appearing. While the match is
      in play the summary goes stale in ninety seconds; and a summary CAPTURED before full time
      is refreshed once more after it, so the final card carries the finished match. */
-  const liveStale = st === "in" && Date.now() - c.at > 90000;
+  /* 25s, NOT 90s. The sheet repaints every 25 seconds while a match is live, so a 90-second
+     staleness window meant roughly two ticks in three fetched nothing and the timeline could
+     be a minute and a half behind the pitch: the owner watched half-time end and the second
+     half start, and the sheet took almost two minutes to say so. Aligned to the repaint, one
+     summary fetch per tick per open live sheet, and mdSet above makes an unchanged answer
+     free. The 45s edge cache in front of ESPN still bounds how fresh this can be - that half
+     lives in the worker, not here. */
+  const liveStale = st === "in" && Date.now() - c.at > 25000;
   const closeOut = st === "post" && c.st && c.st !== "post";
   if(!(pending && Date.now() - c.at > 120000) && !liveStale && !closeOut) return c.json;
  } else if(c && c.failed && Date.now() - c.at < 60000) return null;
@@ -3214,7 +3229,8 @@ function mdLineupsHtml(sum, H, A){
   const ic = playerIcons(pl.p);
   return '<button type="button" class="pchip" style="left:' + pl.x.toFixed(1) + "%;top:" + pl.y.toFixed(1) + '%" data-pid="' + esc(pl.pid) + '" onclick="openPlayerCard(this.dataset.pid)">' + badge +
    '<span class="pnum ' + (isHome ? "pn-h" : "pn-a") + '" style="background:' + colour + '" dir="ltr">' + esc(String(pl.num)) + "</span>" +
-   '<span class="gkPname">' + esc(pl.name) + (ic ? ' <span class="pic">' + ic + "</span>" : "") + "</span></button>";
+   (ic ? '<span class="pic">' + ic + "</span>" : "") +
+   '<span class="gkPname">' + esc(pl.name) + "</span></button>";
  }).join("");
  /* quieter lines on the quieter turf, and boxes at real proportions: a penalty area spans
     most of the width of a real pitch, not 44% of it */
@@ -3731,6 +3747,19 @@ function closePlayerCard(){
 }
 let _mdSwitch = false;
 function mdSet(el, html){
+ /* A REPAINT THAT CHANGES NOTHING DOES NOTHING. renderMdBody lands twice on the same node
+    for a single answer more often than it looks - the ensureSummary().then() below re-enters
+    it, and retryRatings calls it straight after loadRatings - and this wrote innerHTML
+    unconditionally, tearing the tab down and rebuilding it to draw identical markup, which
+    drops focus and re-runs every entry animation inside. Compared against the string we last
+    WROTE, not against el.innerHTML, which the parser normalises on the way back out and so
+    would never match.
+    It does NOT cover the 25-second live tick, and should not be read as if it does: that
+    tick goes through renderMatchModal, which rewrites the whole of .mbox, so #mdBody is a
+    fresh node every time with nothing to compare against. Making THAT idempotent is a
+    bigger change than this one. */
+ if(el._gkHtml === html && !_mdSwitch) return;
+ el._gkHtml = html;
  el.innerHTML = html;
  if(_mdSwitch){ _mdSwitch = false; el.classList.remove("mdfade"); void el.offsetWidth; el.classList.add("mdfade"); }
 }
