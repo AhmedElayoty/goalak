@@ -393,6 +393,15 @@ html[data-theme="light"] .lgsec[data-lg="uel"]{--lgc:#9A6430}
 .schico{flex:0 0 auto}
 .schnm{flex:1;min-width:0;font-size:14px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .schsub{flex:0 0 auto;font-size:11px;color:var(--dim2);font-weight:700}
+/* pull-to-refresh: the app's own, since v6.70 evicted the browser's */
+#gkPtr{position:fixed;top:-56px;left:50%;transform:translate(-50%,0);z-index:95;width:44px;height:44px;
+ border-radius:50%;background:var(--card);border:1px solid var(--line2);display:grid;place-items:center;
+ color:var(--gold);box-shadow:0 6px 18px rgba(0,0,0,.35);pointer-events:none}
+#gkPtr svg{width:22px;height:22px;display:block}
+#gkPtr.ready{color:var(--acc);border-color:var(--acc)}
+#gkPtr.spin svg{animation:gkPtrSpin .7s linear infinite}
+@keyframes gkPtrSpin{to{transform:rotate(360deg)}}
+#gkPtr.settle{transition:transform .28s var(--e-out)}
 .tmfxrow .tft .msub{font-size:10.5px;color:var(--dim)}
 /* ---------- match detail tabs (summary / line-ups / stats) ---------- */
 /* z-index 30 + opaque background: the pitch chips (z2) and rating badges (z4) used to paint
@@ -596,7 +605,7 @@ footer b{color:var(--dim)}
 #mdBody.mdfade{animation:gkfade .15s ease-out}
 @media (prefers-reduced-motion: reduce){
  #home,#lg,#predPane,#chatPane,.mrow.live::before,.skel::after,.mrow.scored,
- #modal,#tmfx,#promo,#playerCard,#authModal,.mbox,.toast,#mdBody.mdfade{animation:none !important}
+ #modal,#tmfx,#promo,#playerCard,#authModal,.mbox,.toast,#mdBody.mdfade,#gkPtr.spin svg{animation:none !important}
  .fold::after{transition:none !important}
 }
 .spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--line2);border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-inline-end:8px}
@@ -1124,10 +1133,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.73";
+const APP_VERSION = "6.74";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-27-v673";
+const FORCE_RELOAD = "2026-08-27-v674";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -3805,6 +3814,53 @@ document.addEventListener("keydown", function(ev){
    confirmation that a control registered. Silently absent where the API is not supported,
    which is every desktop and every iPhone — Safari has never implemented it. */
 function vib(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms || 12); }catch(_){} }
+/* ============ pull-to-refresh ============
+   v6.70 turned off the browser's overscroll gesture to stop the app feeling like a web page;
+   this is the gesture given back, wearing the app's own clothes. Armed only at the very top of
+   the Scores view with no sheet open, so list scrolling and sheet drags never see it. */
+(function(){
+ const pill = document.createElement("div");
+ pill.id = "gkPtr";
+ pill.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.5 6.3"/><path d="M20 5v6h-6"/></svg>';
+ document.body.appendChild(pill);
+ let sy = 0, dy = 0, armed = false, busy = false;
+ const PULL = 160;                      /* raw finger travel that triggers */
+ function settleHome(){
+  pill.classList.add("settle");
+  pill.style.transform = "translate(-50%,0)";
+  pill.classList.remove("spin", "ready");
+  setTimeout(function(){ pill.classList.remove("settle"); }, 320);
+ }
+ window.addEventListener("touchstart", function(ev){
+  armed = !busy && window.scrollY <= 0 && !anySheetOpen() && mainView === "scores" && view === "home";
+  if(!armed) return;
+  sy = ev.touches[0].clientY; dy = 0;
+ }, {passive: true});
+ window.addEventListener("touchmove", function(ev){
+  if(!armed || busy) return;
+  dy = ev.touches[0].clientY - sy;
+  if(dy <= 0 || window.scrollY > 0){ dy = 0; pill.style.transform = "translate(-50%,0)"; pill.classList.remove("ready"); return; }
+  const t = Math.min(dy * .5, 118);
+  pill.style.transform = "translate(-50%," + (56 + t) + "px) rotate(" + Math.min(dy * 1.5, 320) + "deg)";
+  pill.classList.toggle("ready", dy >= PULL);
+ }, {passive: true});
+ window.addEventListener("touchend", function(){
+  if(!armed || busy) return;
+  armed = false;
+  if(dy < PULL){ if(dy > 0) settleHome(); return; }
+  busy = true;
+  vib(12);
+  pill.classList.add("settle", "spin");
+  pill.style.transform = "translate(-50%,120px)";
+  setTimeout(function(){ pill.classList.remove("settle"); }, 320);
+  const began = Date.now();
+  Promise.resolve(loadDay(true)).catch(function(){}).then(function(){
+   /* let the spinner live long enough to be believed */
+   setTimeout(function(){ settleHome(); busy = false; }, Math.max(0, 650 - (Date.now() - began)));
+  });
+ }, {passive: true});
+ window.addEventListener("touchcancel", function(){ if(armed && !busy){ armed = false; if(dy > 0) settleHome(); } }, {passive: true});
+})();
 
 /* COUNTDOWN. Days, hours and minutes to kick-off. The Arabic side is not a translation of the
    English one: the units are written out, and each number-unit pair is wrapped so the sequence
