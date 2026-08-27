@@ -912,6 +912,8 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
  border:1px solid var(--line);background:var(--card2,rgba(255,255,255,.06));
  color:var(--fg);font-weight:800;font-size:13.5px;cursor:pointer}
 .mshare:active{transform:scale(.98)}
+.mshare.mbell{margin-top:8px}
+.mshare.mbell.on{border-color:var(--gold);color:var(--gold)}
 .mcd{display:inline-block;margin-block-start:4px;font-weight:800;color:var(--acc,#FF7A45)}
 /* a text link, not a button that looks like the confirm button */
 .aulink{display:block;inline-size:100%;margin-block-start:2px;padding:6px 2px;background:none;border:0;
@@ -1140,10 +1142,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.77";
+const APP_VERSION = "6.78";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-27-v677";
+const FORCE_RELOAD = "2026-08-27-v678";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1571,6 +1573,11 @@ const STR = {
   chatVideo:["فيديو","Video"],
   chatVoice:["رسالة صوتية","Voice note"],
   shareMatch:["شارك الماتش","Share match"],
+ bellBtn:["نبّهني بالماتش ده","Alert me for this match"],
+ bellBtnOn:["التنبيه شغّال ✓","Alerts on ✓"],
+ bellOnOk:["تمام — هيوصلك كل حاجة في الماتش ده 🔔","Done — you'll get everything for this match 🔔"],
+ bellOffOk:["اتشال التنبيه من الماتش ده","Match alert removed"],
+ bellMax:["أقصى حاجة 30 ماتش عليهم جرس — شيل واحد قديم الأول","Max 30 belled matches — remove an old one first"],
  shareCopied:["اتنسخ! ابعته لأي حد","Copied — paste it anywhere"],
  close:["إغلاق","Close"],
  chatReact:["تفاعل","React"],
@@ -4005,6 +4012,10 @@ function renderMatchModal(eid){
      does. It reads "Share match" now, full width, under the meta line where the eye already is. */
   '<button type="button" class="mshare" onclick="shareMatch(\'' + esc(eid) + '\')">⤴ '
     + esc(t("shareMatch")) + "</button>" +
+  (s !== "post" && !vk
+   ? '<button type="button" class="mshare mbell' + (bellOn(eid) ? " on" : "") + '" id="bellBtn" onclick="toggleBellEv(\'' + esc(eid) + '\')">🔔 '
+     + esc(t(bellOn(eid) ? "bellBtnOn" : "bellBtn")) + "</button>"
+   : "") +
   (hasDetail || preLineups
    ? '<div class="mdtabs" id="mdTabs"></div><div id="mdBody"></div>'
    : '<div class="mnoev">' + esc(t("noEvents")) + "</div>");
@@ -6330,6 +6341,47 @@ function renderPushLgs(){
  $("pushLgRow").innerHTML = '<span class="shlab">' + esc(t("pushLeagues")) + "</span>" +
   uniq.map(lg => '<button type="button" class="chip' + (!pushLgs.length || pushLgs.includes(lg.id) ? " on" : "") + '" onclick="togglePushLg(\'' + lg.id + '\')">' + esc(lgShort(lg)) + "</button>").join("");
 }
+/* ============ the per-match bell: subscribe to ONE fixture ============
+   The bell list rides the push subscription record (events[], max 30) - the worker lets a
+   belled match cut through every league mute, and the line-up push targets it directly. */
+let bellEvents = {};
+try{ bellEvents = JSON.parse(localStorage.getItem("gk_bell_events") || "{}") || {}; }catch(_){}
+if(typeof bellEvents !== "object" || Array.isArray(bellEvents)) bellEvents = {};
+function pruneBells(){ const now = Date.now(); for(const k in bellEvents) if(!(+bellEvents[k] > now - 36 * 3600000)) delete bellEvents[k]; }
+pruneBells();
+function bellOn(eid){ return !!bellEvents[String(eid)]; }
+function paintBellBtn(eid){
+ const b = document.getElementById("bellBtn");
+ if(!b) return;
+ const on = bellOn(eid);
+ b.classList.toggle("on", on);
+ b.textContent = "\uD83D\uDD14 " + t(on ? "bellBtnOn" : "bellBtn");
+}
+async function toggleBellEv(eid){
+ const e = EV_INDEX[eid];
+ if(!e || evState(e) === "post") return;
+ if(!bellOn(eid) && Object.keys(bellEvents).length >= 30) return toastMsg(t("bellMax"));
+ /* the bell is a push feature: turning it on turns push on first (permission prompt included) */
+ if(!bellOn(eid) && !($("pushOnB") && $("pushOnB").classList.contains("on"))){
+  await setPush(true);
+  if(!($("pushOnB") && $("pushOnB").classList.contains("on"))) return;
+ }
+ const prev = JSON.stringify(bellEvents);
+ if(bellOn(eid)) delete bellEvents[String(eid)];
+ else bellEvents[String(eid)] = Date.parse(e.date) || Date.now();
+ pruneBells();
+ paintBellBtn(eid);
+ const saved = await savePushSub().catch(() => false);
+ if(saved){
+  try{ localStorage.setItem("gk_bell_events", JSON.stringify(bellEvents)); }catch(_){}
+  toastMsg(t(bellOn(eid) ? "bellOnOk" : "bellOffOk"));
+ } else {
+  /* full rollback, same contract as the league chips: the UI never claims an unsaved state */
+  try{ bellEvents = JSON.parse(prev) || {}; }catch(_){ bellEvents = {}; }
+  paintBellBtn(eid);
+  toastMsg(t("authSaveFail"));
+ }
+}
 function togglePushLg(id){
  const all = allLgIds();
  if(!pushLgs.length) pushLgs = all.slice();
@@ -6405,7 +6457,9 @@ async function savePushSub(subObj){
   const sub = subObj || await reg.pushManager.getSubscription();
   if(!sub) return false;
   const j = sub.toJSON();
+  pruneBells();
   const rec = { endpoint:j.endpoint, keys:j.keys, lgs:pushLgs, teams:myTeamIds().slice(0, 10),
+                events:Object.keys(bellEvents).slice(0, 30),
                 lang:LANG, uid:gkUser ? gkUser.uid : null, name:gkUser ? gkUser.username : null, ts:Date.now() };
   for(let i = 0; i < 3; i++){
    try{
