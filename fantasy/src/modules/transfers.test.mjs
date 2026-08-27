@@ -23,6 +23,32 @@ if (from < 0 || to < 0 || to < from) {
 }
 const SRC = HTML.slice(from, to);
 
+/* THE BLOCK STOPPED BEING SELF-CONTAINED, AND THE SUITE WENT SILENT AGAIN.
+ * v6.76 taught ftSync the owner's rule - "no full team, no score" - and that pulled three
+ * names in from outside this slice: SQUAD_SIZE, hasFullLineup and snapLoad. The harness
+ * carried none of them, so the very first ftSync() threw ReferenceError and the file ran
+ * ZERO of its assertions across v6.76, v6.77, v6.78 and v6.79 - the SECOND time this test
+ * has been silenced in exactly this way (see the note on syncNow below).
+ *
+ * They are LIFTED from the shipped source, not restated here, for the same reason the
+ * transfer block is: a copy would prove nothing and would drift. Both depend only on
+ * localStorage, JSON and Array, which this world already holds.
+ */
+const sizes = HTML.match(/const START_SIZE = (\d+), BENCH_SIZE = (\d+);/);
+if (!sizes) {
+  console.log("FAIL  cannot read START_SIZE/BENCH_SIZE from index.html");
+  process.exit(1);
+}
+const SQUAD_SIZE = Number(sizes[1]) + Number(sizes[2]);
+
+const depFrom = HTML.indexOf("function hasFullLineup(");
+const depTo = HTML.indexOf("function snapTake(");
+if (depFrom < 0 || depTo < 0 || depTo < depFrom) {
+  console.log("FAIL  cannot find hasFullLineup/snapLoad in index.html");
+  process.exit(1);
+}
+const DEPS = HTML.slice(depFrom, depTo);
+
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("  FAIL  " + m); } };
 const eq = (a, b, m) => ok(a === b, m + "  (got " + a + ", wanted " + b + ")");
@@ -46,6 +72,8 @@ function world(o) {
     seasonStarted: () => o.seasonStarted !== false,
     playGw: () => (o.gw != null ? o.gw : 5),
     activeChipFor: () => o.chip || null,
+    /* the squad size the shipped file computes, read from the shipped file */
+    SQUAD_SIZE,
     /* ftSave publishes to the account since v6.26. Without a stub the whole suite threw on
        its FIRST assertion and ran ZERO of them - which is how the transfer economy, the one
        rule that can take points away, went uncovered while the file reported "pass". */
@@ -54,7 +82,12 @@ function world(o) {
   };
   ctx.globalThis = ctx;
   vm.createContext(ctx);
+  /* helpers first: the transfer block calls them */
+  vm.runInContext(DEPS, ctx);
   vm.runInContext(SRC, ctx);
+  /* a sealed round is the OTHER half of the owner's full-team rule, so a world has to be
+     able to hold one: hasFullLineup accepts a complete snapshot as proof a team existed. */
+  if (o.snap) ctx.localStorage.setItem("fx_snap", JSON.stringify(o.snap));
   if (o.saved) ctx.localStorage.setItem("fx_ft", JSON.stringify(o.saved));
   return ctx;
 }
@@ -193,6 +226,30 @@ console.log("\n5b · the ledger heals itself and never charges a phantom round")
   const v = w.ftSync();
   eq(v.gw, 1, "the baseline round resets to the live round");
   ok(!v.paid || Object.keys(v.paid).length === 0, "and no hit is booked for a round that never closed");
+}
+{
+  /* v6.76, THE OWNER'S RULE: no full team, no score. A join stamped by a half-built team
+     under the old rule - which took ANY club at all - is erased until the fifteen are real:
+     left standing, the backfill would hand the finished team rounds it never entered.
+     Nothing asserted this when it shipped; deleting the heal left all 37 assertions green. */
+  const w = world({ gw: 13, squad: S(14), saved: { gw: 13, banked: 1, base: S(14), join: 12 } });
+  const v = w.ftSync();
+  eq(v.join, 0, "a join stamped by a half-built team is erased");
+}
+{
+  /* and it must not touch a real one - erasing every join makes every round a free build */
+  const w = world({ gw: 13, squad: S(15), saved: { gw: 13, banked: 1, base: S(15), join: 12 } });
+  const v = w.ftSync();
+  eq(v.join, 12, "a real fifteen keeps its join round");
+}
+{
+  /* the other half of the rule, as hasFullLineup words it: a SEALED round proving a complete
+     team existed counts too, so somebody sitting on fourteen mid-transfer today does not lose
+     the round he actually joined in */
+  const w = world({ gw: 13, squad: S(14), snap: { "12": { sq: S(15) } },
+                    saved: { gw: 13, banked: 1, base: S(14), join: 12 } });
+  const v = w.ftSync();
+  eq(v.join, 12, "a sealed full round keeps the join while the live squad is short");
 }
 
 console.log("\n6 · the things that must never happen");

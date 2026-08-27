@@ -107,9 +107,31 @@ for (const [re, why] of [
   [/value\.type === "react"/, "the react frame is ignored, so the server's count never lands"]
 ]) if (!re.test(app)) fail.push(why);
 
+/* 8. THE DOMAIN IS PART OF THE RELEASE, AND NOTHING HERE KNEW THAT.
+      GitHub Pages reads the custom domain out of the CNAME file in the PUBLISHED artifact,
+      so a deploy without that file tells Pages to UNSET the domain. v6.77 deleted it as
+      collateral in a typography commit and goallak.com stopped receiving deploys — while
+      every marker above still agreed, every gate still passed, and Actions reported three
+      more green deployments. The phone went on showing v6.76, the last build that shipped
+      with a domain attached, and gkVersionCheck — fetching index.html from that same
+      stranded origin — compared 6.76 against 6.76 and correctly concluded it was current.
+      Invisible from inside the app, invisible from inside this file, three releases lost.
+      This is checks 1-3 all over again in one more place: the release is not just the
+      markers, it is also the address they are served from. */
+const CNAME_WANT = "goallak.com";
+const cnamePath = path.join(HERE, "CNAME");
+if (!fs.existsSync(cnamePath)) {
+  fail.push("CNAME is missing — Pages will unset the custom domain and " + CNAME_WANT
+    + " will stop receiving deploys (exactly what happened from v6.77 to v6.79)");
+} else {
+  const cnameGot = fs.readFileSync(cnamePath, "utf8").trim();
+  if (cnameGot !== CNAME_WANT)
+    fail.push('CNAME reads "' + cnameGot + '" but the site is served from ' + CNAME_WANT);
+}
+
 if (fail.length) {
   console.log("release markers are not consistent:");
   fail.forEach(f => console.log("  FAIL  " + f));
   process.exit(1);
 }
-console.log(`check-release.mjs: v${entry[3]} · goalak-v${cache} · APP_VERSION ${appV} · FORCE_RELOAD ${force} — all consistent`);
+console.log(`check-release.mjs: v${entry[3]} · goalak-v${cache} · APP_VERSION ${appV} · FORCE_RELOAD ${force} · ${CNAME_WANT} — all consistent`);
