@@ -59,10 +59,14 @@
  --bg:#0a1230; --card:#121d44; --card2:#0e1736; --line:#22305f; --line2:#2e4076;
  /* #8493c8 measured ~4.2:1 on the cards - under the 4.5:1 floor for small text. One step
     lighter clears it everywhere at once. */
- --txt:#eef2ff; --dim:#9aa8dc; --dim2:#9aa8dc;
+ /* two-tier dim ink restored: dim2 is the quieter voice (6.0:1 on card - still AA) */
+ --txt:#eef2ff; --dim:#9aa8dc; --dim2:#8c9bd0;
  --card3:#182450; --shadow:0 12px 30px -14px rgba(0,0,0,.8);
  /* chat reaction chips referenced fantasy tokens that never existed here */
  --fg:var(--txt); --fx-gold:var(--gold);
+ /* motion language (same curves as the fantasy) + one scrim for every overlay */
+ --e-out:cubic-bezier(.22,.61,.36,1); --e-pop:cubic-bezier(.34,1.56,.64,1);
+ --scrim:rgba(3,5,14,.78);
  /* the AWAY side's colour, formalised - it was a hardcode on the pitch and a TEXT token on
     the stat bars, which is how a data bar ended up painted in secondary-ink */
  --away:#1577c4;
@@ -435,6 +439,7 @@ html[data-theme="light"] .motm .msb,html[data-theme="light"] .motm .mtag{color:#
 .tlmin small{display:block;font-size:10px;color:var(--gold);font-weight:900}
 .tlmark{text-align:center;font-size:10.5px;font-weight:800;letter-spacing:.6px;color:var(--dim2);background:var(--card);position:relative;z-index:1;padding:3px 0}
 .tlmark.top{color:var(--gold)}
+.tlmark.mid{margin:4px auto;opacity:.8}
 /* RTL: the flex row mirrors, so mirror the goal highlight + text alignment with it */
 html[dir="rtl"] .tlrow.goal.l{background:linear-gradient(270deg,rgba(224,90,43,.18),transparent 62%)}
 html[dir="rtl"] .tlrow.goal.r{background:linear-gradient(90deg,rgba(21,119,196,.18),transparent 62%)}
@@ -442,6 +447,31 @@ html[dir="rtl"] .tlside.l{text-align:left}
 html[dir="rtl"] .tlside.r{text-align:right}
 .sclist{display:block;margin-top:4px}
 .scln{display:block;font-size:10.5px;color:var(--dim);font-weight:700;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ---------- the facts pack ---------- */
+.fxform,.fxh2h,.fxtable,.fxinfo{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-top:4px}
+.fxfrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0}
+.fxfteam{font-size:13px;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fxdots{display:flex;gap:5px;flex:0 0 auto}
+.fdot{display:inline-grid;place-items:center;width:21px;height:21px;border-radius:50%;font-size:10px;font-weight:900;color:#fff}
+.fdot.w{background:var(--rz-g);color:#08210f}
+.fdot.l{background:var(--rz-r)}
+.fdot.d{background:#5a6a95}
+.fdot.last{outline:2px solid var(--acc);outline-offset:1.5px}
+.fxlead{font-size:12.5px;font-weight:900;color:var(--gold);text-align:center;padding:2px 0 8px}
+.fxhrow{display:grid;grid-template-columns:52px 1fr 64px 1fr;align-items:center;gap:6px;padding:6px 0;border-top:1px solid var(--line);font-size:12px}
+.fxhrow .fxhd{color:var(--dim2);font-size:10.5px}
+.fxhrow .fxht{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.fxhrow .fxhs{text-align:center;font-weight:900;font-variant-numeric:tabular-nums}
+.ftrow{display:grid;grid-template-columns:26px 1fr 34px 40px 40px;align-items:center;gap:4px;padding:6px 2px;font-size:12.5px;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+.ftrow:first-child{border-top:none}
+.ftrow.fthead{color:var(--dim2);font-size:10.5px;font-weight:700}
+.ftrow .ftt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:start}
+.ftrow.ftme{background:linear-gradient(90deg, rgba(255,192,46,.10), transparent 70%);border-radius:8px}
+.ftrow.ftme .ftt{color:var(--gold);font-weight:900}
+.ftgap{text-align:center;color:var(--dim2);font-size:12px;letter-spacing:3px;padding:2px 0}
+.ftfull{width:100%;margin-top:8px;padding:9px;border-radius:10px;background:var(--card2);border:1px solid var(--line2);color:var(--dim);font-size:12px;font-weight:800}
+.fxinfo .fxirow{display:flex;justify-content:space-between;padding:5px 0;font-size:12.5px}
+.fxinfo .fxirow span{color:var(--dim2)}
 .stwrap{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:4px 12px;margin-top:10px}
 .stline{padding:10px 2px;border-bottom:1px solid var(--line)}
 .stline:last-child{border-bottom:none}
@@ -1021,10 +1051,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.70";
+const APP_VERSION = "6.71";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-25-v670";
+const FORCE_RELOAD = "2026-08-25-v671";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1463,6 +1493,23 @@ const STR = {
  stOffsides:["التسلل","Offsides"],
  stSaves:["التصديات","Saves"],
  stPasses:["التمريرات","Passes"],
+ stBlocked:["تسديدات اتصدت","Blocked shots"],
+ stCrosses:["العرضيات","Crosses"],
+ stIntercepts:["قطع الكرات","Interceptions"],
+ mdFacts:["معلومات","Facts"],
+ fxForm:["فورمة آخر 5 ماتشات","Last-5 form"],
+ fxH2h:["المواجهات المباشرة","Head-to-head"],
+ fxLeads:["{T} كسبان المواجهات {A}-{B}","{T} leads the head-to-head {A}-{B}"],
+ fxLevel:["المواجهات متعادلة {A}-{B}","Head-to-head level {A}-{B}"],
+ fxFullTable:["الجدول كامل","Full table"],
+ fxRef:["الحكم","Referee"],
+ fxAtt:["الحضور","Attendance"],
+ fxTeamCol:["الفريق","Team"],
+ fxPlayed:["لعب","P"],
+ fxPts:["نقاط","PTS"],
+ fxNoFacts:["لسه مفيش معلومات كفاية عن الماتش ده","Not enough info on this match yet"],
+ penMissWord:["ضاعت ركلة الجزاء","Penalty missed"],
+ varWord:["قرار فار","VAR review"],
  stPassAcc:["دقة التمرير %","Pass accuracy %"],
  psMin:["الدقائق","Minutes"],
  psGoals:["الأهداف","Goals"],
@@ -3004,6 +3051,10 @@ const MD_STAT_ROWS = [
  {n:"foulsCommitted", k:"stFouls"},
  {n:"offsides", k:"stOffsides"},
  {n:"totalPasses", k:"stPasses"},
+ {n:"passPct", k:"stPassAcc", pct:true},
+ {n:"blockedShots", k:"stBlocked"},
+ {n:"totalCrosses", k:"stCrosses"},
+ {n:"interceptions", k:"stIntercepts"},
  {n:"yellowCards", k:"stYellow"},
  {n:"redCards", k:"stRed"}
 ];
@@ -3044,6 +3095,107 @@ function mdStatsHtml(sum, H, A){
   "<span><b>" + esc(teamName(A)) + "</b>" + crestHtml(A.team) + "</span></div>" +
   '<div class="stwrap">' + h + "</div>";
 }
+/* ============ the Facts pack: H2H + form + mini-table + referee ============
+   Every byte here was ALREADY DOWNLOADED with the summary and thrown away - seasonseries,
+   lastFiveGames, standings, gameInfo. The weakest screen in the app (a pre-match sheet that
+   knew only the kickoff and the TV channel) becomes the fullest, for zero new requests. */
+function mdFactsHtml(sum, e, H, A){
+ if(!sum) return '<div class="mnoev">' + esc(t("fxNoFacts")) + "</div>";
+ const hid = String((H.team || {}).id || ""), aid = String((A.team || {}).id || "");
+ let blocks = [];
+
+ /* --- last-5 form --- */
+ try{
+  const lf = sum.lastFiveGames || [];
+  const side = id => lf.find(x => x && x.team && String(x.team.id) === id);
+  const dotRow = (tm, rec) => {
+   if(!rec || !Array.isArray(rec.events) || !rec.events.length) return "";
+   const evs = rec.events.slice().sort((x, y) => new Date(x.gameDate || 0) - new Date(y.gameDate || 0)).slice(-5);
+   const dots = evs.map((g, i) => {
+    const r = String(g.gameResult || "").toUpperCase();
+    const cls = r === "W" ? "w" : r === "L" ? "l" : "d";
+    const letter = LANG === "ar" ? (r === "W" ? "ف" : r === "L" ? "خ" : "ت") : (r || "?");
+    const tip = (g.atVs || "") + " " + (g.opponent && (g.opponent.shortDisplayName || g.opponent.displayName) || "") + " " + (g.score || "");
+    return '<span class="fdot ' + cls + (i === evs.length - 1 ? " last" : "") + '" title="' + esc(tip.trim()) + '">' + letter + "</span>";
+   }).join("");
+   return '<div class="fxfrow"><span class="fxfteam">' + esc(clubAr(tm.team)) + '</span><span class="fxdots" dir="ltr">' + dots + "</span></div>";
+  };
+  const rows = dotRow(H, side(hid)) + dotRow(A, side(aid));
+  if(rows) blocks.push({pre: 0, html: '<div class="dhead">' + esc(t("fxForm")) + '</div><div class="fxform">' + rows + "</div>"});
+ }catch(_){}
+
+ /* --- head-to-head --- */
+ try{
+  const ss = (sum.seasonseries || [])[0];
+  if(ss && Array.isArray(ss.events) && ss.events.length){
+   let wH = 0, wA = 0, dr = 0;
+   const rows = ss.events.slice().sort((x, y) => new Date(y.date || 0) - new Date(x.date || 0)).slice(0, 5).map(ev => {
+    const cs = ev.competitors || [];
+    const a0 = cs[0] || {}, b0 = cs[1] || {};
+    const sc0 = +(a0.score != null ? a0.score : NaN), sc1 = +(b0.score != null ? b0.score : NaN);
+    if(isFinite(sc0) && isFinite(sc1)){
+     const w = sc0 > sc1 ? a0 : sc1 > sc0 ? b0 : null;
+     if(!w) dr++; else if(String((w.team || {}).id) === hid) wH++; else if(String((w.team || {}).id) === aid) wA++;
+    }
+    let dt = "";
+    try{ dt = new Intl.DateTimeFormat(locale(), {day: "numeric", month: "short", timeZone: TZ}).format(new Date(ev.date)); }catch(_){}
+    const nm = c => { const n = clubAr(c.team || {}); return (isFinite(sc0) && isFinite(sc1) && c === (sc0 > sc1 ? a0 : b0) && sc0 !== sc1) ? "<b>" + esc(n) + "</b>" : esc(n); };
+    return '<div class="fxhrow"><span class="fxhd">' + esc(dt) + '</span><span class="fxht">' + nm(a0) + '</span><b class="fxhs" dir="ltr">' + esc(isFinite(sc0) ? sc0 : "-") + " - " + esc(isFinite(sc1) ? sc1 : "-") + '</b><span class="fxht">' + nm(b0) + "</span></div>";
+   }).join("");
+   const lead = wH === wA ? t("fxLevel", {A: wH, B: wA})
+     : t("fxLeads", {T: clubAr((wH > wA ? H : A).team), A: Math.max(wH, wA), B: Math.min(wH, wA)});
+   blocks.push({pre: 1, html: '<div class="dhead">' + esc(t("fxH2h")) + '</div><div class="fxh2h"><div class="fxlead">' + esc(lead) + "</div>" + rows + "</div>"});
+  }
+ }catch(_){}
+
+ /* --- mini table --- */
+ try{
+  const groups = (sum.standings && sum.standings.groups) || [];
+  const grp = groups.find(g => ((g.standings || {}).entries || []).some(en => String(en.id) === hid)) || groups[0];
+  const entries = ((grp || {}).standings || {}).entries || [];
+  if(entries.length){
+   const stat = (en, n) => { const x = (en.stats || []).find(st => st.name === n); return x ? (x.displayValue != null ? x.displayValue : x.value) : ""; };
+   const withRank = entries.map(en => ({en, rank: +stat(en, "rank") || 999})).sort((x, y) => x.rank - y.rank);
+   const iH = withRank.findIndex(x => String(x.en.id) === hid), iA = withRank.findIndex(x => String(x.en.id) === aid);
+   let lo = Math.max(0, Math.min(iH < 0 ? 1e9 : iH, iA < 0 ? 1e9 : iA) - 1);
+   if(lo > withRank.length - 5) lo = Math.max(0, withRank.length - 5);
+   let win = withRank.slice(lo, lo + 5);
+   /* BOTH clubs must be visible: when they sit far apart in the table, the single window
+      holds only one - append the other with a gap marker instead of losing it */
+   const missing = [iH, iA].filter(ix => ix >= 0 && (ix < lo || ix >= lo + 5));
+   if(missing.length && missing[0] < withRank.length){
+    win = win.concat([{gap: true}], missing.map(ix => withRank[ix]));
+   }
+   if(win.length){
+    const rows = win.map(x => x.gap ? '<div class="ftgap">···</div>' : '<div class="ftrow' + (String(x.en.id) === hid || String(x.en.id) === aid ? " ftme" : "") + '">'
+      + '<span dir="ltr">' + esc(stat(x.en, "rank")) + '</span><span class="ftt">' + esc(x.en.team || "") + "</span>"
+      + '<span dir="ltr">' + esc(stat(x.en, "gamesPlayed")) + '</span><span dir="ltr">' + esc(stat(x.en, "pointDifferential")) + '</span><b dir="ltr">' + esc(stat(x.en, "points")) + "</b></div>").join("");
+    const lgKnown = LEAGUES.some(l => l.id === e._gkLeagueId);
+    blocks.push({pre: 2, html: '<div class="dhead">' + esc(t("tableTab")) + '</div><div class="fxtable">'
+      + '<div class="ftrow fthead"><span>#</span><span class="ftt">' + esc(t("fxTeamCol")) + '</span><span>' + esc(t("fxPlayed")) + '</span><span dir="ltr">+/-</span><span>' + esc(t("fxPts")) + "</span></div>"
+      + rows + "</div>"
+      + (lgKnown ? '<button type="button" class="ftfull" data-lg="' + esc(e._gkLeagueId) + '" onclick="closeModal();gotoLeague(this.dataset.lg);setLgTab(\'T\')">' + esc(t("fxFullTable")) + ' <span class="lgarrow">›</span></button>' : "")});
+   }
+  }
+ }catch(_){}
+
+ /* --- referee + attendance --- */
+ try{
+  const gi = sum.gameInfo || {};
+  const ref = ((gi.officials || [])[0] || {}).displayName || "";
+  const att = +gi.attendance || 0;
+  let inf = "";
+  if(ref) inf += '<div class="fxirow"><span>' + esc(t("fxRef")) + '</span><b>' + esc(ref) + "</b></div>";
+  if(att > 0 && evState(e) !== "pre") inf += '<div class="fxirow"><span>' + esc(t("fxAtt")) + '</span><b dir="ltr">' + esc(att.toLocaleString(locale())) + "</b></div>";
+  if(inf) blocks.push({pre: 3, html: '<div class="fxinfo">' + inf + "</div>"});
+ }catch(_){}
+
+ if(!blocks.length) return '<div class="mnoev">' + esc(t("fxNoFacts")) + "</div>";
+ /* pre-match: form first (what shape are they in); after kick-off: H2H first */
+ if(evState(e) !== "pre") blocks.sort((x, y) => (x.pre === 1 ? -1 : x.pre) - (y.pre === 1 ? -1 : y.pre));
+ return blocks.map(b => b.html).join("");
+}
+
 /* goal scorers listed under each club in the match header (WC-app behaviour) */
 function scorerListHtml(e, side){
  const comp = e.competitions && e.competitions[0] || {};
@@ -3101,6 +3253,21 @@ function mdEventsHtml(e, H, A, sum){
   const iN = inN.shortName || inN.displayName || "", oN = outN.shortName || outN.displayName || "";
   if(!iN && !oN) return;
   row(" sub", isHomeId((k.team || {}).id), '<b class="si">' + esc(iN) + '</b> <span class="subo">' + esc(oN) + "</span>", "⇄", (k.clock || {}).displayValue || "", "");
+ });
+ /* missed penalties, VAR decisions and the half-time line also live in keyEvents and were
+    filtered out with everything else - the timeline told the goals but not the drama */
+ ((sum && sum.keyEvents) || []).forEach(k => {
+  const tt = String(((k.type || {}).type || (k.type || {}).text) || "").toLowerCase();
+  const who = (((k.participants || [])[0] || {}).athlete || {});
+  const nm = who.shortName || who.displayName || "";
+  const mins = (k.clock || {}).displayValue || "";
+  if(/pen/.test(tt) && /(miss|sav)/.test(tt)){
+   row(" pmiss", isHomeId((k.team || {}).id), "<b>" + esc(nm || t("pens")) + '</b> <span class="subo">' + esc(t("penMissWord")) + "</span>", "❌", mins, "");
+  } else if(/\bvar\b|video review/.test(tt)){
+   row(" varrow", isHomeId((k.team || {}).id), "<b>" + esc(t("varWord")) + "</b>", "🖥", mins, "");
+  } else if(tt === "halftime"){
+   items.push({m: 4500, html: '<div class="tlmark mid" dir="ltr">' + esc(t("ht")) + "</div>"});
+  }
  });
  if(!items.length) return '<div class="mnoev">' + esc(t("noEvents")) + "</div>";
  items.sort((a, b) => b.m - a.m);
@@ -3376,7 +3543,9 @@ async function renderMdBody(){
  if(!e) return;
  const tabsEl = $("mdTabs"), body = $("mdBody");
  if(!body) return;                                   /* pre-match sheets render line-ups with no tab bar */
- if(tabsEl) tabsEl.innerHTML = [["E", "mdSummary"], ["L", "mdLineups"], ["S", "mdStats"]]
+ const preTabs = evState(e) === "pre";
+ if(tabsEl) tabsEl.innerHTML = (preTabs ? [["F", "mdFacts"], ["L", "mdLineups"]]
+                                        : [["E", "mdSummary"], ["L", "mdLineups"], ["S", "mdStats"], ["F", "mdFacts"]])
   .map(p => '<button type="button" class="mdtab' + (_mdTab === p[0] ? " on" : "") + '" onclick="setMdTab(\'' + p[0] + '\')">' + esc(t(p[1])) + "</button>").join("");
  const comp = e.competitions && e.competitions[0] || {};
  const cs = comp.competitors || [];
@@ -3397,7 +3566,7 @@ async function renderMdBody(){
  const sum = await ensureSummary(eid) || cached;
  if(_mdEid !== eid) return;                       /* user moved on while fetching */
  if(!sum){ body.innerHTML = '<div class="mnoev">' + esc(t("mdLoadFail")) + "</div>"; return; }
- body.innerHTML = _mdTab === "L" ? mdLineupsHtml(sum, H, A) : mdStatsHtml(sum, H, A);
+ body.innerHTML = _mdTab === "L" ? mdLineupsHtml(sum, H, A) : _mdTab === "F" ? mdFactsHtml(sum, e, H, A) : mdStatsHtml(sum, H, A);
 }
 function openMatch(eid){
  _mdTab = "E";
@@ -3602,7 +3771,9 @@ function renderMatchModal(eid){
     the LINE-UPS view on its own, because ESPN publishes the XI about an hour before kick-off */
  const hasDetail = !vk && (s === "in" || s === "post");
  const preLineups = !vk && s === "pre";
- if(preLineups) _mdTab = "L";
+ /* before kick-off the FACTS view leads: head-to-head, form, table context - the things a
+    fan wants while waiting; the XI is one tab away and appears ~an hour before the whistle */
+ if(preLineups) _mdTab = "F";
  _mdEid = eid;
  scheduleFit();
  $("mbox").innerHTML =
@@ -3621,11 +3792,9 @@ function renderMatchModal(eid){
      does. It reads "Share match" now, full width, under the meta line where the eye already is. */
   '<button type="button" class="mshare" onclick="shareMatch(\'' + esc(eid) + '\')">⤴ '
     + esc(t("shareMatch")) + "</button>" +
-  (hasDetail
+  (hasDetail || preLineups
    ? '<div class="mdtabs" id="mdTabs"></div><div id="mdBody"></div>'
-   : preLineups
-    ? '<div id="mdBody"></div>'
-    : '<div class="mnoev">' + esc(t("noEvents")) + "</div>");
+   : '<div class="mnoev">' + esc(t("noEvents")) + "</div>");
  if(hasDetail || preLineups) renderMdBody();
  return true;
 }
