@@ -662,7 +662,7 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
 .tdot{width:8px;height:8px;border-radius:50%;display:inline-block}
 
 /* ---------- points ---------- */
-.ptsbig{font-size:44px;font-weight:900;color:var(--fx-gold);line-height:1;text-align:center}
+.ptsbig{font-size:44px;font-weight:900;color:var(--fx-gold);line-height:1;text-align:center;font-variant-numeric:tabular-nums}
 .ptsrow{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--fx-line);font-size:13px;gap:10px}
 .ptsrow:last-child{border-bottom:none}
 .ptsrow .v{font-weight:900}
@@ -1002,7 +1002,7 @@ function seasonStarted(){ return Date.now() >= SEASON_OPENS_MS; }
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.76";
+const FX_BUILD = "6.77";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
