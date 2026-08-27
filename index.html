@@ -947,10 +947,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.65";
+const APP_VERSION = "6.66";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-25-v665";
+const FORCE_RELOAD = "2026-08-25-v666";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -4095,7 +4095,12 @@ async function loadPredData(force){
   const jobs = [];
   for(const l of lgs){
    /* Predictions are for the Champions League proper only, never qualifying rounds. */
-   jobs.push({slug:l.slug, id:l.id, range:rangeParam(tk, 0, 14)});
+   /* 21 days, not 14 - and the number is not free to choose: the kickoff table that enforces
+      the deadline (and keeps picks secret) sweeps exactly 21 days ahead, so this window may
+      grow up to that boundary and NEVER past it. At 14, the league-phase draw landed on a
+      Thursday with Matchday 1 nineteen days out - and the tab sat on "predictions begin soon"
+      for five more days while everyone's excitement had a fixture list and nowhere to put it. */
+   jobs.push({slug:l.slug, id:l.id, range:rangeParam(tk, 0, 21)});
    jobs.push({slug:l.slug, id:l.id, range:rangeParam(tk, resDays, 0)});
   }
   const results = await Promise.all(jobs.map(jb => jget(sbUrl(jb.slug, jb.range))));
