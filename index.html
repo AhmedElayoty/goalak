@@ -941,10 +941,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.62";
+const APP_VERSION = "6.63";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-25-v662";
+const FORCE_RELOAD = "2026-08-25-v663";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1252,6 +1252,7 @@ const STR = {
  resetBad:["اللينك ده انتهى أو اتستخدم قبل كده","That link has expired or was already used"],
  resetDone:["تمام! سجّل دخول بكلمة السر الجديدة","Done — sign in with your new password"],
  verifyDone:["اتأكد الإيميل ✅","Email confirmed ✅"],
+ verifyOld:["اللينك ده قديم — افتح أحدث رسالة تأكيد وصلتك، أو ابعت لينك جديد من الإعدادات","This link is old — open the newest confirmation email, or resend a fresh one from Settings"],
  forgotSent:["لو الإيميل مسجّل، هيوصلك لينك دلوقتي","If that address is registered, a link is on its way"],
  forgotNeed:["اكتب اسم المستخدم الأول","Type your username first"],
  authBadEmail:["الإيميل ده مش مظبوط أو مستخدم قبل كده","That email is not valid, or is already in use"],
@@ -3698,11 +3699,31 @@ async function doReset(){
  } finally { go.disabled = false; }
 }
 async function doVerify(tok){
- let res = null;
- try{ res = await apiAuth("verify", {token:tok}); }catch(_){}
+ /* "LINK EXPIRED" WAS THE ANSWER TO EVERYTHING - a network drop, a timeout, a token already
+    spent - and the owner watched a user click the Arabic button, read "expired", click the
+    English button on the SAME link and succeed: the first click had died on the network, not
+    on the token. Three honest outcomes now: transient failures are retried; a dead token is
+    checked against the account first, because the commonest dead token belongs to somebody
+    who is ALREADY VERIFIED (a superseded email, a double click, or a response lost on the
+    way back after the server committed) and they deserve the green tick, not a scare; and
+    only a genuinely old link says so, with the way out spelled out. */
+ let res = null, threw = false;
+ for(let i = 0; i < 3 && !res; i++){
+  try{ res = await apiAuth("verify", {token:tok}); }
+  catch(_){ threw = true; await sleep(700); }
+ }
  try{ history.replaceState({}, "", location.pathname); }catch(_){}
- if(res && res.ok){ acctInfoStore(res.j.user); toastMsg(t("verifyDone")); }
- else toastMsg(t("resetBad"));
+ if(res && res.ok){ acctInfoStore(res.j.user); toastMsg(t("verifyDone")); return; }
+ if(gkUser && validChatSession()){
+  try{
+   const me = await apiAuthAuthed("me");
+   if(me.ok && me.j.user){
+    acctInfoStore(me.j.user);
+    if(me.j.user.verified && !me.j.user.pendingEmail){ toastMsg(t("verifyDone")); return; }
+   }
+  }catch(_){}
+ }
+ toastMsg(threw && !res ? t("authNet") : t("verifyOld"));
 }
 
 /* WHAT THE SERVER KNOWS ABOUT THIS ACCOUNT'S EMAIL - cached, so the chip that says "add a
