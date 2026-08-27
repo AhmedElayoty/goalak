@@ -180,10 +180,27 @@ html[data-theme="light"] .ico-sun{display:none}
 .dc.sel.tdy .dn{color:#fff}
 
 /* ---------- counter + chips ---------- */
-.cnt{font-size:12px;color:var(--dim);padding:0 4px 8px;font-weight:600}
+.infobar .cnt{font-size:11px;color:var(--dim2);margin-inline-start:8px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.infobar .cnt:empty{margin:0}
+@media (max-width:480px){#conTxt{display:none}}
 .chips{display:flex;gap:7px;overflow-x:auto;padding:0 2px 10px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
+/* one easing language for every selectable control; press = a 90ms settle */
+.chip,.railc,.dc,.ltab,.lsegb,.mdtab,.seg button,.authtabs button,.ppw,.themebtn,.setchip,.backbtn,.morebtn,.chattool,.fold{
+ transition:background-color .15s var(--e-out),border-color .15s var(--e-out),color .15s var(--e-out),transform 90ms var(--e-out)}
+.chip:active,.railc:active,.dc:active,.ltab:active,.lsegb:active,.mdtab:active,
+.seg button:active,.authtabs button:active,.ppw:active,.backbtn:active,.morebtn:active,
+.retrybtn:active,.pmgo:active,.themebtn:active,.setchip:active,.chattool:active,.fold:active{transform:scale(.96)}
+.lgopen:active,.lnrow:active,.srow:active,.trow:active,.tmfxrow:active{background:var(--card2)}
+.chiplab{font-size:10.5px;color:var(--dim2);align-self:center;margin-inline-end:2px;white-space:nowrap;font-weight:700}
 .chip{flex:0 0 auto;padding:5px 12px;border-radius:16px;border:1px solid var(--line);background:var(--card);font-size:12px;font-weight:700;color:var(--dim);white-space:nowrap}
+/* one easing language for every selectable control; press = a 90ms settle */
+.chip,.railc,.dc,.ltab,.lsegb,.mdtab,.seg button,.authtabs button,.ppw,.themebtn,.setchip,.backbtn,.morebtn,.chattool,.fold{
+ transition:background-color .15s var(--e-out),border-color .15s var(--e-out),color .15s var(--e-out),transform 90ms var(--e-out)}
+.chip:active,.railc:active,.dc:active,.ltab:active,.lsegb:active,.mdtab:active,
+.seg button:active,.authtabs button:active,.ppw:active,.backbtn:active,.morebtn:active,
+.retrybtn:active,.pmgo:active,.themebtn:active,.setchip:active,.chattool:active,.fold:active{transform:scale(.96)}
+.lgopen:active,.lnrow:active,.srow:active,.trow:active,.tmfxrow:active{background:var(--card2)}
 .chip.on{background:var(--accdark);border-color:var(--acc);color:#fff}
 .chip.lv{color:var(--red)}
 .chip.lv.on{background:#5b1717;border-color:var(--red);color:#fff}
@@ -200,15 +217,29 @@ html[data-theme="light"] .ico-sun{display:none}
 /* each league block carries its competition's colour on the leading edge - the wall of
    identical rows becomes scannable chapters */
 .lgsec[data-lg]{border-inline-start:3px solid var(--lgc, var(--line))}
-.lgsec[data-lg="epl"]{--lgc:#8b5cf6}
-.lgsec[data-lg="liga"]{--lgc:#ff5c3b}
-.lgsec[data-lg="seriea"]{--lgc:#2f9be6}
-.lgsec[data-lg="bun"]{--lgc:#e33b4a}
-.lgsec[data-lg="fl1"]{--lgc:#e8d24a}
-.lgsec[data-lg="tsl"]{--lgc:#e8574a}
-.lgsec[data-lg="spl"]{--lgc:#3f6fd8}
-.lgsec[data-lg="ucl"]{--lgc:#ffc02e}
-.lgsec[data-lg="uel"]{--lgc:#f68e1e}
+.mysec{border-inline-start:3px solid var(--gold)}
+.mysec .lgico{filter:none}
+/* ONE league colour code for the whole product - the fantasy's differentiated palette,
+   which never let three leagues share a red. UCL wears starball silver (gold is the VALUE
+   token and a ribbon must not impersonate it); UEL takes bronze, its own hue slot. */
+.lgsec[data-lg="epl"]{--lgc:#A855F7}
+.lgsec[data-lg="liga"]{--lgc:#FF6B00}
+.lgsec[data-lg="seriea"]{--lgc:#2E9BFF}
+.lgsec[data-lg="bun"]{--lgc:#FF3B3B}
+.lgsec[data-lg="fl1"]{--lgc:#17D4A7}
+.lgsec[data-lg="tsl"]{--lgc:#C7F000}
+.lgsec[data-lg="spl"]{--lgc:#FF5CA8}
+.lgsec[data-lg="ucl"]{--lgc:#E8EDFF}
+.lgsec[data-lg="uel"]{--lgc:#C9885A}
+html[data-theme="light"] .lgsec[data-lg="epl"]{--lgc:#7C3AED}
+html[data-theme="light"] .lgsec[data-lg="liga"]{--lgc:#D45500}
+html[data-theme="light"] .lgsec[data-lg="seriea"]{--lgc:#1D6FBF}
+html[data-theme="light"] .lgsec[data-lg="bun"]{--lgc:#C62828}
+html[data-theme="light"] .lgsec[data-lg="fl1"]{--lgc:#0E8A6D}
+html[data-theme="light"] .lgsec[data-lg="tsl"]{--lgc:#7A8F00}
+html[data-theme="light"] .lgsec[data-lg="spl"]{--lgc:#D6337A}
+html[data-theme="light"] .lgsec[data-lg="ucl"]{--lgc:#3B4FA8}
+html[data-theme="light"] .lgsec[data-lg="uel"]{--lgc:#9A6430}
 .lghead{display:flex;align-items:center;border-bottom:1px solid var(--line)}
 .lgopen{flex:1;display:flex;align-items:center;gap:9px;padding:10px 13px;min-width:0;text-align:start}
 .lgopen.allonly{cursor:default}
@@ -218,6 +249,13 @@ html[data-theme="light"] .ico-sun{display:none}
 .lgarrow{color:var(--dim2);font-size:17px;font-weight:800;margin-inline-start:auto;flex:0 0 auto}
 [dir=rtl] .lgarrow{transform:scaleX(-1)}
 .fold{padding:10px 14px;color:var(--dim2);font-size:16px;font-weight:800;border-inline-start:1px solid var(--line)}
+/* the +/- stays in the DOM (assertions, screen readers); the pixels are a turning chevron */
+.fold{font-size:0;position:relative;min-inline-size:44px}
+.fold::after{content:"";position:absolute;inset-inline-start:50%;inset-block-start:50%;
+ inline-size:9px;block-size:9px;margin:-6px 0 0 -4.5px;
+ border-inline-end:2.5px solid var(--dim2);border-block-end:2.5px solid var(--dim2);
+ transform:rotate(45deg);transition:transform .2s var(--e-out)}
+.fold.open::after{transform:rotate(225deg);margin-block-start:-2px}
 
 /* ---------- match rows ---------- */
 .mrow{display:grid;grid-template-columns:1fr 112px 1fr;align-items:center;width:100%;padding:9px 10px;border-bottom:1px solid var(--line);gap:4px;text-align:center}
@@ -316,7 +354,7 @@ html[data-theme="light"] .ico-sun{display:none}
 .morebtn{width:100%;padding:9px 0;font-size:12px;font-weight:700;color:var(--dim);background:var(--card2)}
 
 /* ---------- modal ---------- */
-#modal,#tmfx,#promo{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;display:flex;align-items:flex-end;justify-content:center}
+#modal,#tmfx,#promo{position:fixed;inset:0;background:var(--scrim);z-index:100;display:flex;align-items:flex-end;justify-content:center}
 @media(min-width:520px){#modal,#tmfx,#promo{align-items:center}}
 .pmin{text-align:center;padding:8px 6px 4px}
 .pmoji{font-size:40px;line-height:1;margin-bottom:8px}
@@ -355,7 +393,7 @@ html[data-theme="light"] .ico-sun{display:none}
 .motm .mic{font-size:20px;flex:0 0 auto}
 .motm .mjer{width:42px;height:42px;object-fit:contain;flex:0 0 auto;filter:drop-shadow(0 2px 4px rgba(0,0,0,.45))}
 /* player card */
-#playerCard{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:110;display:flex;align-items:flex-end;justify-content:center}
+#playerCard{position:fixed;inset:0;background:var(--scrim);z-index:110;display:flex;align-items:flex-end;justify-content:center}
 @media(min-width:520px){#playerCard{align-items:center}}
 .pcbox{max-height:70vh}
 .pchead{display:flex;align-items:center;gap:12px;padding:6px 0 12px}
@@ -500,6 +538,13 @@ html[dir="rtl"] .tlside.r{text-align:right}
 /* while a sheet is open the page underneath must not move at all */
 body.gk-lock{overflow:hidden}
 @media(min-width:520px){.mbox{border-radius:18px}}
+/* sheet ENTRY: the backdrop dims, the panel rises - the most-used transition in the app
+   finally moves. Close stays instant (leaving should never make anyone wait). */
+@keyframes gkDim{from{background:rgba(3,5,14,0)}to{background:var(--scrim)}}
+@keyframes gkSheetUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+#modal:not(.hide),#tmfx:not(.hide),#promo:not(.hide),#playerCard:not(.hide),#authModal:not(.hide){animation:gkDim .22s ease-out}
+#modal:not(.hide) .mbox,#tmfx:not(.hide) .mbox,#promo:not(.hide) .mbox,
+#playerCard:not(.hide) .mbox,#authModal:not(.hide) .mbox{animation:gkSheetUp .3s var(--e-out)}
 .mx{position:sticky;top:0;z-index:40;float:inline-end;background:var(--card2);border-radius:50%;width:30px;height:30px;font-size:15px;color:var(--dim)}
 .mvs{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:6px 0 4px}
 .mvt{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
@@ -535,8 +580,11 @@ footer b{color:var(--dim)}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes gkfade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 #home:not(.hide),#lg:not(.hide),#predPane:not(.hide),#chatPane:not(.hide){animation:gkfade .15s ease-out}
+#mdBody.mdfade{animation:gkfade .15s ease-out}
 @media (prefers-reduced-motion: reduce){
- #home,#lg,#predPane,#chatPane,.mrow.live::before,.skel::after,.mrow.scored{animation:none !important}
+ #home,#lg,#predPane,#chatPane,.mrow.live::before,.skel::after,.mrow.scored,
+ #modal,#tmfx,#promo,#playerCard,#authModal,.mbox,.toast,#mdBody.mdfade{animation:none !important}
+ .fold::after{transition:none !important}
 }
 .spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--line2);border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-inline-end:8px}
 
@@ -664,7 +712,7 @@ html[data-theme="light"] .bnav{background:linear-gradient(180deg,#ffffff,#e8edf8
 .mypick.dimd{color:var(--dim2)}
 .meRow{background:var(--card2)}
 .prednote{font-size:12px;color:var(--dim2);font-weight:600;padding:2px 4px 10px}
-#authModal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:120;display:flex;align-items:center;justify-content:center;padding:16px}
+#authModal{position:fixed;inset:0;background:var(--scrim);z-index:120;display:flex;align-items:center;justify-content:center;padding:16px}
 .autitle{font-size:17px;font-weight:900;padding-top:4px}
 .authtabs{display:flex;gap:7px;margin:10px 0}
 .authtabs button{flex:1;padding:9px 0;border-radius:10px;background:var(--card2);border:1px solid var(--line);font-weight:800;font-size:13px;color:var(--dim)}
@@ -673,7 +721,9 @@ html[data-theme="light"] .bnav{background:linear-gradient(180deg,#ffffff,#e8edf8
 .auerr{color:var(--red);font-size:12.5px;font-weight:700;padding:6px 0}
 .aubtn{width:100%;margin-top:8px}
 .aunote{font-size:11.5px;color:var(--dim2);padding-top:8px;text-align:center}
-.toast{position:fixed;bottom:84px;inset-inline:0;margin-inline:auto;width:fit-content;max-width:86%;background:rgba(8,10,20,.92);color:#fff;padding:10px 18px;border-radius:12px;font-size:13.5px;font-weight:700;z-index:130;text-align:center}
+@keyframes gkToastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.toast.out{opacity:0;transform:translateY(6px);transition:opacity .25s var(--e-out),transform .25s var(--e-out)}
+.toast{animation:gkToastIn .22s var(--e-out);position:fixed;bottom:84px;inset-inline:0;margin-inline:auto;width:fit-content;max-width:86%;background:rgba(8,10,20,.92);color:#fff;padding:10px 18px;border-radius:12px;font-size:13.5px;font-weight:700;z-index:130;text-align:center}
 
 /* ---------- LIVE NOW strip + club hero + details hint ---------- */
 .livestrip{display:flex;gap:7px;overflow-x:auto;padding:2px 2px 8px;scrollbar-width:none}
@@ -925,7 +975,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 
  <nav class="rail" id="rail" aria-label="Leagues"></nav>
 
- <div class="infobar" id="infobar"><span class="condot" id="conDot"></span><span id="conTxt">بيانات مباشرة من ESPN</span><span class="ibr"><span class="cz" id="tzCode">الإمارات</span><span class="cz cz--off" id="tzOff">UTC+4</span><time class="clock" id="clock" dir="ltr">--:--</time></span></div>
+ <div class="infobar" id="infobar"><span class="condot" id="conDot"></span><span id="conTxt">بيانات مباشرة من ESPN</span><span class="cnt" id="cnt"></span><span class="ibr"><span class="cz" id="tzCode">الإمارات</span><span class="cz cz--off" id="tzOff">UTC+4</span><time class="clock" id="clock" dir="ltr">--:--</time></span></div>
 
  <main>
   <section id="home">
@@ -933,7 +983,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    <div id="teamStrip" class="tmstrip"></div>
    <div class="livestrip hide" id="liveStrip"></div>
    <div class="dwrap"><div class="dstrip" id="dstrip"></div></div>
-   <div class="cnt" id="cnt"></div>
+
    <div class="chips" id="chips"></div>
    <div class="stale hide" id="staleBar"></div>
    <div id="mlist"><div class="skel"><span class="spinner"></span><span id="loadTxt">جارٍ التحميل…</span></div></div>
@@ -1051,10 +1101,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.71";
+const APP_VERSION = "6.72";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-25-v671";
+const FORCE_RELOAD = "2026-08-25-v672";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1395,6 +1445,8 @@ const STR = {
  noUpcoming:["تبدأ توقعات دوري أبطال أوروبا بعد انتهاء التصفيات وظهور مباريات مرحلة الدوري","Champions League predictions will begin after the UCL qualifiers finish and the league-phase fixtures appear"],
  alertsLab:["🔔 التنبيهات","🔔 Match alerts"],
  pushLeagues:["بطولات التنبيهات:","Alert leagues:"],
+ myMatches:["مبارياتي","My matches"],
+ dayFilter:["فلترة اليوم:","Filter today:"],
  myTeamsLab:["📌 فرقي","📌 My teams"],
  teamsMax:["الحد الأقصى 10 فرق","Maximum 10 teams"],
  teamsNote:["تنبيهات مباريات هذه الفرق تصلك حتى لو دوريها مقفول · اضغط على الفريق لمشاهدة مبارياته القادمة","You get these teams' match alerts even if their league is toggled off · tap a team to see its upcoming fixtures"],
@@ -1615,6 +1667,11 @@ function voidedKey(e){
 }
 /* left digit always belongs to the left-rendered team (home is on the RIGHT in RTL) */
 const _rowScore = {};   /* eid -> last painted live score, for the goal flash */
+/* the goal-flash decision must be taken against the PREVIOUS paint, not against a copy of
+   the same event rendered a moment earlier in THIS paint - the pinned favourites section
+   renders a match twice per paint, and without this snapshot only one copy would flash */
+let _rowScorePrev = null;
+function beginRowPaint(){ _rowScorePrev = Object.assign({}, _rowScore); }
 function scoreTxt(H, A){
  const h = esc(H.score == null ? "0" : H.score), a = esc(A.score == null ? "0" : A.score);
  return LANG === "ar" ? a + " - " + h : h + " - " + a;
@@ -2422,7 +2479,8 @@ function mrow(e, lg){
  if(s === "in"){
   rowCls += " live";
   const curScore = String(H.score) + "-" + String(A.score);
-  if(_rowScore[e.id] && _rowScore[e.id] !== curScore) rowCls += " scored";
+  const wasScore = (_rowScorePrev || _rowScore)[e.id];
+  if(wasScore && wasScore !== curScore) rowCls += " scored";
   _rowScore[e.id] = curScore;
  }
  return '<button type="button" class="' + rowCls + '" data-eid="' + esc(e.id) + '" onclick="openMatch(this.dataset.eid)">' +
@@ -2453,7 +2511,10 @@ function paintHome(){
  if(chip !== "all" && chip !== "live" && !perLg.some(p => !p.lg.allOnly && p.lg.id === chip)) chip = "all";
  $("cnt").textContent = totalM ? countLine(totalM, comps) : "";
  /* chips */
- let ch = '<button type="button" class="chip' + (chip === "all" ? " on" : "") + '" onclick="setChip(\'all\')">' + esc(t("all")) + "</button>";
+ /* the rail above OPENS league pages; these chips FILTER the day - same flags, different
+    verbs, and a first-time user could not tell. The label says which one this is. */
+ let ch = '<span class="chiplab">' + esc(t("dayFilter")) + '</span>'
+   + '<button type="button" class="chip' + (chip === "all" ? " on" : "") + '" onclick="setChip(\'all\')">' + esc(t("all")) + "</button>";
  if(liveN > 0) ch += '<button type="button" class="chip lv' + (chip === "live" ? " on" : "") + '" onclick="setChip(\'live\')">● ' + esc(t("live")) + ' <span class="cn" dir="ltr">(' + liveN + ")</span></button>";
  for(const p of perLg){
    if(p.lg.allOnly) continue;
@@ -2468,6 +2529,30 @@ function paintHome(){
  if(cd) cd.classList.toggle("bad", !!dayFailed);
  /* list */
  let h = "";
+ beginRowPaint();
+ /* ⭐ FAVOURITES FIRST. The followed teams and the favourite club exist, yet their matches
+    were buried inside league sections like anyone else's - every big scores app pins "my
+    matches" on top, because that is what somebody opened the app FOR. The matches stay in
+    their league sections too (cheap, honest, and the section is where neighbours live). */
+ if(chip === "all"){
+  const favIds = new Set(myTeamIds());
+  if(myClub && myClub.id) favIds.add(String(myClub.id));
+  if(favIds.size){
+   const seenFav = {};
+   const pinned = [];
+   for(const p of perLg) for(const e of p.evs){
+    if(seenFav[e.id]) continue;
+    const csF = (e.competitions && e.competitions[0] && e.competitions[0].competitors) || [];
+    if(csF.some(c => c && c.team && favIds.has(String(c.team.id)))){ seenFav[e.id] = 1; pinned.push({e, lg: p.lg}); }
+   }
+   pinned.sort((x, y) => ((evState(y.e) === "in") - (evState(x.e) === "in")) || (new Date(x.e.date) - new Date(y.e.date)));
+   if(pinned.length){
+    h += '<section class="lgsec mysec"><div class="lghead"><div class="lgopen allonly"><span class="lgico">⭐</span><span class="lgnm">'
+      + esc(t("myMatches")) + '</span><span class="lgn" dir="ltr">' + pinned.length + '</span></div></div><div class="lgbody">'
+      + pinned.map(x => mrow(x.e, x.lg)).join("") + "</div></section>";
+   }
+  }
+ }
  /* LIVE is built from the live set itself, NOT from the browsed day's leagues — otherwise a match
     that kicked off yesterday and is still running has no section to live in after midnight */
  let sections = perLg;
@@ -2491,7 +2576,7 @@ function paintHome(){
     ? '<div class="lgopen allonly"><span class="lgico">' + lgIcon(p.lg) + '</span><span class="lgnm">' + esc(lgName(p.lg)) + '</span><span class="lgn" dir="ltr">' + list.length + '</span></div>'
     : '<button type="button" class="lgopen" onclick="gotoLeague(\'' + p.lg.id + '\')"><span class="lgico">' + lgIcon(p.lg) + '</span><span class="lgnm">' + esc(lgName(p.lg)) + '</span><span class="lgn" dir="ltr">' + list.length + '</span><span class="lgarrow">›</span></button>';
    h += '<section class="lgsec" data-lg="' + esc(p.lg.id) + '"><div class="lghead">' + heading +
-    '<button type="button" class="fold" aria-label="' + esc(t("foldLab")) + '" onclick="toggleFold(\'' + p.lg.id + '\', this)">' + (folded ? "+" : "−") + "</button>" +
+    '<button type="button" class="fold' + (folded ? "" : " open") + '" aria-label="' + esc(t("foldLab")) + '" onclick="toggleFold(\'' + p.lg.id + '\', this)">' + (folded ? "+" : "−") + "</button>" +
    '</div><div class="lgbody' + (folded ? " hide" : "") + '" id="fold_' + p.lg.id + '">' + list.map(e => mrow(e, p.lg)).join("") + "</div></section>";
  }
  if(!h){
@@ -2551,6 +2636,7 @@ function toggleFold(id, btn){
  const nowHidden = !el.classList.contains("hide");
  el.classList.toggle("hide", nowHidden);
  btn.textContent = nowHidden ? "+" : "−";
+ btn.classList.toggle("open", !nowHidden);
  try{ localStorage.setItem("gk_fold_" + id, nowHidden ? "1" : "0"); }catch(_){}
 }
 
@@ -3536,7 +3622,12 @@ function closePlayerCard(){
  if(history.state && history.state.gkp){ try{ history.back(); return; }catch(_){} }
  hideSheet("playerCard");
 }
-function setMdTab(x){ _mdTab = x; renderMdBody(); }
+let _mdSwitch = false;
+function mdSet(el, html){
+ el.innerHTML = html;
+ if(_mdSwitch){ _mdSwitch = false; el.classList.remove("mdfade"); void el.offsetWidth; el.classList.add("mdfade"); }
+}
+function setMdTab(x){ _mdTab = x; _mdSwitch = true; renderMdBody(); }
 async function renderMdBody(){
  const eid = _mdEid;
  const e = EV_INDEX[eid];
@@ -3554,7 +3645,7 @@ async function renderMdBody(){
  if(_mdTab === "E"){
   const finished = evState(e) === "post" && !voidedKey(e);
   const sumNow = sumCache[eid] && sumCache[eid].json;
-  body.innerHTML = (finished ? motmCardHtml(eid) : "") + mdEventsHtml(e, H, A, sumNow);
+  mdSet(body, (finished ? motmCardHtml(eid) : "") + mdEventsHtml(e, H, A, sumNow));
   if(finished){ const rt = _ratings[eid]; if(!rt || (!rt.ready && !rt.loading && (rt.failed || 0) < 3)) loadRatings(eid); }
   /* subs come from the summary feed: fetch once, then repaint the timeline with them */
   if(finished || evState(e) === "in") ensureSummary(eid).then(function(s){ if(s && _mdEid === eid && _mdTab === "E" && !sumNow) renderMdBody(); });
@@ -3565,8 +3656,8 @@ async function renderMdBody(){
  /* the cache is only the spinner decision; the DATA must pass the staleness gate */
  const sum = await ensureSummary(eid) || cached;
  if(_mdEid !== eid) return;                       /* user moved on while fetching */
- if(!sum){ body.innerHTML = '<div class="mnoev">' + esc(t("mdLoadFail")) + "</div>"; return; }
- body.innerHTML = _mdTab === "L" ? mdLineupsHtml(sum, H, A) : _mdTab === "F" ? mdFactsHtml(sum, e, H, A) : mdStatsHtml(sum, H, A);
+ if(!sum){ mdSet(body, '<div class="mnoev">' + esc(t("mdLoadFail")) + "</div>"); return; }
+ mdSet(body, _mdTab === "L" ? mdLineupsHtml(sum, H, A) : _mdTab === "F" ? mdFactsHtml(sum, e, H, A) : mdStatsHtml(sum, H, A));
 }
 function openMatch(eid){
  _mdTab = "E";
@@ -4749,13 +4840,15 @@ function lbHtml(rows){
  }
  return h;
 }
-let _toastTimer = null;
+let _toastTimer = null, _toastTimer2 = null;
 function toastMsg(msg){
  let el = $("gkToast");
  if(!el){ el = document.createElement("div"); el.id = "gkToast"; el.className = "toast"; document.body.appendChild(el); }
  el.textContent = msg;
+ el.classList.remove("out");
  el.style.display = "block";
- clearTimeout(_toastTimer);
+ clearTimeout(_toastTimer); clearTimeout(_toastTimer2);
+ _toastTimer2 = setTimeout(function(){ el.classList.add("out"); }, 2300);
  _toastTimer = setTimeout(() => { el.style.display = "none"; }, 2600);
 }
 $("authModal").addEventListener("click", function(ev){ if(ev.target === this) closeAuth(); });

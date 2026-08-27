@@ -824,6 +824,10 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
  from{opacity:0;transform:translateY(14px) scale(.94)}
  to{opacity:1;transform:none}}
 @keyframes stCount{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes fxDim{from{background:rgba(3,5,14,0)}to{background:var(--fx-scrim)}}
+@keyframes fxSheetUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+.sheet:not(.hide){animation:fxDim 220ms ease-out}
+.sheet:not(.hide) .sheetbox{animation:fxSheetUp 300ms var(--e-out)}
 /* ENTRY ONLY: these ran on every repaint, so each routine data refresh restruck the
    floodlights and faded the crowd and the turf - the "flashing" the owner filmed. The same
    st--enter gate that already protects the card walk-in protects the ground itself. */
@@ -998,7 +1002,7 @@ function seasonStarted(){ return Date.now() >= SEASON_OPENS_MS; }
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.71";
+const FX_BUILD = "6.72";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
