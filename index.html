@@ -551,6 +551,12 @@ html[data-theme="light"] .bnav{background:linear-gradient(180deg,#ffffff,#e8edf8
 .pin{display:flex;align-items:center;gap:6px;justify-content:center}
 .pinp{width:44px;height:38px;text-align:center;font-size:17px;font-weight:900;background:var(--card2);border:1px solid var(--line2);border-radius:9px;color:var(--txt);font-family:inherit}
 .pdash{color:var(--dim2);font-weight:900}
+/* a pens row holds two club-name buttons and a question - the 112px middle column that fits
+   a scoreline cannot fit that; when the pens picker is present the row stacks instead */
+.mrow:has(.ppr){grid-template-columns:1fr;justify-items:center}
+.mrow:has(.ppr) .tm{justify-content:center}
+.ppw{max-width:150px}
+.mypick.pens{font-size:13px;white-space:normal;line-height:1.5}
 .pentog{margin-top:4px;padding:3px 10px;border-radius:8px;background:none;border:1px dashed var(--line2);color:var(--dim);font-size:11px;font-weight:700}
 .ppq{font-size:11.5px;font-weight:800;color:var(--gold)}
 .ppr{display:flex;gap:6px;justify-content:center;margin:4px 0}
@@ -941,10 +947,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.64";
+const APP_VERSION = "6.65";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-25-v664";
+const FORCE_RELOAD = "2026-08-25-v665";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -3947,52 +3953,7 @@ async function doAuth(){
 }
 /* kept only so an existing device with a half-finished sign-up is not stranded; nothing
    calls it on the normal path any more */
-async function doAuthLegacy(){
- const u = ($("auUser").value || "").trim();
- const p = $("auPass").value || "";
- const go = $("auGo");
- go.disabled = true;
- try{
-  let accts;
-  try{ accts = await tdbRead(ACCT_KEY, null); }catch(_){ return auShowErr(t("authNet")); }
-  accts = accts && typeof accts === "object" ? accts : {};
-  const k = u.toLowerCase();
-  if(_am === "L"){
-   const a = accts[k];
-   if(!a) return auShowErr(t("authNoUser"));
-   if(await sha256(a.salt + p) !== a.hash) return auShowErr(t("authWrongPass"));
-    await finishAuth(a, p);
-  } else {
-   if(accts[k]) return auShowErr(t("authTaken"));
-   const a = {uid:"g" + Math.random().toString(36).slice(2, 10), username:u, salt:Math.random().toString(36).slice(2, 10), hash:"", ts:Date.now()};
-   a.hash = await sha256(a.salt + p);
-   const pickedClub = clubFromSelValue(($("auClub") || {}).value || "");
-   if(pickedClub) a.club = pickedClub;
-   let saved = false, seen = 0;
-   try{ seen = +localStorage.getItem("gk_acct_seen") || 0; }catch(_){}
-   const cnt0 = Object.keys(accts).length;
-   if(cnt0 > seen){ seen = cnt0; try{ localStorage.setItem("gk_acct_seen", String(cnt0)); }catch(_){} }
-   for(let i = 0; i < 3 && !saved; i++){
-    try{
-     const fresh = await tdbRead(ACCT_KEY, null);           /* re-read fresh so concurrent signups aren't clobbered */
-     const obj = fresh && typeof fresh === "object" ? fresh : {};
-     const cnt = Object.keys(obj).length;
-     if(cnt > seen){ seen = cnt; try{ localStorage.setItem("gk_acct_seen", String(cnt)); }catch(_){} }
-     if(cnt === 0 && seen > 0){ await sleep(500); continue; } /* WIPE GUARD: never write over a suspicious empty read */
-     if(obj[k]) return auShowErr(t("authTaken"));
-     obj[k] = a;
-     const want = Object.keys(obj).length;
-     await tdbWrite(ACCT_KEY, obj);
-     await sleep(350);
-     const chk = await tdbRead(ACCT_KEY, null);
-     if(chk && chk[k] && Object.keys(chk).length >= want) saved = true; /* landed AND nobody else's account dropped */
-    }catch(_){ await sleep(350); }
-   }
-   if(!saved) return auShowErr(t("authSaveFail"));
-    await finishAuth(a, p);
-  }
- } finally { go.disabled = false; }
-}
+/* the legacy textdb sign-in path was dead code with no callers - deleted with the store it served */
 async function finishAuth(a, password){
  gkUser = {uid:a.uid, username:a.username};
  try{ localStorage.setItem("gk_user", JSON.stringify(gkUser)); }catch(_){}
@@ -4250,7 +4211,7 @@ function predCard(e){
  const locked = predLocked(e) || evState(e) !== "pre";
  let mid;
  if(mine){
-  mid = '<span class="mypick" dir="auto">' + esc(pickTxt(mine, e)) + '</span><span class="msub">' + esc(t("yourPick")) + "</span>";
+  mid = '<span class="mypick' + (mine.pens ? " pens" : "") + '" dir="auto">' + esc(pickTxt(mine, e)) + '</span><span class="msub">' + esc(t("yourPick")) + "</span>";
  } else if(locked){
   mid = '<span class="mypick dimd">–</span><span class="msub">' + esc(t("lockedNoPick")) + "</span>";
  } else if(!gkUser){
@@ -4787,24 +4748,8 @@ async function saveClubToAccount(){
  /* This rewrites the WHOLE shared accounts object, so it carries the same wipe guard and
     verify-after-write as doAuth: a stale snapshot written back would delete every account
     created since the read. WC chat rules / goalak-v9. */
- let seen = 0;
- try{ seen = +localStorage.getItem("gk_acct_seen") || 0; }catch(_){}
- for(let i = 0; i < 3; i++){
-  try{
-   const fresh = await tdbRead(ACCT_KEY, null);
-   const obj = fresh && typeof fresh === "object" ? fresh : {};
-   const cnt = Object.keys(obj).length;
-   if(cnt > seen){ seen = cnt; try{ localStorage.setItem("gk_acct_seen", String(cnt)); }catch(_){} }
-   if(cnt === 0 && seen > 0){ await sleep(400); continue; }   /* WIPE GUARD */
-   if(!obj[k]) return;                                        /* account not there: nothing to attach a club to */
-   obj[k].club = myClub ? {id:myClub.id, n:myClub.n, s:myClub.s, lg:myClub.lg} : null;
-   const want = Object.keys(obj).length;
-   await tdbWrite(ACCT_KEY, obj);
-   await sleep(350);
-   const chk = await tdbRead(ACCT_KEY, null);
-   if(chk && chk[k] && Object.keys(chk).length >= want) return;   /* landed AND nobody was dropped */
-  }catch(_){ await sleep(350); }
- }
+ /* the textdb mirror is gone: the worker is the only store, and the chat club chips now read
+    the worker's own /clubs map instead of the legacy blob */
 }
 let _clubSched = null;
 async function renderClubHero(force){
@@ -4912,12 +4857,16 @@ function safeChatClub(value){
 async function loadChatClubs(force){
  if(!force && chatClubsAt && Date.now() - chatClubsAt < 120000) return;
  try{
-  const accounts = await tdbRead(ACCT_KEY, null);
-  if(!accounts || typeof accounts !== "object") return;
+  /* the LAST tenant of the world-writable third-party blob has moved home: everybody's club
+     chip now comes from the account store itself, which nothing but the worker can write */
+  const r = await fetch(CHAT_API + "/api/auth/clubs", {cache:"no-store"});
+  if(!r.ok) return;
+  const j = await r.json();
+  if(!j || !j.ok || typeof j.clubs !== "object") return;
   const next = {};
-  for(const account of Object.values(accounts)){
-   const club = safeChatClub(account && account.club);
-   if(account && account.uid && club) next[String(account.uid)] = club;
+  for(const uid of Object.keys(j.clubs)){
+   const club = safeChatClub(j.clubs[uid]);
+   if(club) next[String(uid)] = club;
   }
   chatClubMap = next;
   chatClubsAt = Date.now();

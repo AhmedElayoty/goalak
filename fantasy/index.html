@@ -983,7 +983,7 @@ function seasonStarted(){ return Date.now() >= SEASON_OPENS_MS; }
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.64";
+const FX_BUILD = "6.65";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -1007,8 +1007,11 @@ try{ formation = localStorage.getItem("fx_form") || "4-4-2"; }catch(_){}
    record the app wrote. Opening the English app and landing in Arabic was this being missed. */
 let LANG = "ar";
 try{
- LANG = localStorage.getItem("fx_lang")
-     || (String(localStorage.getItem("gk_lang") || "").slice(0,2) === "en" ? "en" : "ar");
+ /* ONE LANGUAGE FOR THE WHOLE APP. The fantasy used to keep its own choice for ever once made,
+    so switching the app to English left the game in Arabic until someone found the game's own
+    toggle - two languages on one phone reads as a bug, not a preference. The app's language
+    leads whenever it exists; fx_lang only carries a direct-to-fantasy visitor. */
+ LANG = (localStorage.getItem("gk_lang") || localStorage.getItem("fx_lang")) === "en" ? "en" : "ar";
 }catch(_){}
 
 let CLUBS = [], LEAGUES = [], PRICES = {};
@@ -3755,7 +3758,8 @@ function resetDemo(){
 function toggleLang(){
  clearArm();
  LANG = LANG === "ar" ? "en" : "ar";
- try{ localStorage.setItem("fx_lang", LANG); }catch(_){}
+ /* and the choice travels BOTH ways: switching here switches the app too */
+ try{ localStorage.setItem("fx_lang", LANG); localStorage.setItem("gk_lang", LANG); }catch(_){}
  paintChrome(); render();
  if(TS && !$("wiz").classList.contains("hide")){ TS = tutReduce(TS, {type:"LANG", arg: LANG}); tutMount(); }
  if(!$("sheet").classList.contains("hide")) closeSheet();
