@@ -1142,10 +1142,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.78";
+const APP_VERSION = "6.79";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-27-v678";
+const FORCE_RELOAD = "2026-08-27-v679";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -3160,7 +3160,11 @@ function placeTeam(starters, isHome, formation){
  const L = lines.length, out = [];
  const place = (p, frac, x) => {
   if(!isHome) x = 100 - x;
-  const y = isHome ? 97 - frac * 46 : 3 + frac * 46;
+  /* 43, not 46: with 46 the two lone strikers of a 4-2-3-1 mirror met in the centre circle
+     and one chip sat on the other's name (Trabzonspor-Ferencvaros, 27 Aug). The halves now
+     stop ~5 points short of the halfway line each, so the closest two rows keep a full
+     chip-and-label of clearance. */
+  const y = isHome ? 97 - frac * 43 : 3 + frac * 43;
   const a = p.athlete || {};
   out.push({x:x, y:y, num:p.jersey || a.jersey || "", name:a.shortName || a.displayName || "", pid:String(a.id || ""), p:p});
  };
