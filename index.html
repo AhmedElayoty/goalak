@@ -789,6 +789,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 .clubhero .chcap{font-size:10.5px;color:var(--gold);font-weight:800;letter-spacing:.5px}
 .clubhero .chtm{display:flex;align-items:center;justify-content:center;gap:10px;padding:6px 0 2px;font-size:14.5px;font-weight:900}
 .clubhero .chsub{text-align:center;font-size:11.5px;color:var(--dim);font-weight:700}
+/* .msc is a 22px hero in a match row, where it stands alone. Here it shares one flex line with
+   two club names and their crests, so it is sized to the card rather than shouting over it. */
+.clubhero .msc{font-size:17px;letter-spacing:.3px}
+.clubhero.chlive{border-color:var(--red)}
 .setchip .han{max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ---------- chat ---------- */
@@ -1165,10 +1169,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.82";
+const APP_VERSION = "6.83";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-27-v682";
+const FORCE_RELOAD = "2026-08-28-v683";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1570,6 +1574,7 @@ const STR = {
  favClub:["⭐ فريقك المفضل","⭐ Favourite club"],
  noClub:["بدون فريق مفضل","No favourite club"],
  clubNext:["مباراة فريقك القادمة","Your club's next match"],
+ clubLive:["فريقك بيلعب دلوقتي","Your club is playing now"],
  clubSaved:["تم حفظ فريقك المفضل ⭐","Favourite club saved ⭐"],
  installBarTxt:["ثبّت جولك على جهازك — يعمل كتطبيق كامل","Install Goallak on your device — works as a full app"],
  installBtn:["تثبيت","Install"],
@@ -5753,10 +5758,30 @@ function paintClubHero(){
   const hero = el.querySelector(".clubhero");
   if(hero && kc){ hero.style.setProperty("--kc1", kc.c1); hero.classList.add("kitted"); }
  });
- el.innerHTML = '<button type="button" class="clubhero" data-eid="' + esc(e.id) + '" onclick="openMatch(this.dataset.eid)">' +
-  '<div class="chcap">⭐ ' + esc(t("clubNext")) + "</div>" +
-  '<div class="chtm"><span class="tm tmh"><i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + '</span><span class="mtime" dir="ltr">' + esc(fmtTime(e.date)) + '</span><span class="tm tma">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span></div>" +
-  '<div class="chsub">' + esc(fmtDayFull(dkey(new Date(e.date)))) + "</div></button>";
+ /* IT IS NOT THE NEXT MATCH WHILE IT IS BEING PLAYED. renderClubHero deliberately reaches
+    back a day - a match that kicked off at 23:00 is still running at 00:30, and F-40 is the
+    note that put "start yesterday" in its range - and it deliberately keeps state "in". This
+    then described whatever it was handed as a future fixture: at 00:43 the owner's card read
+    "Your club's next match · Barcelona 11:00 pm Athletic · Thursday 27 August" while that
+    match was live at 76 minutes and the live strip two rows below was showing 1-0. The
+    kick-off TIME where the score belongs, and YESTERDAY'S DATE where the clock belongs, on
+    the one card that exists to tell the owner about his own club. The selection was right all
+    along; only the words were wrong. */
+ const st = evState(e);
+ const heroLive = !voidedKey(e) && st === "in";
+ const mid = heroLive
+  ? '<span class="msc live" dir="ltr">' + scoreTxt(H, A) + "</span>"
+  : '<span class="mtime" dir="ltr">' + esc(fmtTime(e.date)) + "</span>";
+ /* live: the clock, which is the only honest answer to "when" for a match in progress. The
+    day line is what read "Thursday 27 August" after midnight and is exactly what confused. */
+ const sub = heroLive
+  ? '<span class="lvm"><span class="lvdot"></span><span dir="ltr">'
+    + esc(isHT(e) ? t("ht") : ((e.status && e.status.displayClock) || t("live"))) + "</span></span>"
+  : esc(fmtDayFull(dkey(new Date(e.date))));
+ el.innerHTML = '<button type="button" class="clubhero' + (heroLive ? " chlive" : "") + '" data-eid="' + esc(e.id) + '" onclick="openMatch(this.dataset.eid)">' +
+  '<div class="chcap">⭐ ' + esc(t(heroLive ? "clubLive" : "clubNext")) + "</div>" +
+  '<div class="chtm"><span class="tm tmh"><i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + '</span>' + mid + '<span class="tm tma">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span></div>" +
+  '<div class="chsub">' + sub + "</div></button>";
  syncHeroVsPinned();
 }
 /* ---------- fantasy ---------- */
