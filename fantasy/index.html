@@ -1002,7 +1002,7 @@ function seasonStarted(){ return Date.now() >= SEASON_OPENS_MS; }
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.75";
+const FX_BUILD = "6.76";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -1164,6 +1164,10 @@ const STR = {
              "You cannot change your team or your captain once the round has begun — the same rule every serious fantasy uses. Changes you make now count from the next round."],
  boardAlone:["لسه مفيش مدربين تانيين. اللي هيلعبوا معاك هيظهروا هنا.",
              "No other managers yet. Whoever plays against you will appear here."],
+ boardNotIn:["إنت لسه مش في الترتيب — كمّل فريقك لـ15 نادي الأول. من غير فريق كامل مفيش سكور ومفيش دخول في الجولات.",
+             "You are not in the standings yet — complete your 15-club team first. Without a full team there is no score and no entry in the rounds."],
+ fxNotFull:["فريقك لسه مش كامل ({n} من 15). كمّل فريقك من صفحة «فريقي» الأول — من غير فريق كامل مفيش سكور ومفيش دخول في الجولات.",
+            "Your team is not complete yet ({n} of 15). Finish it on the Team page first — without a full team there is no score and no entry in the rounds."],
  preBody:["أول جولة بتبدأ {d}. جهّز فريقك دلوقتي، والنقط هتيجي من الماتشات الحقيقية.",
           "Round 1 begins {d}. Build your team now — points will come from the real matches."],
  tooExpensive:["أغلى من اللي فاضل معاك","Over your remaining budget"],
@@ -1351,6 +1355,20 @@ function syncNow(){ fxTouch(); cloudPush(); }
    stamps the state against the round it is being made for. Once that round's deadline
    passes, liveGw moves on and the entry can never be written again: it is the team as it
    stood at the deadline, which is exactly what a fantasy game means by a gameweek squad. */
+/* THE OWNER'S RULE (2026-08-27): no full team, no score, no place in the rounds.
+   A manager is IN the game only once fifteen clubs are owned - either the live squad is
+   complete, or some sealed round proves a complete team existed. Everything below - the
+   join stamp, the board, the round scorer, the points screen - asks this one question. */
+function hasFullLineup(sqArr, snapObj){
+ if(Array.isArray(sqArr) && sqArr.length === SQUAD_SIZE) return true;
+ if(snapObj && typeof snapObj === "object"){
+  for(const k in snapObj){
+   const o = snapObj[k];
+   if(o && Array.isArray(o.sq) && o.sq.length === SQUAD_SIZE) return true;
+  }
+ }
+ return false;
+}
 function snapLoad(){
  try{ const o = JSON.parse(localStorage.getItem("fx_snap") || "{}"); return o && typeof o === "object" ? o : {}; }
  catch(_){ return {}; }
@@ -1687,7 +1705,10 @@ function ftSync(){
  /* and it has to be SAVED when it is set: this wrote `join` and then returned on the next line
     without persisting it, so the first build was stamped at the following rollover instead, with
     a round the manager had nothing to do with */
- if(!v.join && squad.length) { v.join = gwNow; if(v.gw === gwNow){ ftSave(v); return v; } }
+ /* you JOIN when you field a full team. Stamping join on the first tapped club let someone
+    who finished their squad in round 3 walk into rounds 1 and 2 through the backfill, with
+    a team that never existed at those deadlines. */
+ if(!v.join && squad.length === SQUAD_SIZE) { v.join = gwNow; if(v.gw === gwNow){ ftSave(v); return v; } }
  /* SELF-HEALING, twice over. The morning the lock sat wrongly at midnight, anyone who opened
     the app was stamped join=2 - which quietly turned round 1 from their free build round into
     a charged one - and could have had a -4 booked against a round 2 that had not begun.
@@ -1696,6 +1717,9 @@ function ftSync(){
     are erased on sight, so every affected manager heals on their next open. */
  let healed = false;
  if(v.join && v.join > gwNow){ v.join = gwNow; healed = true; }
+ /* a join stamped by a half-built team under the old rule is erased until the team is real -
+    left standing, the backfill would hand the finished team rounds it never entered */
+ if(v.join && !hasFullLineup(squad, snapLoad())){ v.join = 0; healed = true; }
  if(v.paid && typeof v.paid === "object"){
   for(const k of Object.keys(v.paid)) if(+k > playGw()){ delete v.paid[k]; healed = true; }
   /* the join round is a FREE build, so a hit charged against it is a contradiction - this is
@@ -2107,6 +2131,8 @@ function gwTotal(gw){
     rollover. It is deliberately NOT in seasonTotal, which counts rounds that happened. */
  if(gw === liveGw() && gw <= gwCount()) return -transferCost();
  if(gw < Math.max(1, +v.join || 1) || gw > playGw()) return 0;
+ /* a round with no sealed lineup and no full current squad was never entered */
+ if(!snapFor(gw) && squad.length !== SQUAD_SIZE) return 0;
  const past = (v.paid && typeof v.paid === "object" && +v.paid[gw]) || 0;
  return scoreGw(gw).total - past;
 }
@@ -2604,6 +2630,10 @@ function renderTeam(){
 
 function renderPoints(){
  if(!squad.length){ $("viewPoints").innerHTML = '<div class="card"><div class="muted">' + esc(t("pickFirst")) + "</div></div>"; return; }
+ if(squad.length !== SQUAD_SIZE && !hasFullLineup(null, snapLoad())){
+  $("viewPoints").innerHTML = '<div class="card"><div class="muted">' + esc(t("fxNotFull").replace("{n}", String(squad.length))) + "</div></div>";
+  return;
+ }
  const gw = CURRENT_GW;
  /* The round scrubber lives HERE now, on the screen whose whole subject is the round. On the
     team screen it was 96px of chrome above a pitch nobody could see. */
@@ -2906,7 +2936,7 @@ async function loadBoard(force){
    if(MY_ROW){
     try{
      const v = ftLoad(); let fix = false;
-     if(MY_ROW.join && (+v.join || 99) > MY_ROW.join){ v.join = MY_ROW.join; fix = true; }
+     if(MY_ROW.join && (+v.join || 99) > MY_ROW.join && hasFullLineup(squad, snapLoad())){ v.join = MY_ROW.join; fix = true; }
      if(v.paid && typeof v.paid === "object" && v.join && v.paid[String(v.join)] != null){
       delete v.paid[String(v.join)]; fix = true;
      }
@@ -2951,6 +2981,9 @@ function recSnapFor(r, gw){
 function recordGwTotal(r, g){
  const sn = recSnapFor(r, g);
  const sq = sn ? sn.sq : r.squad;
+ /* no sealed snapshot and no full current squad = this manager never entered this round;
+    null (not 0) so the season loop can tell "not an entry" from "scored nothing" */
+ if(!Array.isArray(sq) || sq.length !== SQUAD_SIZE) return null;
  const cap = sn ? (sn.cap || null) : r.cap;
  const vc = sn ? (sn.vc || null) : r.vice;
  const res = resolveSquad(sq, cap, g, vc);
@@ -2965,17 +2998,20 @@ function rivalSeasonTotal(r){
  if(!seasonStarted()) return 0;
  let t = 0;
  const from = Math.max(1, +r.join || 1), upto = playGw();
- for(let g = from; g <= upto; g++) t += recordGwTotal(r, g);
+ for(let g = from; g <= upto; g++){ const gt = recordGwTotal(r, g); if(gt != null) t += gt; }
  return t - rivalPaid(r, upto);
 }
+function boardEligible(r){ return !!r && hasFullLineup(r.squad, r.snap); }
+function meEligible(){ return MY_ROW ? boardEligible(MY_ROW) : hasFullLineup(squad, snapLoad()); }
 function boardRows(){
- return RIVAL_ROWS.map((r, i) => ({i: i, seed: null, name: r.name, mgr: r.mgr,
-                                   s: rivalSeasonTotal(r), me: false}))
-   .concat([{i: -1, seed: null,
+ const rows = RIVAL_ROWS.filter(boardEligible)
+   .map((r, i) => ({i: i, seed: null, name: r.name, mgr: r.mgr,
+                    s: rivalSeasonTotal(r), me: false}));
+ if(meEligible()) rows.push({i: -1, seed: null,
              name: MY_ROW ? MY_ROW.name : teamName(),
              mgr: MY_ROW ? MY_ROW.mgr : managerName(),
-             s: MY_ROW ? rivalSeasonTotal(MY_ROW) : seasonTotal(), me: true}])
-   .sort((a, b) => b.s - a.s);
+             s: MY_ROW ? rivalSeasonTotal(MY_ROW) : seasonTotal(), me: true});
+ return rows.sort((a, b) => b.s - a.s);
 }
 /* WHICH ROUND, AND WHEN. The owner's words: "i want it clear which game week are we in and
    when it will start and when it will finish." */
@@ -3128,6 +3164,7 @@ function renderBoard(){
    + (r.mgr ? ' <span class="lbmgr">(' + esc(r.mgr) + ")</span>" : "")
    + '</span><span class="lbpts" dir="ltr">' + num(Math.max(0, r.s)) + "</span></div>").join("")
   + (others ? "" : '<div class="lbempty">' + esc(t("boardAlone")) + "</div>")
+  + (meEligible() ? "" : '<div class="lbempty">' + esc(t("boardNotIn")) + "</div>")
   + "</div>";
 }
 
