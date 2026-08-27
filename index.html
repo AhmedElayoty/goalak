@@ -61,6 +61,11 @@
     lighter clears it everywhere at once. */
  --txt:#eef2ff; --dim:#9aa8dc; --dim2:#9aa8dc;
  --card3:#182450; --shadow:0 12px 30px -14px rgba(0,0,0,.8);
+ /* chat reaction chips referenced fantasy tokens that never existed here */
+ --fg:var(--txt); --fx-gold:var(--gold);
+ /* the AWAY side's colour, formalised - it was a hardcode on the pitch and a TEXT token on
+    the stat bars, which is how a data bar ended up painted in secondary-ink */
+ --away:#1577c4;
  --acc:#ff7a45; --accdark:#7e2f12; --gold:#ffc02e; --red:#ff5d5d;
  --rz-g:#2fd873; --rz-a:#ffc02e; --rz-r:#ff5d5d;
  /* 3D icon depth ramp */
@@ -221,7 +226,6 @@ html[data-theme="light"] .ico-sun{display:none}
 .msc{font-size:22px;font-weight:900;letter-spacing:.5px;line-height:1.05;font-variant-numeric:tabular-nums}
 .msc.live{color:var(--red)}
 .msub{font-size:9.5px;color:var(--dim2);font-weight:700;letter-spacing:.4px}
-.msub .lvm{color:var(--red)}
 .tvch{display:block;max-width:110px;margin:2px auto 0;color:var(--gold);font-size:9.5px;font-weight:800;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tvch.unconfirmed{color:var(--dim2);font-weight:700}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
@@ -378,12 +382,17 @@ html[data-theme="light"] .motm .msb,html[data-theme="light"] .motm .mtag{color:#
 .flabel b{color:var(--txt);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .flabel .crest,.flabel .crestfb{width:18px;height:18px}
 /* isolate: keeps every chip/badge z-index INSIDE the pitch so nothing can climb over the tab bar */
-.pitch{position:relative;z-index:0;isolation:isolate;width:100%;padding-bottom:150%;border-radius:14px;overflow:hidden;background:repeating-linear-gradient(0deg,#137a3f 0,#137a3f 10%,#12723b 10%,#12723b 20%)}
+/* the fantasy's muted turf, not the saturated greens that shouted over the navy sheet */
+.pitch{position:relative;z-index:0;isolation:isolate;width:100%;padding-bottom:150%;border-radius:14px;overflow:hidden;background:repeating-linear-gradient(0deg,#0E5E33 0,#0E5E33 10%,#0A4A2A 10%,#0A4A2A 20%)}
 .pitch svg{position:absolute;inset:0;width:100%;height:100%}
 .pchip{position:absolute;transform:translate(-50%,-50%);width:19%;text-align:center;z-index:2;background:none;border:none;padding:0;cursor:pointer}
 .pnum{width:26px;height:26px;margin:0 auto;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;color:#fff;border:1.5px solid rgba(255,255,255,.75);box-shadow:0 1px 3px rgba(0,0,0,.5)}
-.gkPname{display:block;font-size:8.5px;color:#fff;margin-top:2px;line-height:1.1;text-shadow:0 1px 2px rgba(0,0,0,.95);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.gkPname .pic{font-size:7.5px;letter-spacing:-1px}
+/* white on the home orange measured 2.59:1 - the one contrast failure left in the app.
+   Dark ink on the warm chip reads 6.93:1; the away blue keeps white at 4.7:1. */
+.pnum.pn-h{color:#0d1533}
+.gkPname{display:block;font-size:10px;color:#fff;margin-top:2px;line-height:1.1;text-shadow:0 1px 2px rgba(0,0,0,.95);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gkPname .pic{font-size:9px;letter-spacing:0}
+.gkPname .pic .gkic{vertical-align:-.12em}
 .prate{position:absolute;top:-7px;inset-inline-start:58%;min-width:19px;height:15px;border-radius:4px;font-weight:900;font-size:9.5px;color:#0d1533;display:flex;align-items:center;justify-content:center;padding:0 2px;z-index:4;box-shadow:0 1px 2px rgba(0,0,0,.6)}
 .prate.rhi{background:#37d27f}.prate.rmd{background:#9fd957}.prate.rok{background:#e8c552}.prate.rlo{background:#dd8a55}
 .lnform{display:flex;justify-content:space-between;gap:8px;padding:10px 2px 8px;font-size:12px;font-weight:800;color:var(--gold)}
@@ -431,14 +440,22 @@ html[dir="rtl"] .tlside.r{text-align:right}
 .stline{padding:10px 2px;border-bottom:1px solid var(--line)}
 .stline:last-child{border-bottom:none}
 /* fixed side columns so every number lines up down the page */
-.sttop{display:grid;grid-template-columns:46px 1fr 46px;align-items:center;font-size:14px;font-weight:900;padding-bottom:6px}
+.sttop{display:grid;grid-template-columns:52px 1fr 52px;align-items:center;font-size:16px;font-weight:900;padding-bottom:6px;font-variant-numeric:tabular-nums}
+.sttop b.win{color:var(--gold)}
+.sttop b.lose{color:var(--dim)}
 .sttop b:first-child{text-align:start}
 .sttop b:last-child{text-align:end}
 .sttop .stlab{color:var(--dim);font-size:11.5px;font-weight:700;text-align:center}
-.stbar{display:flex;height:7px;border-radius:4px;overflow:hidden;background:var(--card2)}
-.stbar i{display:block;height:100%}
+.stbar{display:flex;height:7px;border-radius:4px;overflow:hidden;background:var(--line);gap:2px}
+.stbar .stb{flex:1;display:flex;overflow:hidden}
+.stbar .stb.h{justify-content:flex-end}
+.stbar i{display:block;height:100%;border-radius:3px}
 .stbar .sh{background:var(--acc)}
-.stbar .sa{background:var(--dim2)}
+.stbar .sa{background:var(--away)}
+.possbar{display:flex;height:18px;border-radius:9px;overflow:hidden;font-weight:900;font-size:11.5px}
+.possbar i{display:flex;align-items:center;font-style:normal;color:#fff;min-width:36px;font-variant-numeric:tabular-nums}
+.possbar .ph{background:var(--acc);justify-content:flex-start;padding-inline-start:8px;color:#0d1533}
+.possbar .pa{background:var(--away);justify-content:flex-end;padding-inline-end:8px}
 /* overscroll-behavior:contain stops the scroll from chaining into the page behind the sheet
    (owner: "when I scroll down it sometimes scrolls the main page with me") */
 .mbox{background:var(--card3);box-shadow:var(--shadow);border:1px solid var(--line2);border-radius:18px 18px 0 0;width:100%;max-width:520px;max-height:82vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:18px 16px 26px}
@@ -477,7 +494,7 @@ footer b{color:var(--dim)}
 .skel .spinner{display:none}
 .skel::after{content:"";position:absolute;inset:0;transform:translateX(-100%);
  background:linear-gradient(100deg, transparent 30%, rgba(238,242,255,.045) 50%, transparent 70%);
- animation:shimmer 1.5s infinite}
+ animation:shimmer 1.5s linear infinite}
 @keyframes shimmer{to{transform:translateX(100%)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes gkfade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
@@ -667,8 +684,11 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 .chatbar{position:fixed;bottom:calc(92px + env(safe-area-inset-bottom));inset-inline:10px;max-width:660px;margin-inline:auto;z-index:58;display:flex;gap:7px;align-items:flex-end;flex-wrap:wrap;background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:8px 10px;box-shadow:0 8px 26px rgba(0,0,0,.35)}
 .chattools{display:flex;gap:4px;align-items:center;flex:0 0 auto}
 .chattool{width:34px;height:40px;border-radius:10px;background:var(--card2);border:1px solid var(--line);color:var(--txt);font-size:17px;line-height:1}
-.chattool.recording{background:#7d1823;border-color:#ff6b77;color:#fff;animation:recpulse 1.1s infinite}
-@keyframes recpulse{50%{box-shadow:0 0 0 4px rgba(255,75,90,.17)}}
+/* the old pulse animated box-shadow - a repaint every frame on a 34px button; a scaling
+   pseudo-ring is pure compositor work */
+.chattool.recording{background:#7d1823;border-color:#ff6b77;color:#fff;position:relative}
+.chattool.recording::after{content:"";position:absolute;inset:-3px;border-radius:12px;border:2px solid rgba(255,75,90,.55);animation:recring 1.1s ease-out infinite;pointer-events:none}
+@keyframes recring{0%{transform:scale(.94);opacity:1}75%{transform:scale(1.14);opacity:0}100%{transform:scale(1.14);opacity:0}}
 .chatbar textarea{flex:1 1 130px;min-width:0;background:var(--card2);border:1px solid var(--line);border-radius:10px;color:var(--txt);font-family:inherit;font-size:16px;font-weight:600;padding:8px 11px;resize:none;max-height:110px}
 .chatbar #chatSend{flex:0 0 auto;width:40px;height:40px;border-radius:50%;background:var(--accdark);border:1px solid var(--acc);color:#fff;font-size:16px}
 [dir=rtl] .chatbar #chatSend{transform:scaleX(-1)}
@@ -829,6 +849,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <symbol id="gk3d-target" viewBox="0 0 32 32"><circle cx="16" cy="17.2" r="12" fill="#000" opacity=".22"/><circle cx="16" cy="16" r="12.3" fill="url(#gk3d-rust)"/><circle cx="16" cy="16" r="8.4" fill="url(#gk3d-wht)"/><circle cx="16" cy="16" r="4.7" fill="url(#gk3d-rust)"/><circle cx="16" cy="16" r="2" fill="url(#gk3d-gold)"/><circle cx="16" cy="16" r="12.3" fill="url(#gk3d-gloss)"/><circle cx="16" cy="16" r="12.3" fill="url(#gk3d-shade)"/></symbol>
 <symbol id="gk3d-tv" viewBox="0 0 32 32"><rect x="10.4" y="26.3" width="11.2" height="2.6" rx="1.3" fill="#000" opacity=".2"/><rect x="14.4" y="21.6" width="3.2" height="4.6" fill="url(#gk3d-slate)"/><rect x="10.2" y="25.4" width="11.6" height="2.7" rx="1.35" fill="url(#gk3d-slate)"/><rect x="2.4" y="5.6" width="27.2" height="19.2" rx="3.4" fill="#000" opacity=".2"/><rect x="2.4" y="4.6" width="27.2" height="19.2" rx="3.4" fill="url(#gk3d-slate)"/><rect x="4.9" y="6.9" width="22.2" height="13.5" rx="2.1" fill="url(#gk3d-screen)"/><path d="M6.4 6.9h5.2L6.6 20.4H5.3a.4.4 0 0 1-.4-.4v-2.7Z" fill="#fff" opacity=".17"/><circle cx="16" cy="22.1" r=".85" fill="url(#gk3d-gold)"/><rect x="2.4" y="4.6" width="27.2" height="19.2" rx="3.4" fill="url(#gk3d-gloss)"/></symbol>
 <symbol id="gk3d-ball" viewBox="0 0 32 32"><circle cx="16" cy="17.2" r="12" fill="#000" opacity=".22"/><circle cx="16" cy="16" r="12.3" fill="url(#gk3d-sph)"/><g clip-path="url(#gk3d-c32)"><g transform="scale(1.3369)"><use href="#gk3d-p-b24" fill="url(#gk3d-navy)"/><use href="#gk3d-p-b24s" stroke="#26315e" stroke-width=".82" fill="none"/></g></g><circle cx="16" cy="16" r="12.3" fill="url(#gk3d-gloss)"/><circle cx="16" cy="16" r="12.3" fill="url(#gk3d-shade2)"/><circle cx="16" cy="16" r="12.3" fill="none" stroke="var(--gk3d-rim,rgba(255,255,255,.22))" stroke-width=".9"/></symbol>
+<symbol id="gk3d-subon" viewBox="0 0 32 32"><path d="M16 4.5 25.5 16h-5.8v11.5h-7.4V16H6.5Z" fill="#2fd873" stroke="#0a3d22" stroke-width="1.2"/></symbol>
+<symbol id="gk3d-suboff" viewBox="0 0 32 32"><path d="M16 27.5 6.5 16h5.8V4.5h7.4V16h5.8Z" fill="#ff5d5d" stroke="#5c1518" stroke-width="1.2"/></symbol>
+<symbol id="gk3d-assist" viewBox="0 0 32 32"><rect x="4" y="4" width="24" height="24" rx="7" fill="#4f79e6"/><text x="16" y="22.5" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" font-weight="900" fill="#fff">A</text></symbol>
+<symbol id="gk3d-og" viewBox="0 0 32 32"><use href="#gk3d-ball"/><circle cx="16" cy="16" r="13" fill="none" stroke="#ff5d5d" stroke-width="3"/></symbol>
 <symbol id="gk3d-ycard" viewBox="0 0 32 32"><g transform="rotate(-9 16 16)"><rect x="9" y="6.6" width="14.4" height="21.2" rx="2.6" fill="#000" opacity=".22"/><rect x="9" y="5.4" width="14.4" height="21.2" rx="2.6" fill="url(#gk3d-yel)"/><path d="M11.6 5.4h4.1L11 26.6H9.6a.6.6 0 0 1-.6-.6v-3.1Z" fill="#fff" opacity=".3"/><rect x="9" y="5.4" width="14.4" height="21.2" rx="2.6" fill="none" stroke="#8a6404" stroke-opacity=".45" stroke-width=".8"/></g></symbol>
 <symbol id="gk3d-rcard" viewBox="0 0 32 32"><g transform="rotate(-9 16 16)"><rect x="9" y="6.6" width="14.4" height="21.2" rx="2.6" fill="#000" opacity=".22"/><rect x="9" y="5.4" width="14.4" height="21.2" rx="2.6" fill="url(#gk3d-red)"/><path d="M11.6 5.4h4.1L11 26.6H9.6a.6.6 0 0 1-.6-.6v-3.1Z" fill="#fff" opacity=".3"/><rect x="9" y="5.4" width="14.4" height="21.2" rx="2.6" fill="none" stroke="#7a1408" stroke-opacity=".45" stroke-width=".8"/></g></symbol>
 </svg>
@@ -991,10 +1015,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.68";
+const APP_VERSION = "6.69";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-25-v668";
+const FORCE_RELOAD = "2026-08-25-v669";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -2332,7 +2356,10 @@ function mrow(e, lg){
  if(s === "in" || (s === "post" && !vk)) sub += ' · <span class="dhint">' + esc(t("details")) + "</span>"; /* goals/cards timeline lives in the tap-modal */
  else if(s === "pre" && !vk && (new Date(e.date).getTime() - Date.now()) < 5400000) sub += ' · <span class="dhint">' + esc(t("mdLineups")) + "</span>";   /* XI is usually out ~1h before */
  const tv = broadcastFor(e, lg);
- if(tv && !vk){
+ /* rows carry only a CONFIRMED channel: a qualifier day printed "channel unconfirmed"
+    twelve times in one section, which is noise wearing an information costume. The match
+    sheet still says unconfirmed - the row just stops shouting it. */
+ if(tv && tv.exact && !vk){
   const tvText = tv.exact ? tv.channel : t("tvUnconfirmed");
   sub += '<span class="tvch' + (tv.exact ? "" : " unconfirmed") + '" title="' + esc(tv.exact ? t("tvChannel") + ": " + tv.channel : t("tvUnconfirmed")) + '">📺 <span' + (tv.exact ? ' dir="ltr"' : "") + '>' + esc(tvText) + "</span></span>";
  }
@@ -2814,16 +2841,19 @@ function subMinute(p){
    moved, which marked an entire pre-match XI as substituted on AND off. Read the flag, not the object. */
 function didSub(v){ return !!(v && (v === true || v.didSub === true)); }
 function playerIcons(p){
+ /* the shell replaced its nav emoji with the gk3d sprite system because emoji render
+    differently on every platform - these seven were the stragglers, at 7.5px where the
+    differences hurt most. Same sprites the timeline already uses. */
  let ic = "";
  const g = pstat(p, "totalGoals"), og = pstat(p, "ownGoals"), a = pstat(p, "goalAssists");
  const y = pstat(p, "yellowCards"), r = pstat(p, "redCards");
- for(let i = 0; i < g; i++) ic += "⚽";
- for(let i = 0; i < og; i++) ic += "🔴";
- for(let i = 0; i < a; i++) ic += "🅰️";
- if(y) ic += "🟨";
- if(r) ic += "🟥";
- if(didSub(p && p.subbedOut)) ic += "🔻";
- if(didSub(p && p.subbedIn)) ic += "🔺";
+ for(let i = 0; i < g; i++) ic += gki("ball");
+ for(let i = 0; i < og; i++) ic += gki("og");
+ for(let i = 0; i < a; i++) ic += gki("assist");
+ if(y) ic += gki("ycard");
+ if(r) ic += gki("rcard");
+ if(didSub(p && p.subbedOut)) ic += gki("suboff");
+ if(didSub(p && p.subbedIn)) ic += gki("subon");
  return ic;
 }
 function lineupCol(r, benchOnly){
@@ -2916,7 +2946,7 @@ function placeTeam(starters, isHome, formation){
  };
  if(gk) place(gk, 0.05, 50);
  lines.forEach((line, li) => {
-  const frac = L <= 1 ? 0.6 : 0.26 + li * ((0.92 - 0.26) / (L - 1));
+  const frac = L <= 1 ? 0.6 : 0.26 + li * ((0.97 - 0.26) / (L - 1));
   const arr = line.slice().sort((a, b) => (laneKey((a.position || {}).abbreviation) - laneKey((b.position || {}).abbreviation)) || (parseInt(a.formationPlace || 0) - parseInt(b.formationPlace || 0)));
   const xs = spreadX(arr.length);
   arr.forEach((p, i) => place(p, frac, xs[i]));
@@ -2944,16 +2974,18 @@ function mdLineupsHtml(sum, H, A){
   const badge = rt ? '<span class="prate ' + rateCls(rt.rating) + '" dir="ltr">' + rt.rating.toFixed(1) + "</span>" : "";
   const ic = playerIcons(pl.p);
   return '<button type="button" class="pchip" style="left:' + pl.x.toFixed(1) + "%;top:" + pl.y.toFixed(1) + '%" data-pid="' + esc(pl.pid) + '" onclick="openPlayerCard(this.dataset.pid)">' + badge +
-   '<span class="pnum" style="background:' + colour + '" dir="ltr">' + esc(String(pl.num)) + "</span>" +
+   '<span class="pnum ' + (isHome ? "pn-h" : "pn-a") + '" style="background:' + colour + '" dir="ltr">' + esc(String(pl.num)) + "</span>" +
    '<span class="gkPname">' + esc(pl.name) + (ic ? ' <span class="pic">' + ic + "</span>" : "") + "</span></button>";
  }).join("");
- const svg = '<svg viewBox="0 0 100 150" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="0.6">' +
+ /* quieter lines on the quieter turf, and boxes at real proportions: a penalty area spans
+    most of the width of a real pitch, not 44% of it */
+ const svg = '<svg viewBox="0 0 100 150" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="0.6">' +
   '<rect x="3" y="3" width="94" height="144"/><line x1="3" y1="75" x2="97" y2="75"/>' +
   '<circle cx="50" cy="75" r="11"/><circle cx="50" cy="75" r="1" fill="#fff" stroke="none"/>' +
-  '<rect x="28" y="3" width="44" height="20"/><rect x="40" y="3" width="20" height="8"/>' +
-  '<rect x="28" y="127" width="44" height="20"/><rect x="40" y="139" width="20" height="8"/></g></svg>';
+  '<rect x="20" y="3" width="60" height="20"/><rect x="36" y="3" width="28" height="8"/>' +
+  '<rect x="20" y="127" width="60" height="20"/><rect x="36" y="139" width="28" height="8"/></g></svg>';
  return lbl(ra || {}, form(ra)) +
-  '<div class="pitch">' + svg + chips(hs, true, "var(--acc)", form(rh)) + chips(as, false, "#1577c4", form(ra)) + "</div>" +
+  '<div class="pitch">' + svg + chips(hs, true, "var(--acc)", form(rh)) + chips(as, false, "var(--away)", form(ra)) + "</div>" +
   lbl(rh || {}, form(rh)) +
   '<div class="lncols"><div>' + lineupCol(rh, true) + "</div><div>" + lineupCol(ra, true) + "</div></div>";
 }
@@ -2985,9 +3017,21 @@ function mdStatsHtml(sum, H, A){
   const vh = tstat(th, row.n), va = tstat(ta, row.n);
   if(vh == null && va == null) continue;
   const a = vh || 0, b = va || 0, tot = a + b;
-  const pa = tot ? Math.round(a / tot * 100) : 50;
-  h += '<div class="stline"><div class="sttop"><b dir="ltr">' + esc(a + (row.pct ? "%" : "")) + '</b><span class="stlab">' + esc(t(row.k)) + '</span><b dir="ltr">' + esc(b + (row.pct ? "%" : "")) + "</b></div>" +
-   '<div class="stbar"><i class="sh" style="width:' + pa + '%"></i><i class="sa" style="width:' + (100 - pa) + '%"></i></div></div>';
+  /* POSSESSION IS THE HERO STAT and gets the genre treatment: one split pill, the two
+     percentages living inside their own halves */
+  if(row.n === "possessionPct"){
+   const ph = tot ? Math.round(a / tot * 100) : 50;
+   h += '<div class="stline poss"><div class="sttop"><b></b><span class="stlab">' + esc(t(row.k)) + '</span><b></b></div>' +
+    '<div class="possbar" dir="ltr"><i class="ph" style="width:' + ph + '%">' + esc(a) + '%</i><i class="pa" style="width:' + (100 - ph) + '%">' + esc(b) + "%</i></div></div>";
+   continue;
+  }
+  /* CENTER-ANCHORED MIRROR BARS, the SofaScore grammar: each side grows outward from the
+     middle, scaled to the LARGER value - so 0-0 is honestly empty (it used to render a full
+     50/50 bar) and the winning side reads at a glance, in gold, with the loser receding */
+  const mx = Math.max(a, b);
+  const wh = mx ? Math.round(a / mx * 100) : 0, wa = mx ? Math.round(b / mx * 100) : 0;
+  h += '<div class="stline"><div class="sttop"><b dir="ltr" class="' + (a > b ? "win" : b > a ? "lose" : "") + '">' + esc(a + (row.pct ? "%" : "")) + '</b><span class="stlab">' + esc(t(row.k)) + '</span><b dir="ltr" class="' + (b > a ? "win" : a > b ? "lose" : "") + '">' + esc(b + (row.pct ? "%" : "")) + "</b></div>" +
+   '<div class="stbar"><span class="stb h"><i class="sh" style="width:' + wh + '%"></i></span><span class="stb a"><i class="sa" style="width:' + wa + '%"></i></span></div></div>';
  }
  if(!h) return '<div class="mnoev">' + esc(t("mdNoStats")) + "</div>";
  return '<div class="flabel"><span>' + crestHtml(H.team) + "<b>" + esc(teamName(H)) + "</b></span>" +

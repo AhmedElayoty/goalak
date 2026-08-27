@@ -37,6 +37,12 @@
  --lg-fl1:#17D4A7; --lg-tsl:#C7F000; --lg-spl:#FF5CA8;
  /* motion tokens — specified in fantasy-spectacle.md and never added to the build */
  --e-out:cubic-bezier(.22,.61,.36,1); --e-pop:cubic-bezier(.34,1.56,.64,1);
+ /* ALIASES FOR TOKENS 28 DECLARATIONS ALREADY REFERENCE. They were never defined, so every
+    border:var(--line) resolved to NO border and every background:var(--card) to transparent -
+    the round-status band shipped as floating text. An invalid custom property is not a
+    fallback, it is a silent deletion. */
+ --card:var(--fx-surface-2); --line:var(--fx-line-2); --fg:var(--fx-ink);
+ --dim:var(--fx-ink-dim); --ok:var(--fx-pos); --bad:var(--fx-neg); --fx-dim:var(--fx-ink-dim);
  --r:14px; --pad:14px;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -149,7 +155,10 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
 .budleft{font-size:20px;font-weight:900;color:var(--fx-gold)}
 .budlab{font-size:11px;color:var(--fx-ink-dim)}
 .budtrack{height:9px;border-radius:99px;background:#0B1024;border:1px solid var(--fx-line);overflow:hidden;position:relative}
-.budfill{height:100%;background:linear-gradient(90deg,var(--fx-acc),var(--fx-gold));transition:inline-size .25s}
+/* width transitions relayout every frame; a scale transform composites */
+.budfill{height:100%;background:linear-gradient(90deg,var(--fx-acc),var(--fx-gold));inline-size:100%;
+ transform:scaleX(calc(var(--p, 0) / 100));transform-origin:left center;transition:transform .25s var(--e-out)}
+[dir="rtl"] .budfill{transform-origin:right center}
 /* the reserve floor: the money you MUST keep to fill remaining slots. Hatched, not a number to work out. */
 .budresv{position:absolute;inset-block:0;inset-inline-end:0;background:repeating-linear-gradient(45deg,
  rgba(85,104,159,.55) 0 4px,rgba(85,104,159,.18) 4px 8px);border-inline-start:1px solid var(--fx-line-3)}
@@ -806,9 +815,13 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
  48%{opacity:1}
  100%{opacity:1}}
 @keyframes stCrowd{from{opacity:0;transform:translateY(10px)}to{opacity:.85;transform:none}}
+/* the old frames carried translate(var(--tx),-50%) from an absolute-positioned era; --tx was
+   never set anywhere, an unresolvable var invalidates the WHOLE transform, and the celebrated
+   walk-out silently became a blink. The slots are flex-centred now - the transform needs no
+   positioning term at all. */
 @keyframes stWalk{
- from{opacity:0;transform:translate(var(--tx),-50%) translateY(14px) scale(.94)}
- to{opacity:1;transform:translate(var(--tx),-50%)}}
+ from{opacity:0;transform:translateY(14px) scale(.94)}
+ to{opacity:1;transform:none}}
 @keyframes stCount{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 /* ENTRY ONLY: these ran on every repaint, so each routine data refresh restruck the
    floodlights and faded the crowd and the turf - the "flashing" the owner filmed. The same
@@ -818,7 +831,8 @@ button,input,select{font:inherit;color:inherit;background:none;border:none;curso
 .st--enter .st__stand{animation:stCrowd 520ms cubic-bezier(.22,1,.36,1) both 160ms}
 .st--enter .st__turf{animation:stLit 300ms linear both 120ms}
 .st--enter .slot{animation:stWalk 380ms cubic-bezier(.22,1,.36,1) both;
- animation-delay:calc(240ms + var(--i,0) * 62ms)}
+ /* 320ms: the turf finishes lighting at 420ms and the first player lands just as it does */
+ animation-delay:calc(320ms + var(--i,0) * 62ms)}
 .ptsbig{animation:stCount 420ms cubic-bezier(.22,1,.36,1) both}
 body[data-entered="1"] .ptsbig{animation:none}
 
@@ -983,7 +997,7 @@ function seasonStarted(){ return Date.now() >= SEASON_OPENS_MS; }
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.68";
+const FX_BUILD = "6.69";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -2193,7 +2207,7 @@ function budgetHtml(){
   + '<div class="budtop"><div><div class="budlab">' + esc(t("budLeft")) + '</div>'
   + '<div class="budleft" dir="ltr">' + num(remaining().toFixed(1)) + 'M</div></div>'
   + '<div class="budlab" dir="ltr">' + num(spent().toFixed(1)) + ' / ' + num(BUDGET.toFixed(1)) + 'M</div></div>'
-  + '<div class="budtrack"><div class="budfill" style="inline-size:' + pct + '%"></div>'
+  + '<div class="budtrack"><div class="budfill" style="--p:' + pct + '"></div>'
   + (rpct > 0 ? '<div class="budresv" style="inline-size:' + rpct + '%"></div>' : "") + "</div>"
   + '<div class="budnext"><span>' + esc(t("nextMax")) + ' <b dir="ltr">' + num(maxNextPrice().toFixed(1)) + 'M</b></span>'
   + '<span>' + esc(t("slotsLeft")) + ' <b dir="ltr">' + num(slotsLeft()) + '</b></span></div>'
@@ -2389,7 +2403,7 @@ function pitchHtml(withPoints, gw){
    const c = id ? CLUBS.find(x => x.id === id) : null;
    const sh = c && shared.has(c.id) ? ' data-shared="1"' : "";
    if(!c){
-    h += '<div class="slot' + (swapFrom === i ? " armed" : "") + '">'
+    h += '<div class="slot' + (swapFrom === i ? " armed" : "") + '" style="--i:' + i + '">'
      + '<button type="button" class="cc cc--empty" onclick="' + (swapFrom !== null ? "swapArm(" + i + ")" : "openPicker()") + '"'
      + ' aria-label="' + esc(t("emptySlot")) + '">'
      + '<span class="cc__num" dir="ltr">' + num(i + 1) + "</span>"
@@ -2402,7 +2416,7 @@ function pitchHtml(withPoints, gw){
    /* the sub inherits the ARMBAND when it covers the captain, and the total pays double -
       the card must print the number that is actually in the total */
    const sbPts = sb ? sb.m.pts * (resv && c.id === resv.wearer ? 2 : 1) : 0;
-   h += '<div class="slot' + (swapFrom === i ? " armed" : "") + '"' + sh + '>'
+   h += '<div class="slot' + (swapFrom === i ? " armed" : "") + '" style="--i:' + i + '"' + sh + '>'
     + cardHtml(c, withPoints, gw, (withPoints || sealed) ? null : i, CAP,
                sbc ? {code: sbc.code || "", pts: sbPts} : null)
     + '<span class="plinth"></span></div>';
