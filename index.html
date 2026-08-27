@@ -402,6 +402,7 @@ html[data-theme="light"] .lgsec[data-lg="uel"]{--lgc:#9A6430}
 #gkPtr.spin svg{animation:gkPtrSpin .7s linear infinite}
 @keyframes gkPtrSpin{to{transform:rotate(360deg)}}
 #gkPtr.settle{transition:transform .28s var(--e-out)}
+#clubHero.herodup{display:none}
 .tmfxrow .tft .msub{font-size:10.5px;color:var(--dim)}
 /* ---------- match detail tabs (summary / line-ups / stats) ---------- */
 /* z-index 30 + opaque background: the pitch chips (z2) and rating badges (z4) used to paint
@@ -1133,10 +1134,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.74";
+const APP_VERSION = "6.75";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-27-v674";
+const FORCE_RELOAD = "2026-08-27-v675";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -2604,13 +2605,8 @@ function paintHome(){
   if(favIds.size){
    const seenFav = {};
    const pinned = [];
-   /* the hero card above IS the favourite club's pin - repeating its match here would put
-      the same fixture on screen three times (hero, pinned, league section). The hero keeps
-      the rich treatment; مبارياتي carries everything the hero does not. */
-   const heroBtn = document.querySelector("#clubHero .clubhero");
-   const heroEid = heroBtn ? heroBtn.dataset.eid : null;
    for(const p of perLg) for(const e of p.evs){
-    if(seenFav[e.id] || e.id === heroEid) continue;
+    if(seenFav[e.id]) continue;
     const csF = (e.competitions && e.competitions[0] && e.competitions[0].competitors) || [];
     if(csF.some(c => c && c.team && favIds.has(String(c.team.id)))){ seenFav[e.id] = 1; pinned.push({e, lg: p.lg}); }
    }
@@ -2660,6 +2656,7 @@ function paintHome(){
   }
  }
  $("mlist").innerHTML = h;
+ syncHeroVsPinned();
  renderLiveStrip();
  renderClubHero();
 }
@@ -5520,11 +5517,21 @@ async function renderClubHero(force){
  }catch(_){ if(!_clubSched) return; /* keep last-good hero on transient failure */ }
  paintClubHero();
 }
+/* مبارياتي is the canonical pin (owner, 2026-08-27): on a day the favourite club plays, its
+   match lives in the list below - live-first, goal-flash and all - and the hero stands down.
+   On every other day the hero does the one job the day list cannot: say when the NEXT one is. */
+function syncHeroVsPinned(){
+ const el = $("clubHero");
+ if(!el) return;
+ const btn = el.querySelector(".clubhero");
+ const eid = btn ? btn.dataset.eid : null;
+ el.classList.toggle("herodup", !!(eid && document.querySelector('#mlist .mysec .mrow[data-eid="' + eid + '"]')));
+}
 function paintClubHero(){
  const el = $("clubHero");
  if(!el) return;
  const e = _clubSched && _clubSched.ev;
- if(!e){ el.innerHTML = ""; return; }
+ if(!e){ el.innerHTML = ""; el.classList.remove("herodup"); return; }
  const comp = e.competitions && e.competitions[0] || {};
  const cs = comp.competitors || [];
  const H = cs.find(c => c.homeAway === "home") || cs[0] || {}, A = cs.find(c => c.homeAway === "away") || cs[1] || {};
@@ -5540,6 +5547,7 @@ function paintClubHero(){
   '<div class="chcap">⭐ ' + esc(t("clubNext")) + "</div>" +
   '<div class="chtm"><span class="tm tmh"><i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + '</span><span class="mtime" dir="ltr">' + esc(fmtTime(e.date)) + '</span><span class="tm tma">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span></div>" +
   '<div class="chsub">' + esc(fmtDayFull(dkey(new Date(e.date)))) + "</div></button>";
+ syncHeroVsPinned();
 }
 /* ---------- fantasy ---------- */
 /* THE RELEASE GATE IS GONE - fantasy is open to everyone, on the owner's instruction of
