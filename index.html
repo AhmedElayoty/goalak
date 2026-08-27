@@ -354,8 +354,8 @@ html[data-theme="light"] .lgsec[data-lg="uel"]{--lgc:#9A6430}
 .morebtn{width:100%;padding:9px 0;font-size:12px;font-weight:700;color:var(--dim);background:var(--card2)}
 
 /* ---------- modal ---------- */
-#modal,#tmfx,#promo{position:fixed;inset:0;background:var(--scrim);z-index:100;display:flex;align-items:flex-end;justify-content:center}
-@media(min-width:520px){#modal,#tmfx,#promo{align-items:center}}
+#modal,#tmfx,#promo,#searchSheet{position:fixed;inset:0;background:var(--scrim);z-index:100;display:flex;align-items:flex-end;justify-content:center}
+@media(min-width:520px){#modal,#tmfx,#promo,#searchSheet{align-items:center}}
 .pmin{text-align:center;padding:8px 6px 4px}
 .pmoji{font-size:40px;line-height:1;margin-bottom:8px}
 .pmin h2{font-size:18px;font-weight:900;margin:0 0 8px}
@@ -380,6 +380,19 @@ html[data-theme="light"] .lgsec[data-lg="uel"]{--lgc:#9A6430}
 .tmfxrow .crest,.tmfxrow .crestfb{width:32px;height:32px;flex:0 0 32px}
 .tmfxrow .tfo{flex:1;min-width:0;font-weight:900;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tmfxrow .tft{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.tmfxseg{padding:8px 2px 4px}
+.tmfxform{display:flex;gap:5px;justify-content:center;padding:6px 0 2px}
+.fdot.sm{width:18px;height:18px;font-size:9px;flex:0 0 18px;margin-inline-start:6px}
+.tmfxrow.tmres{cursor:pointer}
+.schhead{display:flex;gap:8px;align-items:center}
+.schinp{flex:1;min-width:0;background:var(--card2);border:1px solid var(--line2);border-radius:12px;color:var(--txt);font:inherit;font-size:15px;font-weight:700;padding:10px 14px}
+.schinp:focus{outline:2px solid var(--acc);outline-offset:1px}
+.schrow{display:flex;align-items:center;gap:10px;width:100%;padding:11px 6px;border-block-end:1px solid var(--line);color:var(--txt);text-align:start;font:inherit}
+.schrow:last-child{border-block-end:none}
+.schrow:active{background:var(--card2)}
+.schico{flex:0 0 auto}
+.schnm{flex:1;min-width:0;font-size:14px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.schsub{flex:0 0 auto;font-size:11px;color:var(--dim2);font-weight:700}
 .tmfxrow .tft .msub{font-size:10.5px;color:var(--dim)}
 /* ---------- match detail tabs (summary / line-ups / stats) ---------- */
 /* z-index 30 + opaque background: the pitch chips (z2) and rating badges (z4) used to paint
@@ -533,7 +546,7 @@ html[dir="rtl"] .tlside.r{text-align:right}
 /* overscroll-behavior:contain stops the scroll from chaining into the page behind the sheet
    (owner: "when I scroll down it sometimes scrolls the main page with me") */
 .mbox{background:var(--card3);box-shadow:var(--shadow);border:1px solid var(--line2);border-radius:18px 18px 0 0;width:100%;max-width:520px;max-height:82vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:18px 16px 26px}
-#modal,#tmfx,#promo,#playerCard,#authModal{overscroll-behavior:contain;touch-action:none}
+#modal,#tmfx,#promo,#searchSheet,#playerCard,#authModal{overscroll-behavior:contain;touch-action:none}
 .mbox{touch-action:pan-y}
 /* while a sheet is open the page underneath must not move at all */
 body.gk-lock{overflow:hidden}
@@ -542,8 +555,8 @@ body.gk-lock{overflow:hidden}
    finally moves. Close stays instant (leaving should never make anyone wait). */
 @keyframes gkDim{from{background:rgba(3,5,14,0)}to{background:var(--scrim)}}
 @keyframes gkSheetUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
-#modal:not(.hide),#tmfx:not(.hide),#promo:not(.hide),#playerCard:not(.hide),#authModal:not(.hide){animation:gkDim .22s ease-out}
-#modal:not(.hide) .mbox,#tmfx:not(.hide) .mbox,#promo:not(.hide) .mbox,
+#modal:not(.hide),#tmfx:not(.hide),#promo:not(.hide),#searchSheet:not(.hide),#playerCard:not(.hide),#authModal:not(.hide){animation:gkDim .22s ease-out}
+#modal:not(.hide) .mbox,#tmfx:not(.hide) .mbox,#promo:not(.hide) .mbox,#searchSheet:not(.hide) .mbox,
 #playerCard:not(.hide) .mbox,#authModal:not(.hide) .mbox{animation:gkSheetUp .3s var(--e-out)}
 .mx{position:sticky;top:0;z-index:40;float:inline-end;background:var(--card2);border-radius:50%;width:30px;height:30px;font-size:15px;color:var(--dim)}
 .mvs{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:6px 0 4px}
@@ -951,6 +964,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    <span class="gkmotto" id="motto">الجول جولك</span>
   </div>
   <span class="gkspacer"></span>
+  <button class="setchip" id="hdrSearch" type="button" onclick="openSearch()" aria-label="بحث">🔍</button>
   <button class="setchip" id="hdrAuth" type="button" onclick="hdrAuthTap()" aria-label="Account">👤</button>
   <button class="themebtn" type="button" onclick="toggleTheme()" aria-label="Light / dark theme" title="Light / dark"><svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
   <button class="setchip" id="setBtn" type="button" onclick="showMain('set')"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg><span id="setLbl">الإعدادات</span></button>
@@ -1025,6 +1039,15 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 </div>
 <div id="tmfx" class="hide">
  <div class="mbox" id="tmfxBox"></div>
+</div>
+<div id="searchSheet" class="hide">
+ <div class="mbox">
+  <div class="mdhead schhead">
+   <input id="searchInp" class="schinp" type="search" autocomplete="off" oninput="renderSearch()">
+   <button type="button" class="mdx" onclick="closeSearch()" aria-label="✕">✕</button>
+  </div>
+  <div id="searchRes"></div>
+ </div>
 </div>
 <div id="promo" class="hide">
  <div class="mbox" id="promoBox"></div>
@@ -1101,10 +1124,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.72";
+const APP_VERSION = "6.73";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-25-v672";
+const FORCE_RELOAD = "2026-08-27-v673";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1228,7 +1251,7 @@ const AR_TEAMS = {
  "crvena zvezda":"النجم الأحمر","partizan":"بارتيزان","ludogorets":"لودوغوريتس","qarabag":"قره باغ","fk qarabag":"قره باغ",
  "kairat almaty":"كايرات ألماتي","pafos":"بافوس","union sg":"يونيون سان جيلواز","union saint-gilloise":"يونيون سان جيلواز",
  "lask linz":"لاسك لينتس","lask":"لاسك لينتس","levski sofia":"ليفسكي صوفيا","viking fk":"فايكينغ","viking":"فايكينغ",
- "hapoel be'er sheva":"هبوعيل بئر السبع","hapoel be'er":"هبوعيل بئر السبع","sabah":"صباح","nec":"نايميخن","nec nijmegen":"نايميخن",
+ "hapoel be'er sheva":"هابويل","hapoel be'er":"هابويل","sabah":"صباح","nec":"نايميخن","nec nijmegen":"نايميخن",
  "s bratislava":"سلوفان براتيسلافا","slovan bratislava":"سلوفان براتيسلافا","nk celje":"تسيليه","celje":"تسيليه",
  "ki klaksvik":"كي كلاكسفيك","kí klaksvík":"كي كلاكسفيك","galway united":"غالواي يونايتد",
  /* QA sweep: these were the only top-division sides still rendering in Latin inside Arabic lists */
@@ -1245,7 +1268,33 @@ const AR_TEAMS = {
     and foreign clubs — so this register now has a second job. Only names with one settled Arabic
     spelling are added here; the rest render in Latin, which is honest, and the QA list of who they
     currently are is in design/top-clubs-coverage.md for the owner to fill in. */
- "al ahly":"الأهلي","al ahly sc":"الأهلي"
+ "al ahly":"الأهلي","al ahly sc":"الأهلي",
+ /* أوروبا: تصفيات ودوريات صغيرة (Wave 2). Israeli clubs render the BRAND ONLY
+    (مكابي/هابويل/بيتار) - the owner's standing rule, never the city. */
+ "ararat":"أرارات","ararat-armenia":"أرارات","mjällby":"ميالبي",
+ "mjällby aif":"ميالبي","maccabi tel-aviv":"مكابي","maccabi tel aviv":"مكابي",
+ "maccabi haifa":"مكابي","hap tel aviv":"هابويل","hapoel tel aviv":"هابويل",
+ "beitar jerusalem":"بيتار","kauno zalgiris":"زالغيريس كاوناس","agf":"آرهوس",
+ "larne":"لارن","iberia 1999":"إيبيريا","shamrock":"شامروك روفرز",
+ "shamrock rovers":"شامروك روفرز","egnatia":"إغناتيا","ferencvaros":"فرنتسفاروش",
+ "gornik zabrz":"غورنيك زابجه","gornik zabrze":"غورنيك زابجه","kups kuopio":"كوبس كووبيو",
+ "csu craiova":"كرايوفا","jagiellonia":"ياغيلونيا","jagiellonia bialystok":"ياغيلونيا",
+ "cska sofia":"تسيسكا صوفيا","hradec králové":"هراديتس كرالوفه","fc hradec králové":"هراديتس كرالوفه",
+ "red imps":"لينكولن ريد إمبس","lincoln red imps":"لينكولن ريد إمبس","omonia":"أومونيا نيقوسيا",
+ "omonia nicosia":"أومونيا نيقوسيا","fc thun":"تون","vikingur":"فيكينغور ريكيافيك",
+ "vikingur reykjavik":"فيكينغور ريكيافيك","dinamo city":"دينامو سيتي","sk brann":"بران",
+ "inter turku":"إنتر توركو","fc inter turku":"إنتر توركو","fc sion":"سيون",
+ "jablonec":"يابلونيتس","tromso":"ترومسو","f.c. københavn":"كوبنهاغن",
+ "kaa gent":"غنت","inter d'escaldes":"إنتر إسكالديس","raków":"راكوف",
+ "raków czestochowa":"راكوف","riga fc":"ريغا","st. gallen":"سانت غالن",
+ "hajduk split":"هايدوك سبليت","vienna":"أوستريا فيينا","austria vienna":"أوستريا فيينا",
+ "borac":"بوراتس بانيا لوكا","borac banja luka":"بوراتس بانيا لوكا","fc lugano":"لوغانو",
+ "nordsjælland":"نوردشيلاند","fc nordsjælland":"نوردشيلاند","rijeka":"رييكا",
+ "fk partizan":"بارتيزان بلغراد","partizan belgrade":"بارتيزان بلغراد","drita gjilan":"دريتا",
+ "lillestrom":"ليلستروم","sint-truidense":"سينت ترويدن","dynamo kyiv":"دينامو كييف",
+ "sheriff":"شيريف تيراسبول","sheriff tiraspol":"شيريف تيراسبول","cfr cluj":"كلوج",
+ "cfr cluj-napoca":"كلوج","ofi crete":"أوفي كريت","hammarby":"هماربي",
+ "hammarby if":"هماربي"
 };
 /* National teams. AR_TEAMS holds CLUBS only and contains generic short names ("racing",
    "sporting", "milan"), so a country must never be looked up there. Ported verbatim from the
@@ -1446,6 +1495,12 @@ const STR = {
  alertsLab:["🔔 التنبيهات","🔔 Match alerts"],
  pushLeagues:["بطولات التنبيهات:","Alert leagues:"],
  myMatches:["مبارياتي","My matches"],
+ searchPh:["دوّر على فريق أو بطولة…","Search club or league…"],
+ searchNone:["مفيش حاجة بالاسم ده — جرب اسم تاني","Nothing by that name — try another"],
+ searchMy:["فرقك","Your teams"],
+ searchClubs:["الفرق","Clubs"],
+ searchLgs:["البطولات","Competitions"],
+ resNone:["لسه مفيش نتايج للفريق ده الموسم","No results for this team yet this season"],
  dayFilter:["فلترة اليوم:","Filter today:"],
  myTeamsLab:["📌 فرقي","📌 My teams"],
  teamsMax:["الحد الأقصى 10 فرق","Maximum 10 teams"],
@@ -2540,8 +2595,13 @@ function paintHome(){
   if(favIds.size){
    const seenFav = {};
    const pinned = [];
+   /* the hero card above IS the favourite club's pin - repeating its match here would put
+      the same fixture on screen three times (hero, pinned, league section). The hero keeps
+      the rich treatment; مبارياتي carries everything the hero does not. */
+   const heroBtn = document.querySelector("#clubHero .clubhero");
+   const heroEid = heroBtn ? heroBtn.dataset.eid : null;
    for(const p of perLg) for(const e of p.evs){
-    if(seenFav[e.id]) continue;
+    if(seenFav[e.id] || e.id === heroEid) continue;
     const csF = (e.competitions && e.competitions[0] && e.competitions[0].competitors) || [];
     if(csF.some(c => c && c.team && favIds.has(String(c.team.id)))){ seenFav[e.id] = 1; pinned.push({e, lg: p.lg}); }
    }
@@ -2672,6 +2732,8 @@ window.addEventListener("popstate", function(){
  if(pm && !pm.classList.contains("hide")){ hideSheet("promo"); return; }
  const tf = $("tmfx");
  if(tf && !tf.classList.contains("hide")){ hideSheet("tmfx"); return; }
+ const sch = $("searchSheet");
+ if(sch && !sch.classList.contains("hide")){ hideSheet("searchSheet"); return; }
  const modal = $("modal");
  if(!modal.classList.contains("hide")){ _mdEid = null; hideSheet("modal"); return; }
  const am = $("authModal");
@@ -3688,7 +3750,8 @@ function lockScroll(on){
    fully reachable — Tab walks straight out of an open sheet into the match list underneath. One
    trap at the lowest common layer, driven by the SAME topmost-sheet order Escape uses, so a new
    sheet inherits it for free. */
-const SHEET_IDS = ["modal", "tmfx", "promo", "playerCard", "authModal"];       /* base -> topmost */
+const SHEET_IDS = ["modal", "searchSheet", "tmfx", "promo", "playerCard", "authModal"];       /* base -> topmost:
+   search sits BELOW tmfx so a team result can open the fixtures sheet on top of it */
 function anySheetOpen(){
  return SHEET_IDS.some(id => { const el = $(id); return el && !el.classList.contains("hide"); });
 }
@@ -3905,6 +3968,7 @@ function closeModal(){
 }
 $("modal").addEventListener("click", function(ev){ if(ev.target === this) closeModal(); });
 $("tmfx").addEventListener("click", function(ev){ if(ev.target === this) closeTeamFx(); });
+$("searchSheet").addEventListener("click", function(ev){ if(ev.target === this) closeSearch(); });
 $("promo").addEventListener("click", function(ev){ if(ev.target === this) closeTeamsPromo(false); });
 /* Escape closes ONLY the topmost sheet — one press must never dismiss two layers at once */
 document.addEventListener("keydown", function(ev){
@@ -3916,6 +3980,8 @@ document.addEventListener("keydown", function(ev){
  if(pm && !pm.classList.contains("hide")) return closeTeamsPromo(false);
  const tf = $("tmfx");
  if(tf && !tf.classList.contains("hide")) return closeTeamFx();
+ const sch = $("searchSheet");
+ if(sch && !sch.classList.contains("hide")) return closeSearch();
  closeModal();
 });
 $("playerCard").addEventListener("click", function(ev){ if(ev.target === this) closePlayerCard(); });
@@ -5023,30 +5089,220 @@ function slugComp(slug){
  const lg = LEAGUES.find(l => l.slug === slug);
  return lg ? lgShort(lg) : "";
 }
-async function openTeamFx(id){
- const c = myTeams.find(x => String(x.id) === String(id)) || (myClub && String(myClub.id) === String(id) ? myClub : null);
+/* played matches for the same club: the schedule endpoint WITHOUT fixture=true. Rows
+   register in EV_INDEX so tapping one opens the full match sheet - timeline, line-ups,
+   ratings - for free. */
+/* schedule-endpoint events carry score as {value, displayValue}; the modal renders the
+   scoreboard shape (a plain string). Normalize before an event enters EV_INDEX. */
+function gkNormSchedEv(e, slug){
+ try{
+  e._gkCompetition = {slug: slug};
+  const cs = (e.competitions && e.competitions[0] && e.competitions[0].competitors) || [];
+  for(const c of cs){
+   if(c && c.score && typeof c.score === "object")
+    c.score = c.score.displayValue != null ? String(c.score.displayValue) : (c.score.value != null ? String(c.score.value) : "");
+  }
+ }catch(_){}
+ return e;
+}
+async function teamResults(c){
+ const key = "gk_tmres2_" + c.id + "_" + LANG;
+ try{
+  const cached = JSON.parse(localStorage.getItem(key) || "null");
+  if(cached && Date.now() - cached.at < 6 * 3600000) return cached.rows;
+ }catch(_){}
+ const lg = LEAGUES.find(l => l.id === c.lg);
+ const slugs = (lg ? [lg.slug] : []).concat(TMFX_SLUGS_EU);
+ const seen = {}, rows = [];
+ const from = Date.now() - 90 * 86400000, to = Date.now();
+ await Promise.all(slugs.map(async slug => {
+  try{
+   const j = await jget(API + slug + "/teams/" + encodeURIComponent(c.id) + "/schedule");
+   for(const e of (j && j.events) || []){
+    const d = Date.parse(e.date);
+    if(!(d >= from && d <= to) || seen[e.id]) continue;
+    seen[e.id] = 1;
+    const cs = (e.competitions && e.competitions[0] && e.competitions[0].competitors) || [];
+    const me = cs.find(x => x.team && String(x.team.id) === String(c.id)) || {};
+    const opp = cs.find(x => x !== me) || {};
+    const num = v => v && v.value != null ? +v.value : (v != null && !isNaN(+v) ? +v : null);
+    const gs = num(me.score), ga = num(opp.score);
+    const res = me.winner === true ? "W" : (opp.winner === true ? "L" : (gs != null && ga != null ? (gs > ga ? "W" : gs < ga ? "L" : "D") : null));
+    try{ EV_INDEX[e.id] = gkNormSchedEv(e, slug); }catch(_){}
+    rows.push({d: d, iso: e.date, eid: e.id, slug: slug, home: me.homeAway === "home",
+               opp: opp.team ? clubAr(opp.team) : (e.shortName || ""),
+               logo: (opp.team && (opp.team.logo || (opp.team.logos && opp.team.logos[0] && opp.team.logos[0].href))) || "",
+               gs: gs, ga: ga, res: res, comp: slugComp(slug)});
+   }
+  }catch(_){}
+ }));
+ rows.sort((a, b) => b.d - a.d);
+ try{ localStorage.setItem(key, JSON.stringify({at: Date.now(), rows: rows})); }catch(_){}
+ return rows;
+}
+let _tmfxSeg = "up", _tmfxData = null;
+function setTmfxSeg(seg){ _tmfxSeg = seg; renderTeamFxBody(); }
+function fdotHtml(res, small){
+ const cls = res === "W" ? "w" : res === "L" ? "l" : "d";
+ const letter = LANG === "ar" ? (res === "W" ? "ف" : res === "L" ? "خ" : "ت") : res;
+ return '<span class="fdot ' + cls + (small ? " sm" : "") + '">' + letter + "</span>";
+}
+function renderTeamFxBody(){
+ const d = _tmfxData;
+ if(!d) return;
+ const c = d.c;
+ let h = '<div class="mdhead"><b>' + esc(clubLabel(c)) + '</b>'
+  + '<button type="button" class="mdx" onclick="closeTeamFx()" aria-label="✕">✕</button></div>'
+  + '<div class="lseg tmfxseg">'
+  + '<button type="button" class="lsegb' + (_tmfxSeg === "up" ? " on" : "") + '" onclick="setTmfxSeg(\'up\')">' + esc(t("upcoming")) + "</button>"
+  + '<button type="button" class="lsegb' + (_tmfxSeg === "res" ? " on" : "") + '" onclick="setTmfxSeg(\'res\')">' + esc(t("results")) + "</button></div>";
+ /* the last-five strip reads oldest -> newest, always LTR like a scoreline */
+ const last5 = d.results.slice(0, 5).reverse();
+ if(last5.length) h += '<div class="fxdots tmfxform" dir="ltr">' + last5.map(r => r.res ? fdotHtml(r.res) : "").join("") + "</div>";
+ if(_tmfxSeg === "up"){
+  if(!d.fixtures.length) h += '<div class="empty"><div class="big">🗓️</div>' + esc(t("tmfxNone")) + "</div>";
+  let lastDay = "";
+  for(const r of d.fixtures){
+   const k = dkey(new Date(r.iso));
+   if(k !== lastDay){ lastDay = k; h += '<div class="dhead">' + esc(fmtDayFull(k)) + "</div>"; }
+   h += '<div class="tmfxrow">'
+    + crestHtml({shortDisplayName: r.opp, logo: r.logo})
+    + '<span class="tfo"><i>' + (r.home ? "🏠 " : "✈️ ") + esc(r.opp) + "</i></span>"
+    + '<span class="tft"><span class="msc" dir="ltr">' + esc(fmtTime(r.iso)) + '</span><span class="msub">' + esc(r.comp) + "</span></span></div>";
+  }
+ } else {
+  if(!d.results.length) h += '<div class="empty"><div class="big">📊</div>' + esc(t("resNone")) + "</div>";
+  for(const r of d.results){
+   h += '<div class="tmfxrow tmres" data-eid="' + esc(r.eid) + '" onclick="gkResTap(this.dataset.eid)" role="button" tabindex="0">'
+    + crestHtml({shortDisplayName: r.opp, logo: r.logo})
+    + '<span class="tfo"><i>' + (r.home ? "🏠 " : "✈️ ") + esc(r.opp) + "</i></span>"
+    + '<span class="tft"><span class="msc" dir="ltr">' + (r.gs != null ? esc(r.gs) + " - " + esc(r.ga) : "–") + '</span><span class="msub">' + esc(r.comp) + "</span></span>"
+    + (r.res ? fdotHtml(r.res, true) : "") + "</div>";
+  }
+ }
+ $("tmfxBox").innerHTML = h;
+}
+async function openTeamFxC(c){
  if(!c) return;
+ _tmfxSeg = "up"; _tmfxData = null;
  $("tmfxBox").innerHTML = '<div class="mdload"><span class="spinner"></span>' + esc(t("loading")) + "</div>";
  $("tmfx").classList.remove("hide");
  sheetOpened($("tmfx"));
  lockScroll(true);
  try{ history.pushState({gkt:1}, ""); }catch(_){}
- let rows = [];
- try{ rows = await teamFixtures(c); }catch(_){}
+ let fixtures = [], results = [];
+ try{ const both = await Promise.all([teamFixtures(c).catch(() => []), teamResults(c).catch(() => [])]);
+      fixtures = both[0] || []; results = both[1] || []; }catch(_){}
  if($("tmfx").classList.contains("hide")) return;
- let h = '<div class="mdhead"><b>' + esc(clubLabel(c)) + " · " + esc(t("tmfxTtl")) + '</b>'
-  + '<button type="button" class="mdx" onclick="closeTeamFx()" aria-label="✕">✕</button></div>';
- if(!rows.length) h += '<div class="empty"><div class="big">🗓️</div>' + esc(t("tmfxNone")) + "</div>";
- let lastDay = "";
- for(const r of rows){
-  const k = dkey(new Date(r.iso));
-  if(k !== lastDay){ lastDay = k; h += '<div class="dhead">' + esc(fmtDayFull(k)) + "</div>"; }
-  h += '<div class="tmfxrow">'
-   + crestHtml({shortDisplayName: r.opp, logo: r.logo})
-   + '<span class="tfo"><i>' + (r.home ? "🏠 " : "✈️ ") + esc(r.opp) + "</i></span>"
-   + '<span class="tft"><span class="msc" dir="ltr">' + esc(fmtTime(r.iso)) + '</span><span class="msub">' + esc(r.comp) + "</span></span></div>";
+ _tmfxData = {c: c, fixtures: fixtures, results: results};
+ renderTeamFxBody();
+}
+function openTeamFx(id){
+ const c = myTeams.find(x => String(x.id) === String(id)) || (myClub && String(myClub.id) === String(id) ? myClub : null)
+   || (_searchIdx && _searchIdx.byId && _searchIdx.byId[String(id)]) || null;
+ if(c) openTeamFxC(c);
+}
+
+/* ============ search: every club, every league, either language ============ */
+let _searchIdx = null, _searchLoading = null;
+async function ensureSearchIdx(){
+ /* labels are baked per language, so a language switch invalidates the index */
+ if(_searchIdx && _searchIdx.lang === LANG) return _searchIdx;
+ if(_searchLoading) return _searchLoading;
+ _searchLoading = (async () => {
+  let clubs = [];
+  try{ const j = await fetch("fantasy/clubs.json", {cache: "force-cache"}).then(r => r.json()); clubs = (j && j.clubs) || []; }catch(_){}
+  /* Arabic folding: strip harakat, unify alef/teh-marbuta/yeh, drop the definite article -
+     so "الريال" finds ريال مدريد and "brcelona" still misses honestly */
+  const fold = v => String(v || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[\u064B-\u0652\u0670]/g, "").replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي")
+    .replace(/^ال/, "").trim();
+  const teams = clubs.map(c => {
+   const lg = LEAGUES.find(l => l.id === c.lg);
+   return {id: String(c.id), s: c.short || c.name || "", n: c.name || "", lg: c.lg,
+    label: LANG === "ar" ? (c.ar || c.short || c.name) : (c.short || c.name),
+    sub: lg ? lgShort(lg) : "",
+    keys: [fold(c.ar), fold(c.name), fold(c.short), fold(c.code)].filter(Boolean)};
+  });
+  const byId = {};
+  for(const tm of teams) byId[tm.id] = tm;
+  const leagues = LEAGUES.map(l => ({id: l.id, label: lgName(l), ico: lgIcon(l),
+    keys: [fold(l.ar), fold(l.en), fold(l.shortAr), fold(l.shortEn)].filter(Boolean)}));
+  _searchIdx = {lang: LANG, fold: fold, teams: teams, leagues: leagues, byId: byId};
+  _searchLoading = null;
+  return _searchIdx;
+ })();
+ return _searchLoading;
+}
+function openSearch(){
+ $("searchSheet").classList.remove("hide");
+ sheetOpened($("searchSheet"));
+ lockScroll(true);
+ try{ history.pushState({gks: 1}, ""); }catch(_){}
+ const inp = $("searchInp");
+ inp.value = "";
+ inp.placeholder = t("searchPh");
+ ensureSearchIdx().then(renderSearch);
+ renderSearch();
+ setTimeout(function(){ try{ inp.focus(); }catch(_){} }, 120);
+}
+function closeSearch(){
+ if($("searchSheet").classList.contains("hide")) return;
+ if(history.state && history.state.gks){ try{ history.back(); return; }catch(_){} }
+ hideSheet("searchSheet");
+}
+function searchPickTeam(id){
+ const c = _searchIdx && _searchIdx.byId[String(id)];
+ if(!c) return;
+ closeSearch();
+ setTimeout(function(){ openTeamFxC(c); }, 100);
+}
+/* a result row drills DOWN into the match sheet - the modal sits under the team sheet in the
+   DOM, so the team sheet must leave before the match sheet arrives. Cached rows outlive the
+   in-memory event register, so a miss re-reads the (edge-cached) schedule before opening. */
+async function gkResTap(eid){
+ if(!EV_INDEX[eid] && _tmfxData && _tmfxData.c){
+  const row = (_tmfxData.results || []).find(r => String(r.eid) === String(eid));
+  if(row && row.slug){
+   try{
+    const j = await jget(API + row.slug + "/teams/" + encodeURIComponent(_tmfxData.c.id) + "/schedule");
+    for(const e of (j && j.events) || []){
+     if(!EV_INDEX[e.id]){ try{ EV_INDEX[e.id] = gkNormSchedEv(e, row.slug); }catch(_){} }
+    }
+   }catch(_){}
+  }
  }
- $("tmfxBox").innerHTML = h;
+ if(!EV_INDEX[eid]) return;
+ closeTeamFx();
+ setTimeout(function(){ openMatch(eid); }, 150);
+}
+function searchPickLeague(id){ closeSearch(); setTimeout(function(){ gotoLeague(id); }, 100); }
+function renderSearch(){
+ const box = $("searchRes");
+ if(!box) return;
+ if(!_searchIdx){ box.innerHTML = '<div class="mdload"><span class="spinner"></span>' + esc(t("loading")) + "</div>"; return; }
+ const q = _searchIdx.fold(($("searchInp") || {}).value || "");
+ let teams, leagues;
+ if(!q){
+  teams = myTeamIds().map(id => _searchIdx.byId[id]).filter(Boolean);
+  leagues = _searchIdx.leagues;
+ } else {
+  teams = _searchIdx.teams.filter(tm => tm.keys.some(k => k.includes(q))).slice(0, 12);
+  leagues = _searchIdx.leagues.filter(l => l.keys.some(k => k.includes(q))).slice(0, 9);
+ }
+ let h = "";
+ if(teams.length){
+  h += '<div class="dhead">' + esc(t(q ? "searchClubs" : "searchMy")) + "</div>"
+    + teams.map(tm => '<button type="button" class="schrow" data-id="' + esc(tm.id) + '" onclick="searchPickTeam(this.dataset.id)">'
+      + '<span class="schnm">' + esc(tm.label) + '</span><span class="schsub">' + esc(tm.sub || "") + '</span><span class="lgarrow">›</span></button>').join("");
+ }
+ if(leagues.length){
+  h += '<div class="dhead">' + esc(t("searchLgs")) + "</div>"
+    + leagues.map(l => '<button type="button" class="schrow" data-id="' + esc(l.id) + '" onclick="searchPickLeague(this.dataset.id)">'
+      + '<span class="schico">' + l.ico + '</span><span class="schnm">' + esc(l.label) + '</span><span class="lgarrow">›</span></button>').join("");
+ }
+ if(!h) h = '<div class="empty"><div class="big">🔍</div>' + esc(t("searchNone")) + "</div>";
+ box.innerHTML = h;
 }
 let _promoShownThisSession = false;
 /* ============ the one-time "predictions are open" announcement ============
