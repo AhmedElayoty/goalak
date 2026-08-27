@@ -941,10 +941,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.63";
+const APP_VERSION = "6.64";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-25-v663";
+const FORCE_RELOAD = "2026-08-25-v664";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1524,11 +1524,25 @@ function espnEdgeUrl(url){
  const m = String(url).match(/^https:\/\/site\.api\.espn\.com\/(apis\/.+)$/);
  return m ? ESPN_EDGE + m[1] : null;
 }
+/* IDENTICAL REQUESTS WITHIN FIFTEEN SECONDS SHARE ONE ANSWER. Different screens ask for the
+   same scoreboard within the same tick (the list, the live strip, an open sheet), and every
+   ask used to be its own round trip - which is real money against the worker's daily request
+   allowance and real latency on a phone. The edge already decides freshness; this only stops
+   the app asking the same question twice in the same breath. */
+const _jgetMem = new Map();
 async function jget(url){
  const edge = espnEdgeUrl(url);
  if(!edge) return jgetAt(url, 12000);
- try{ return await jgetAt(edge, 8000); }
- catch(_){ return jgetAt(url, 12000); }
+ const held = _jgetMem.get(edge);
+ if(held && Date.now() - held.at < 15000) return held.p;
+ const p = (async () => {
+  try{ return await jgetAt(edge, 8000); }
+  catch(_){ return jgetAt(url, 12000); }
+ })();
+ _jgetMem.set(edge, {at: Date.now(), p});
+ p.catch(function(){ _jgetMem.delete(edge); });
+ if(_jgetMem.size > 300) _jgetMem.clear();
+ return p;
 }
 
 /* ============ state ============ */
@@ -5666,7 +5680,11 @@ async function setPush(on){
 function subsSeen(){ try{ return +localStorage.getItem("gk_subs_seen") || 0; }catch(_){ return 0; } }
 function subsSeenUpd(n){ try{ if(n > subsSeen()) localStorage.setItem("gk_subs_seen", String(n)); }catch(_){} }
 async function savePushSub(subObj){
- /* returns true only when the record is CONFIRMED present without shrinking the shared list (wipe guard, QA finding) */
+ /* ONE POST TO OUR OWN STORE. The old dance - read the whole shared textdb list, edit it in
+    the browser, write the whole thing back, re-read to verify, with a wipe guard against the
+    empty reads that free store liked to serve - existed because the store was a world-writable
+    third party. The subscription now lands in the worker's own storage, keyed by endpoint:
+    no shared list, nothing to wipe, nothing another client can clobber. */
  try{
   if(!("serviceWorker" in navigator)) return false;
   const reg = await navigator.serviceWorker.ready;
@@ -5677,34 +5695,22 @@ async function savePushSub(subObj){
                 lang:LANG, uid:gkUser ? gkUser.uid : null, name:gkUser ? gkUser.username : null, ts:Date.now() };
   for(let i = 0; i < 3; i++){
    try{
-    const listR = await tdbRead(PUSH_SUBS_KEY, null);
-    const list = Array.isArray(listR) ? listR : [];
-    subsSeenUpd(list.length);
-    if(list.length === 0 && subsSeen() > 1){ await sleep(400); continue; } /* suspicious empty read: never write over it */
-    const next = list.filter(s => s && s.endpoint !== rec.endpoint);
-    next.push(rec);
-    await tdbWrite(PUSH_SUBS_KEY, next);
-    await sleep(300);
-    const chk = await tdbRead(PUSH_SUBS_KEY, null);
-    if(Array.isArray(chk) && chk.some(s => s && s.endpoint === rec.endpoint) && chk.length >= next.length){ subsSeenUpd(chk.length); return true; }
-   }catch(_){ await sleep(300); }
+    const r = await fetch(CHAT_API + "/api/push/subscribe", {method:"POST", cache:"no-store",
+     headers:{"Content-Type":"application/json"}, body:JSON.stringify(rec)});
+    if(r.ok){ const jj = await r.json().catch(() => ({})); if(jj.ok) return true; }
+   }catch(_){}
+   await sleep(400);
   }
  }catch(_){}
  return false;
 }
 async function removePushSub(ep){
+ /* deletion by the endpoint's own key - the whole-list rewrite went with the third-party store */
  for(let i = 0; i < 3; i++){
   try{
-   const listR = await tdbRead(PUSH_SUBS_KEY, null);
-   const list = Array.isArray(listR) ? listR : [];
-   if(list.length === 0) return; /* nothing to remove; never write an empty list over a failed read */
-   subsSeenUpd(list.length);
-   const next = list.filter(s => s && s.endpoint !== ep);
-   if(next.length === list.length) return;
-   await tdbWrite(PUSH_SUBS_KEY, next);
-   await sleep(250);
-   const chk = await tdbRead(PUSH_SUBS_KEY, null);
-   if(Array.isArray(chk) && !chk.some(s => s && s.endpoint === ep) && chk.length >= next.length) return;
+   const r = await fetch(CHAT_API + "/api/push/unsubscribe", {method:"POST", cache:"no-store",
+    headers:{"Content-Type":"application/json"}, body:JSON.stringify({endpoint: ep})});
+   if(r.ok) return;
   }catch(_){ await sleep(300); }
  }
 }
@@ -5842,10 +5848,16 @@ async function gkVersionCheck(){
     never heard about anything changed from another device: the owner picked ten teams on
     the PC and his phone kept showing none, for ever. One "me" per open; the response carries
     the club and the teams and acctInfoStore adopts whatever differs. */
- if(gkUser && validChatSession()){
-  _lastMeAt = Date.now();
-  apiAuthAuthed("me").then(function(res){ if(res.ok) acctInfoStore(res.j.user); }).catch(function(){});
- }
+ (async function(){
+  /* a device idle past its session's life used to skip this refresh silently - and with it
+     every teams/club adoption - until the person happened to sign in again. Renewing first
+     costs one call and only when the session is actually stale. */
+  if(gkUser && !validChatSession()){ try{ await renewStoredChatSession(); }catch(_){} }
+  if(gkUser && validChatSession()){
+   _lastMeAt = Date.now();
+   apiAuthAuthed("me").then(function(res){ if(res.ok) acctInfoStore(res.j.user); }).catch(function(){});
+  }
+ })();
  maybeTeamsPromo();
  loadDay(false);
  syncMyPreds();

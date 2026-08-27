@@ -1,1 +1,4 @@
 backups/backup.log
+
+# nightly data snapshots must never enter a public repository
+backups/
