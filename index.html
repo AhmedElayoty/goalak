@@ -57,7 +57,10 @@
 :root{
  /* WCup family palette (same navy/rust/gold as the World Cup app) */
  --bg:#0a1230; --card:#121d44; --card2:#0e1736; --line:#22305f; --line2:#2e4076;
- --txt:#eef2ff; --dim:#8493c8; --dim2:#8493c8;
+ /* #8493c8 measured ~4.2:1 on the cards - under the 4.5:1 floor for small text. One step
+    lighter clears it everywhere at once. */
+ --txt:#eef2ff; --dim:#9aa8dc; --dim2:#9aa8dc;
+ --card3:#182450; --shadow:0 12px 30px -14px rgba(0,0,0,.8);
  --acc:#ff7a45; --accdark:#7e2f12; --gold:#ffc02e; --red:#ff5d5d;
  --rz-g:#2fd873; --rz-a:#ffc02e; --rz-r:#ff5d5d;
  /* 3D icon depth ramp */
@@ -179,6 +182,18 @@ html[data-theme="light"] .ico-sun{display:none}
 
 /* ---------- league sections (home) ---------- */
 .lgsec{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:10px;overflow:hidden}
+/* each league block carries its competition's colour on the leading edge - the wall of
+   identical rows becomes scannable chapters */
+.lgsec[data-lg]{border-inline-start:3px solid var(--lgc, var(--line))}
+.lgsec[data-lg="epl"]{--lgc:#8b5cf6}
+.lgsec[data-lg="liga"]{--lgc:#ff5c3b}
+.lgsec[data-lg="seriea"]{--lgc:#2f9be6}
+.lgsec[data-lg="bun"]{--lgc:#e33b4a}
+.lgsec[data-lg="fl1"]{--lgc:#e8d24a}
+.lgsec[data-lg="tsl"]{--lgc:#e8574a}
+.lgsec[data-lg="spl"]{--lgc:#3f6fd8}
+.lgsec[data-lg="ucl"]{--lgc:#ffc02e}
+.lgsec[data-lg="uel"]{--lgc:#f68e1e}
 .lghead{display:flex;align-items:center;border-bottom:1px solid var(--line)}
 .lgopen{flex:1;display:flex;align-items:center;gap:9px;padding:10px 13px;min-width:0;text-align:start}
 .lgopen.allonly{cursor:default}
@@ -200,14 +215,29 @@ html[data-theme="light"] .ico-sun{display:none}
 .crest{width:22px;height:22px;object-fit:contain;flex:0 0 auto}
 .crestfb{width:22px;height:22px;border-radius:50%;background:var(--card2);border:1px solid var(--line2);color:var(--dim);font-size:8.5px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto;letter-spacing:.3px}
 .mid{display:flex;flex-direction:column;align-items:center;gap:1px}
-.mtime{font-size:13.5px;font-weight:800;color:var(--txt)}
-.msc{font-size:16px;font-weight:900;letter-spacing:1px}
+.mtime{font-size:15px;font-weight:800;color:var(--txt);font-variant-numeric:tabular-nums}
+/* the score is what a scores app is FOR: readable from a metre, digits in fixed columns so
+   1-1 and 4-1 sit identically and a live change never makes the row breathe */
+.msc{font-size:22px;font-weight:900;letter-spacing:.5px;line-height:1.05;font-variant-numeric:tabular-nums}
 .msc.live{color:var(--red)}
 .msub{font-size:9.5px;color:var(--dim2);font-weight:700;letter-spacing:.4px}
 .msub .lvm{color:var(--red)}
 .tvch{display:block;max-width:110px;margin:2px auto 0;color:var(--gold);font-size:9.5px;font-weight:800;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tvch.unconfirmed{color:var(--dim2);font-weight:700}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+/* a live row is the most important thing on the screen and must read as ALIVE: a slim edge
+   in match-green breathing at heart rate, the running minute in gold. Red stays reserved
+   for cards and losses. */
+.mrow.live{position:relative}
+.mrow.live::before{content:"";position:absolute;inset-block:6px;inset-inline-start:0;width:3px;
+ border-radius:0 3px 3px 0;background:var(--rz-g);animation:lvedge 1.6s ease-in-out infinite}
+[dir="rtl"] .mrow.live::before{border-radius:3px 0 0 3px}
+@keyframes lvedge{0%,100%{opacity:1}50%{opacity:.3}}
+.msub .lvm{color:var(--gold)}
+.msub .lvm .lvdot{background:var(--rz-g)}
+/* THE GOAL MOMENT: when a live score changes between repaints the row flashes gold once */
+.mrow.scored{animation:goalflash 1.6s ease-out 1}
+@keyframes goalflash{0%{background:rgba(255,192,46,.22)}100%{background:transparent}}
 .lvdot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--red);animation:pulse 1.4s infinite;vertical-align:middle;margin-inline-end:3px}
 
 /* ---------- league page ---------- */
@@ -289,6 +319,7 @@ html[data-theme="light"] .ico-sun{display:none}
 .tmchip .x{padding:6px 8px;min-width:28px;opacity:.75;font-weight:900;font:inherit;color:inherit}
 .tmstrip{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none}
 .tmstrip:empty{display:none}
+.clubhero.kitted{background:linear-gradient(125deg, color-mix(in srgb, var(--kc1) 26%, var(--card)), var(--card) 68%) !important}
 .tmstrip .chip{flex:0 0 auto}
 .tmnote{font-size:11px;color:var(--dim);line-height:1.7;width:100%}
 #tmfxBox .dhead{font-size:14.5px;font-weight:900;color:var(--txt)}
@@ -410,7 +441,7 @@ html[dir="rtl"] .tlside.r{text-align:right}
 .stbar .sa{background:var(--dim2)}
 /* overscroll-behavior:contain stops the scroll from chaining into the page behind the sheet
    (owner: "when I scroll down it sometimes scrolls the main page with me") */
-.mbox{background:var(--card);border:1px solid var(--line2);border-radius:18px 18px 0 0;width:100%;max-width:520px;max-height:82vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:18px 16px 26px}
+.mbox{background:var(--card3);box-shadow:var(--shadow);border:1px solid var(--line2);border-radius:18px 18px 0 0;width:100%;max-width:520px;max-height:82vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:18px 16px 26px}
 #modal,#tmfx,#promo,#playerCard,#authModal{overscroll-behavior:contain;touch-action:none}
 .mbox{touch-action:pan-y}
 /* while a sheet is open the page underneath must not move at all */
@@ -439,8 +470,21 @@ body.gk-lock{overflow:hidden}
 .empty .big{font-size:36px;margin-bottom:10px}
 footer{text-align:center;font-size:10.5px;color:var(--dim2);padding:26px 0 10px;letter-spacing:.4px;font-weight:600}
 footer b{color:var(--dim)}
-.skel{padding:30px 0;text-align:center;color:var(--dim2);font-size:13px}
+/* a loading list looks like the list it is about to become: three ghost rows with a light
+   sweep. The text stays in the DOM for screen readers; sighted users get shape, not a word. */
+.skel{position:relative;overflow:hidden;min-height:196px;border-radius:14px;color:transparent;font-size:0;
+ background:repeating-linear-gradient(to bottom, var(--card) 0 56px, var(--bg) 56px 66px)}
+.skel .spinner{display:none}
+.skel::after{content:"";position:absolute;inset:0;transform:translateX(-100%);
+ background:linear-gradient(100deg, transparent 30%, rgba(238,242,255,.045) 50%, transparent 70%);
+ animation:shimmer 1.5s infinite}
+@keyframes shimmer{to{transform:translateX(100%)}}
 @keyframes spin{to{transform:rotate(360deg)}}
+@keyframes gkfade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+#home:not(.hide),#lg:not(.hide),#predPane:not(.hide),#chatPane:not(.hide){animation:gkfade .15s ease-out}
+@media (prefers-reduced-motion: reduce){
+ #home,#lg,#predPane,#chatPane,.mrow.live::before,.skel::after,.mrow.scored{animation:none !important}
+}
 .spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--line2);border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-inline-end:8px}
 
 /* ========== v1.2 readability scale-up (owner: app felt "zoomed out") ========== */
@@ -462,7 +506,7 @@ body{font-size:16px}
 .crest,.crestfb{width:26px;height:26px}
 .crestfb{font-size:9.5px}
 .mtime{font-size:15px}
-.msc{font-size:18.5px}
+.msc{font-size:25px}
 .msub{font-size:11px}
 .ltab{font-size:14px;padding:10px 0}
 .lsegb{font-size:13px}
@@ -947,10 +991,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.67";
+const APP_VERSION = "6.68";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-25-v667";
+const FORCE_RELOAD = "2026-08-25-v668";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1493,6 +1537,7 @@ function voidedKey(e){
  return "";
 }
 /* left digit always belongs to the left-rendered team (home is on the RIGHT in RTL) */
+const _rowScore = {};   /* eid -> last painted live score, for the goal flash */
 function scoreTxt(H, A){
  const h = esc(H.score == null ? "0" : H.score), a = esc(A.score == null ? "0" : A.score);
  return LANG === "ar" ? a + " - " + h : h + " - " + a;
@@ -1504,6 +1549,22 @@ function aggTxt(H, A){
  if(hs == null || as == null) return "";
  if(String(hs) === String(H.score) && String(as) === String(A.score)) return "";
  return LANG === "ar" ? as + " - " + hs : hs + " - " + as;
+}
+/* the fantasy build already knows all 126 clubs' kit colours; the hero card borrows them so
+   a Barcelona fan's card is washed in blaugrana. One fetch per session, absent = no wash. */
+let _kitColors = null, _kitLoading = null;
+async function kitColorsFor(id){
+ if(!id) return null;
+ try{
+  if(!_kitColors){
+   if(!_kitLoading) _kitLoading = fetch("fantasy/clubs.json", {cache:"force-cache"}).then(r => r.json()).catch(() => null);
+   const j = await _kitLoading;
+   if(!j || !Array.isArray(j.clubs)) return null;
+   _kitColors = {};
+   for(const c of j.clubs) if(c && c.id && c.c1) _kitColors[String(c.id)] = {c1: c.c1, c2: c.c2 || c.c1};
+  }
+  return _kitColors[String(id)] || null;
+ }catch(_){ return null; }
 }
 function shootTxt(H, A){
  const hs = H.shootoutScore, as = A.shootoutScore;
@@ -2275,7 +2336,16 @@ function mrow(e, lg){
   const tvText = tv.exact ? tv.channel : t("tvUnconfirmed");
   sub += '<span class="tvch' + (tv.exact ? "" : " unconfirmed") + '" title="' + esc(tv.exact ? t("tvChannel") + ": " + tv.channel : t("tvUnconfirmed")) + '">📺 <span' + (tv.exact ? ' dir="ltr"' : "") + '>' + esc(tvText) + "</span></span>";
  }
- return '<button type="button" class="mrow" data-eid="' + esc(e.id) + '" onclick="openMatch(this.dataset.eid)">' +
+ /* the goal moment is detected HERE, where the row is built: a live score different from the
+    one this session last painted flashes the row once - repaints with no change stay still */
+ let rowCls = "mrow";
+ if(s === "in"){
+  rowCls += " live";
+  const curScore = String(H.score) + "-" + String(A.score);
+  if(_rowScore[e.id] && _rowScore[e.id] !== curScore) rowCls += " scored";
+  _rowScore[e.id] = curScore;
+ }
+ return '<button type="button" class="' + rowCls + '" data-eid="' + esc(e.id) + '" onclick="openMatch(this.dataset.eid)">' +
   '<span class="tm tmh">' + '<i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + "</span>" +
   '<span class="mid">' + mid + '<span class="msub">' + sub + "</span></span>" +
   '<span class="tm tma">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span>" +
@@ -2340,7 +2410,7 @@ function paintHome(){
    const heading = p.lg.allOnly
     ? '<div class="lgopen allonly"><span class="lgico">' + lgIcon(p.lg) + '</span><span class="lgnm">' + esc(lgName(p.lg)) + '</span><span class="lgn" dir="ltr">' + list.length + '</span></div>'
     : '<button type="button" class="lgopen" onclick="gotoLeague(\'' + p.lg.id + '\')"><span class="lgico">' + lgIcon(p.lg) + '</span><span class="lgnm">' + esc(lgName(p.lg)) + '</span><span class="lgn" dir="ltr">' + list.length + '</span><span class="lgarrow">›</span></button>';
-   h += '<section class="lgsec"><div class="lghead">' + heading +
+   h += '<section class="lgsec" data-lg="' + esc(p.lg.id) + '"><div class="lghead">' + heading +
     '<button type="button" class="fold" aria-label="' + esc(t("foldLab")) + '" onclick="toggleFold(\'' + p.lg.id + '\', this)">' + (folded ? "+" : "−") + "</button>" +
    '</div><div class="lgbody' + (folded ? " hide" : "") + '" id="fold_' + p.lg.id + '">' + list.map(e => mrow(e, p.lg)).join("") + "</div></section>";
  }
@@ -4838,6 +4908,10 @@ function paintClubHero(){
     event on every 25-second repaint - so tapping the favourite club's LIVE match opened a
     sheet reading "not started", with a countdown, while the match was being played. */
  if(!EV_INDEX[e.id]) EV_INDEX[e.id] = e;
+ kitColorsFor(myClub && myClub.id).then(function(kc){
+  const hero = el.querySelector(".clubhero");
+  if(hero && kc){ hero.style.setProperty("--kc1", kc.c1); hero.classList.add("kitted"); }
+ });
  el.innerHTML = '<button type="button" class="clubhero" data-eid="' + esc(e.id) + '" onclick="openMatch(this.dataset.eid)">' +
   '<div class="chcap">⭐ ' + esc(t("clubNext")) + "</div>" +
   '<div class="chtm"><span class="tm tmh"><i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + '</span><span class="mtime" dir="ltr">' + esc(fmtTime(e.date)) + '</span><span class="tm tma">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span></div>" +
