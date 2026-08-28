@@ -84,25 +84,45 @@ function espnProxyTtl(rest) {
   if (rest.indexOf("/standings") >= 0) return 300;
   return 3600;   /* team schedules move slowly */
 }
+/* A GOAL IS NOT A TEAM SHEET, AND 45 SECONDS IS NOT ONE NUMBER FOR BOTH. The client repaints
+   live scores every 25 seconds and, since v6.81, re-reads a live summary after 25 — but it was
+   reading them through a 45-second edge copy, so a goal could sit finished at ESPN and still be
+   absent from the phone for the better part of a minute. The TTL now follows the PAYLOAD rather
+   than the path: a board or summary that still contains a match in play is worth re-asking for
+   after 15 seconds; the same URL an hour later, with nothing in play, is not. It cannot be
+   decided from the path alone, so the answer is measured from the body at fetch time and
+   carried on the cached copy in x-gk-live, which is what the freshness check reads back.
+   ESPN serialises compactly ("state":"post", no space) — verified against a live payload, and
+   the check is a substring scan rather than a parse because it runs on every cache read. */
+const ESPN_LIVE_TTL = 15;
+function espnBodyLive(body) {
+  return typeof body === "string" && body.indexOf('"state":"in"') >= 0;
+}
 async function espnProxy(request, url) {
   if (request.method !== "GET") return json({ ok: false, error: "method" }, 405);
   const rest = url.pathname.replace(/^\/api\/espn\//, "");
   if (!ESPN_PROXY_OK.test(rest)) return json({ ok: false, error: "not-proxied" }, 404);
   const qs = url.search || "";
-  const ttl = espnProxyTtl(rest + qs) * 1000;
+  const base = espnProxyTtl(rest + qs);
   const cache = caches.default;
   const cacheKey = new Request("https://espn-edge.goallak.internal/" + rest + qs);
   const hit = await cache.match(cacheKey);
   const now = Date.now();
-  const serve = (body, ts, stale) => new Response(body, { headers: {
+  /* the shortened window applies only where the base is the 45-second one (boards and
+     summaries). A standings table or a team schedule does not become urgent because some
+     match somewhere in it is being played. */
+  const ttlFor = live => (live && base === 45 ? ESPN_LIVE_TTL : base) * 1000;
+  const serve = (body, ts, stale, live) => new Response(body, { headers: {
     "content-type": "application/json; charset=utf-8",
     "x-gk-ts": String(ts),
     "x-gk-stale": stale ? "1" : "0",
+    "x-gk-live": live ? "1" : "0",        /* what the TTL was decided on; also readable in QA */
     "cache-control": "no-store"           /* freshness is decided HERE, not by the client */
   }});
   if (hit) {
     const ts = Number(hit.headers.get("x-gk-ts")) || 0;
-    if (now - ts < ttl) return serve(await hit.text(), ts, false);
+    const wasLive = hit.headers.get("x-gk-live") === "1";
+    if (now - ts < ttlFor(wasLive)) return serve(await hit.text(), ts, false, wasLive);
   }
   for (const route of ESPN_ROUTES) {
     if (route.core) continue;             /* the cdn dialect answers a different shape */
@@ -111,16 +131,18 @@ async function espnProxy(request, url) {
       if (r && r.ok) {
         const body = await r.text();
         JSON.parse(body);                 /* a 200 with a broken body must not poison the cache */
+        const live = espnBodyLive(body);
         await cache.put(cacheKey, new Response(body, { headers: {
           "content-type": "application/json",
           "x-gk-ts": String(now),
+          "x-gk-live": live ? "1" : "0",
           "cache-control": "public, max-age=21600"   /* the stale reserve lives six hours */
         }}));
-        return serve(body, now, false);
+        return serve(body, now, false, live);
       }
     } catch (_) { /* next rung of the ladder */ }
   }
-  if (hit) return serve(await hit.text(), Number(hit.headers.get("x-gk-ts")) || 0, true);
+  if (hit) return serve(await hit.text(), Number(hit.headers.get("x-gk-ts")) || 0, true, hit.headers.get("x-gk-live") === "1");
   return json({ ok: false, error: "upstream" }, 502);
 }
 
