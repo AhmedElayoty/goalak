@@ -240,6 +240,23 @@ export async function deleteChatMessage(request, env, session) {
   return json(result, result.ok ? 200 : 403);
 }
 
+/* A REACTION MUST NOT NEED A LIVE SOCKET.
+   Tapping one only ever sent a WebSocket frame, with no else branch and no HTTP route to fall
+   back to - so with the socket down (iOS Safari kills it on every backgrounding, and the
+   reconnect can be twenty seconds away) the chip appeared, the count went up, and then it
+   vanished on the next history load. Silently, every time. */
+export async function reactChatMessage(request, env, session) {
+  let body;
+  try { body = await readSmallJson(request); }
+  catch (_) { return json({ ok: false, error: "invalid request" }, 400); }
+  const id = String(body.id || "");
+  const emoji = String(body.emoji || "");
+  if (!id || !emoji) return json({ ok: false, error: "missing id or emoji" }, 400);
+  const stub = roomStub(env);
+  const result = await stub.toggleReaction({ uid: session.uid, name: session.name }, id, emoji);
+  return json(result, result.ok ? 200 : 400);
+}
+
 export async function chatHistory(request, env) {
   const stub = roomStub(env);
   await ensureLegacyImported(env, stub);
