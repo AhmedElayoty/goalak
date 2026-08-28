@@ -1092,35 +1092,23 @@
     }
 
     if (fam.id === "tripcap") {
-      var captain = res.captain == null ? null : res.captain;
-      var vice = res.vice == null ? null : res.vice;
-
-      var scorers = [];
-      for (var i = 0; i < lineup.length; i++) scorers.push(scorerOf(lineup[i]));
-
-      function playedBy(id) {
-        if (id == null) return false;
-        for (var j = 0; j < scorers.length; j++) {
-          if (scorers[j].id === id && !blankOf(scorers[j])) return true;
-        }
-        return false;
+      var wearer = res.wearer == null ? null : res.wearer;
+      var wornBy = null, extra = 0;
+      for (var i = 0; i < lineup.length; i++) {
+        if (lineup[i] == null || lineup[i].id !== wearer) continue;
+        var sc = scorerOf(lineup[i]);          /* the substitute if one came on, else the club itself */
+        if (sc && !blankOf(sc)) { wornBy = sc.id; extra = ptsOf(sc); }
+        break;
       }
 
-      var effective = null, passed = false;
-      if (playedBy(captain)) { effective = captain; }
-      else if (playedBy(vice)) { effective = vice; passed = true; }
-
-      var total = 0;
-      for (var k = 0; k < scorers.length; k++) {
-        total += ptsOf(scorers[k]) * (effective != null && scorers[k].id === effective ? 3 : 1);
-      }
+      var total = int(res.total, 0) + extra;
 
       out.total = total;
       out.chip.applied = true;
       out.chip.delta = total - int(res.total, 0);
-      out.chip.effectiveCaptain = effective;
-      out.chip.passedToVice = passed;
-      out.chip.wasted = effective == null;
+      out.chip.effectiveCaptain = wornBy == null ? null : wearer;
+      out.chip.passedToVice = !!res.viceTook;
+      out.chip.wasted = wornBy == null;
       out.chip.refunded = false;
       return out;
     }
