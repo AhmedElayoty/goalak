@@ -940,7 +940,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
  color:var(--fg);font-weight:800;font-size:13.5px;cursor:pointer}
 .mshare:active{transform:scale(.98)}
 .mshare.mbell{margin-top:8px}
+.mshare.mshare2{margin-top:8px}
 .mshare.mbell.on{border-color:var(--gold);color:var(--gold)}
+.gmap{display:block;margin-top:3px;opacity:.85}
+.tlside.l .gmap{margin-inline-start:auto}
 .mcd{display:inline-block;margin-block-start:4px;font-weight:800;color:var(--acc,#FF7A45)}
 /* a text link, not a button that looks like the confirm button */
 .aulink{display:block;inline-size:100%;margin-block-start:2px;padding:6px 2px;background:none;border:0;
@@ -1169,10 +1172,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.83";
+const APP_VERSION = "6.84";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-28-v683";
+const FORCE_RELOAD = "2026-08-28-v684";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1606,6 +1609,7 @@ const STR = {
  bellOnOk:["تمام — هيوصلك كل حاجة في الماتش ده 🔔","Done — you'll get everything for this match 🔔"],
  bellOffOk:["اتشال التنبيه من الماتش ده","Match alert removed"],
  bellMax:["أقصى حاجة 30 ماتش عليهم جرس — شيل واحد قديم الأول","Max 30 belled matches — remove an old one first"],
+ shareCardMotm:["شارك نجم الماتش","Share Star of the Match"],
  shareCopied:["اتنسخ! ابعته لأي حد","Copied — paste it anywhere"],
  close:["إغلاق","Close"],
  chatReact:["تفاعل","React"],
@@ -1791,9 +1795,23 @@ function scoreTxt(H, A){
 
    Fixing it by moving the feed's field into the live branch would have been two lines and a
    guess: it is not known whether ESPN keeps aggregateScore current DURING a second leg or
-   only fills it at full time, and this sandbox cannot reach ESPN to find out. A number
-   labelled "Agg" that is silently one leg behind is worse than no number at all in an app
-   whose entire job is scores.
+   only fills it at full time, and the sandbox it was written in could not reach ESPN to find
+   out. A number labelled "Agg" that is silently one leg behind is worse than no number at all
+   in an app whose entire job is scores.
+
+   MEASURED SINCE, against the live feed (83 two-legged ties, 28 August): the field is NOT a
+   full-time artefact. A second leg carries aggregateScore from the moment the fixture exists
+   - while the tie is still unplayed it reads [0, 0], not null - so it will be present during
+   a live second leg rather than appearing at the whistle. What is still unmeasured is whether
+   its VALUE moves as goals go in, or holds the completed legs until full time; no tie was in
+   the "first leg played, second leg pending" state that night to prove it either way. That is
+   why the computed path below is preferred and the feed's field stays the fallback: a total
+   this app adds up itself cannot be one leg behind.
+
+   AND THE [0, 0] IS A TRAP. An unplayed tie reports a 0-0 aggregate that is indistinguishable
+   from a real one, alongside a note reading "Tied on aggregate" for a tie nobody has kicked a
+   ball in. aggTxt's suppression - a fallback aggregate equal to this leg's own score says
+   nothing - is what keeps that off the screen, so it is load-bearing, not tidiness.
 
    So the running aggregate is COMPUTED - the earlier meeting's score plus this leg's, per
    club - which is correct while the match is in play no matter what the feed does with its
@@ -1846,7 +1864,11 @@ function twoLegged(e, H, A){
  /* 1. the feed says so. Present at full time for certain - it is what the old aggTxt read. */
  if(H && H.aggregateScore != null) return true;
  if(A && A.aggregateScore != null) return true;
- /* 2. the round names itself. ESPN labels these "... - Leg 2 of 2" in the competition notes. */
+ /* 2. the round names itself, in the competition notes. The real strings, counted across 83
+       ties on 28 August, are "1st Leg" and "2nd Leg - <club> win X-Y on aggregate" - the
+       result clause is appended once the tie is decided, the "2nd Leg" prefix is there from
+       the start. "Leg 2 of 2", which this comment used to claim, appears nowhere in the feed;
+       the pattern below matched only because it also accepts "2nd leg". */
  const notes = ((e && e.competitions && e.competitions[0] && e.competitions[0].notes) || [])
   .map(n => String((n && (n.headline || n.text)) || "")).join(" ");
  if(/leg\s*2|2nd\s*leg|second\s*leg/i.test(notes)) return true;
@@ -1897,7 +1919,7 @@ async function kitColorsFor(id){
    const j = await _kitLoading;
    if(!j || !Array.isArray(j.clubs)) return null;
    _kitColors = {};
-   for(const c of j.clubs) if(c && c.id && c.c1) _kitColors[String(c.id)] = {c1: c.c1, c2: c.c2 || c.c1};
+   for(const c of j.clubs) if(c && c.id && c.c1) _kitColors[String(c.id)] = {c1: c.c1, c2: c.c2 || c.c1, code: c.code || "", ink: c.ink || "#fff"};
   }
   return _kitColors[String(id)] || null;
  }catch(_){ return null; }
@@ -3574,6 +3596,26 @@ function mdEventsHtml(e, H, A, sum){
   /* running score must follow the same order as the header (away-home in Arabic) */
   if(d.scoringPlay){ if(isHomeId((d.team || {}).id)) hh++; else aa++; d._rs = LANG === "ar" ? (aa + "-" + hh) : (hh + "-" + aa); }
  });
+ /* goal keyEvents carry fieldPositionX/Y - index them so each goal row can show WHERE */
+ const kGoals = {};
+ ((sum && sum.keyEvents) || []).forEach(k => {
+  if((((k.type || {}).type) || "") !== "goal" || k.shootout) return;
+  const a0 = (((k.participants || [])[0]) || {}).athlete || {};
+  kGoals[(((k.clock || {}).displayValue) || "") + "|" + (a0.id || "")] = k;
+ });
+ const gmapSvg = (d, mins) => {
+  if(d.ownGoal) return "";
+  const pid = (d.athletesInvolved && d.athletesInvolved[0] && d.athletesInvolved[0].id) || "";
+  const k = kGoals[mins + "|" + pid];
+  if(!k || !isFinite(+k.fieldPositionX) || !isFinite(+k.fieldPositionY)) return "";
+  /* attack normalised toward the right goal; anything behind halfway clamps to the line */
+  const cx = 1 + Math.min(1, Math.max(0, (+k.fieldPositionX - 50) / 50)) * 56;
+  const cy = 1 + (+k.fieldPositionY / 100) * 38;
+  return '<svg class="gmap" width="58" height="40" viewBox="0 0 58 40" dir="ltr" aria-hidden="true">'
+   + '<rect x="1" y="1" width="56" height="38" rx="3" fill="none" stroke="currentColor" stroke-opacity=".22"/>'
+   + '<rect x="41" y="8" width="16" height="24" fill="none" stroke="currentColor" stroke-opacity=".22"/>'
+   + '<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="3.2" fill="var(--acc)"/></svg>';
+ };
  const items = [];
  const row = (cls, home, txt, ic, mins, rs) => {
   const ev_ = '<span class="ev">' + ic + "</span>";
@@ -3588,7 +3630,8 @@ function mdEventsHtml(e, H, A, sum){
   if(d.scoringPlay){
    const assist = (d.athletesInvolved && d.athletesInvolved[1] && (d.athletesInvolved[1].shortName || d.athletesInvolved[1].displayName)) || "";
    const txt = "<b>" + esc(who || t("goalWord")) + "</b>" + (d.penaltyKick ? " (P)" : "") + (d.ownGoal ? " (OG)" : "") +
-    (assist ? '<span class="tlas">' + esc(t("mdAssist")) + ": " + esc(assist) + "</span>" : "");
+    (assist ? '<span class="tlas">' + esc(t("mdAssist")) + ": " + esc(assist) + "</span>" : "") +
+    gmapSvg(d, mins);
    row(" goal " + (home ? "l" : "r"), home, txt, gki("ball"), mins, d._rs);
   } else {
    row("", home, esc(who || (d.type && d.type.text) || ""), d.redCard ? gki("rcard") : gki("ycard"), mins, "");
@@ -4107,7 +4150,177 @@ function scheduleFit(){
 
 /* SHARE A MATCH. navigator.share where it exists (every phone), clipboard everywhere else,
    because a desktop browser without the Web Share API would otherwise get nothing at all. */
-async function shareMatch(eid){
+/* per-side scorer lines for the card: "J. King 23', 67'" - same aggregation as scorerListHtml */
+function shareScorerLines(e, side){
+ const comp = e.competitions && e.competitions[0] || {};
+ const dets = (comp.details || []).filter(d => d && d.scoringPlay && !d.shootout && d.team && side.team && String(d.team.id) === String(side.team.id));
+ const by = {}, order = [];
+ for(const d of dets){
+  const who = (d.athletesInvolved && d.athletesInvolved[0] && (d.athletesInvolved[0].shortName || d.athletesInvolved[0].displayName)) || "";
+  if(!who) continue;
+  const key = who + (d.ownGoal ? " (OG)" : "");
+  if(!by[key]){ by[key] = []; order.push(key); }
+  const min = (d.clock && d.clock.displayValue) || "";
+  if(min) by[key].push(min);
+ }
+ return order.slice(0, 4).map(n => n + " " + by[n].join(", "));
+}
+function roundRectPath(ctx, x, y, w, h, r){
+ ctx.beginPath();
+ ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+ ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+/* ============ the WhatsApp card: a 1080x1080 image of the match ============
+   Crest-free by design (the licensing rule): identity = kit-coloured chip + club code. */
+async function buildShareCard(eid, kind){
+ const e = EV_INDEX[eid]; if(!e) return null;
+ const comp = (e.competitions && e.competitions[0]) || {};
+ const cs = comp.competitors || [];
+ const H = cs.find(c => c.homeAway === "home") || cs[0] || {};
+ const A = cs.find(c => c.homeAway === "away") || cs[1] || {};
+ const st = evState(e);
+ const RTL = LANG === "ar";
+ try{ await Promise.all([
+  document.fonts.load("900 190px Alexandria"), document.fonts.load("800 54px Alexandria"),
+  document.fonts.load("800 60px Cairo"), document.fonts.load("700 40px Cairo"), document.fonts.load("400 30px Cairo")
+ ]); }catch(_){}
+ const kH = await kitColorsFor(H.team && H.team.id).catch(() => null);
+ const kA = await kitColorsFor(A.team && A.team.id).catch(() => null);
+ const lg = LEAGUES.find(l => l.id === (e._gkLeagueId || "")) || (e._gkCompetition ? {ar: slugComp(e._gkCompetition.slug), en: slugComp(e._gkCompetition.slug)} : null);
+ const cv = document.createElement("canvas");
+ cv.width = 1080; cv.height = 1080;
+ const ctx = cv.getContext("2d");
+ const CREAM = "#FFF8F2", CORAL = "#F24B40";
+ const draw = withJersey => new Promise(async (resolve) => {
+  ctx.clearRect(0, 0, 1080, 1080);
+  ctx.fillStyle = "#211235"; ctx.fillRect(0, 0, 1080, 1080);
+  ctx.fillStyle = (kH && kH.c1) || CORAL; ctx.fillRect(0, 0, 26, 1080);
+  ctx.fillStyle = (kA && kA.c1) || CORAL; ctx.fillRect(1054, 0, 26, 1080);
+  const glow = ctx.createRadialGradient(540, 430, 60, 540, 430, 620);
+  glow.addColorStop(0, "rgba(242,75,64,.16)"); glow.addColorStop(1, "rgba(242,75,64,0)");
+  ctx.fillStyle = glow; ctx.fillRect(0, 0, 1080, 1080);
+  ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = CREAM; ctx.font = "800 54px Alexandria, Cairo, sans-serif";
+  ctx.fillText(t("brand"), 540, 118);
+  ctx.fillStyle = "rgba(255,248,242,.72)"; ctx.font = "400 30px Cairo, sans-serif";
+  ctx.direction = RTL ? "rtl" : "ltr";
+  ctx.fillText((lg ? (RTL ? lg.ar : lg.en) + " · " : "") + fmtDayFull(dkey(new Date(e.date))), 540, 168);
+  /* THE SCORE IS MEASURED BEFORE THE NAMES ARE PLACED, and the columns take what it leaves.
+     Fixed columns at 270/810 with names allowed 380px collided with the centre score the
+     moment a club had a long name: "0 - 2" at 190px is ~300px wide, so it reached x=390 while
+     the away column still ran to x=460, and Athletic Bilbao's name was printed through the
+     digits. The same overlap the pitch had in v6.79, one screen over. */
+  let scoreStr = "";
+  if(kind !== "motm" && st !== "pre"){
+   const hs0 = H.score == null ? "0" : String(H.score), as0 = A.score == null ? "0" : String(A.score);
+   scoreStr = RTL ? as0 + " - " + hs0 : hs0 + " - " + as0;
+  }
+  ctx.font = "900 190px Alexandria, sans-serif";
+  const scoreW = scoreStr ? ctx.measureText(scoreStr).width : 0;
+  const SAFE = 72, GAP = 30;
+  const bandEdge = scoreW ? (540 - scoreW / 2 - GAP) : 470;
+  const colW = Math.max(190, bandEdge - SAFE);      /* never narrower than the 150px kit chip */
+  const colCx = SAFE + colW / 2;
+  const homeX = RTL ? (1080 - colCx) : colCx, awayX = RTL ? colCx : (1080 - colCx);
+  const teamBlock = (side, kit, x) => {
+   const code3 = (kit && kit.code) || String((side.team && (side.team.abbreviation || side.team.shortDisplayName)) || "").replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase() || "—";
+   roundRectPath(ctx, x - 75, 300, 150, 92, 18);
+   ctx.fillStyle = (kit && kit.c1) || "#3a2a55"; ctx.fill();
+   ctx.strokeStyle = "rgba(255,255,255,.25)"; ctx.lineWidth = 2; ctx.stroke();
+   ctx.fillStyle = (kit && kit.ink) || "#fff"; ctx.font = "800 44px Alexandria, sans-serif";
+   ctx.direction = "ltr";
+   ctx.fillText(code3, x, 362);
+   const nm = clubAr(side.team || {});
+   ctx.fillStyle = CREAM; ctx.direction = RTL ? "rtl" : "ltr";
+   let fs = 60;
+   ctx.font = "800 " + fs + "px Cairo, sans-serif";
+   while(fs > 34 && ctx.measureText(nm).width > colW){ fs -= (fs > 50 ? 10 : 6); ctx.font = "800 " + fs + "px Cairo, sans-serif"; }
+   if(ctx.measureText(nm).width <= colW) ctx.fillText(nm, x, 480);
+   else {
+    const ws = nm.split(" "); const mid = Math.ceil(ws.length / 2);
+    ctx.fillText(ws.slice(0, mid).join(" "), x, 452);
+    ctx.fillText(ws.slice(mid).join(" "), x, 508);
+   }
+  };
+  if(kind !== "motm"){
+   teamBlock(H, kH, homeX);
+   teamBlock(A, kA, awayX);
+   ctx.direction = "ltr";
+   if(st === "pre"){
+    /* below the name rows (which end ~508), never across them - a wide "11:00 pm" at the
+       names' own height mashed all three together on the first render */
+    ctx.fillStyle = CREAM; ctx.font = "900 100px Alexandria, sans-serif";
+    ctx.fillText(fmtTime(e.date), 540, 640);
+   } else {
+    const hs = H.score == null ? "0" : String(H.score), as = A.score == null ? "0" : String(A.score);
+    ctx.fillStyle = CREAM; ctx.font = "900 190px Alexandria, sans-serif";
+    ctx.fillText(scoreStr, 540, 500);
+    if(st === "in"){
+     ctx.fillStyle = CORAL; ctx.beginPath(); ctx.arc(470, 285, 14, 0, 7); ctx.fill();
+     ctx.font = "700 44px Cairo, sans-serif";
+     ctx.fillText(String((e.status && e.status.displayClock) || t("live")), 560, 300);
+    }
+   }
+   ctx.font = "600 30px Cairo, sans-serif"; ctx.fillStyle = "rgba(255,248,242,.88)";
+   ctx.direction = "ltr";
+   shareScorerLines(e, H).forEach((ln, i) => ctx.fillText("⚽ " + ln, homeX, 620 + i * 42));
+   shareScorerLines(e, A).forEach((ln, i) => ctx.fillText("⚽ " + ln, awayX, 620 + i * 42));
+   let strip = "";
+   if(st === "post"){
+    strip = t("ft");
+    const sh = shootTxt(H, A); if(sh) strip += " · " + t("pens") + " " + sh;
+    const ag = aggTxt(H, A); if(ag) strip += " · " + t("agg") + " " + ag;
+   } else if(st === "in") strip = String((e.status && e.status.displayClock) || t("live"));
+   else strip = t("notStarted");
+   ctx.direction = RTL ? "rtl" : "ltr";
+   ctx.font = "700 34px Cairo, sans-serif"; ctx.fillStyle = "rgba(255,248,242,.65)";
+   ctx.fillText(strip, 540, 800);
+  } else {
+   const r = _ratings[eid];
+   const m = r && r.ready && r.motm;
+   if(!m) return resolve(null);
+   if(withJersey){
+    const jer = jerseyUrlFor(eid, m.pid);
+    if(jer){
+     try{
+      const img = await new Promise((res2, rej2) => {
+       const im = new Image(); im.crossOrigin = "anonymous";
+       const tmr = setTimeout(() => rej2(new Error("t")), 3500);
+       im.onload = () => { clearTimeout(tmr); res2(im); };
+       im.onerror = () => { clearTimeout(tmr); rej2(new Error("e")); };
+       im.src = jer;
+      });
+      const h0 = 430, w0 = h0 * (img.width / img.height || 1);
+      ctx.drawImage(img, 540 - w0 / 2, 270, w0, h0);
+     }catch(_){ /* card still works jersey-less */ }
+    }
+   }
+   ctx.beginPath(); ctx.arc(810, 340, 86, 0, 7); ctx.fillStyle = "#FFD34D"; ctx.fill();
+   ctx.fillStyle = "#211235"; ctx.font = "900 76px Alexandria, sans-serif"; ctx.direction = "ltr";
+   ctx.fillText(m.rating.toFixed(1), 810, 366);
+   ctx.fillStyle = CREAM; ctx.direction = RTL ? "rtl" : "ltr"; ctx.font = "800 64px Cairo, sans-serif";
+   ctx.fillText(m.name, 540, 782);
+   const stat = motmStatLine(m.m || {}, m.c);
+   if(stat){ ctx.font = "500 32px Cairo, sans-serif"; ctx.fillStyle = "rgba(255,248,242,.75)"; ctx.fillText(stat, 540, 836); }
+   ctx.font = "700 34px Cairo, sans-serif"; ctx.fillStyle = "#FFD34D";
+   ctx.fillText("⭐ " + t("motmTag"), 540, 892);
+  }
+  ctx.direction = "ltr";
+  ctx.font = "800 42px Cairo, sans-serif"; ctx.fillStyle = CORAL;
+  ctx.fillText("goallak.com", 540, 966);
+  ctx.direction = RTL ? "rtl" : "ltr";
+  ctx.font = "400 28px Cairo, sans-serif"; ctx.fillStyle = "rgba(255,248,242,.5)";
+  ctx.fillText(t("motto"), 540, 1012);
+  cv.toBlob(b => resolve(b), "image/png");
+ });
+ let blob = null;
+ try{ blob = await draw(true); }catch(_){ blob = null; }
+ /* a tainted canvas throws at toBlob: one retry with no external image */
+ if(!blob && kind === "motm"){ try{ blob = await draw(false); }catch(_){ blob = null; } }
+ if(!blob) return null;
+ return new File([blob], "goallak-" + eid + ".png", {type: "image/png"});
+}
+async function shareMatch(eid, kind){
  const e = EV_INDEX[eid]; if(!e) return;
  vib(10);
  const comp = (e.competitions && e.competitions[0]) || {};
@@ -4119,6 +4332,15 @@ async function shareMatch(eid){
    ? teamName(H) + " × " + teamName(A) + " · " + fmtDayFull(dkey(new Date(e.date))) + " " + fmtTime(e.date)
    : teamName(H) + " " + (H.score != null ? H.score : "") + " – " + (A.score != null ? A.score : "") + " " + teamName(A);
  const text = line + "\n" + t("brand") + " · https://goallak.com/";
+ /* the image path: build the card, hand the OS a real file. Any failure anywhere falls
+    straight through to the text share that has worked since day one. */
+ try{
+  const file = await buildShareCard(eid, kind === "motm" && _ratings[eid] && _ratings[eid].ready && _ratings[eid].motm ? "motm" : "score");
+  if(file && navigator.canShare && navigator.canShare({files: [file]})){
+   await navigator.share({title: t("brand"), text: text, files: [file]});
+   return;
+  }
+ }catch(_){ /* fall through to text */ }
  try{
   if(navigator.share){ await navigator.share({title: t("brand"), text: text}); return; }
   await navigator.clipboard.writeText(text);
@@ -4213,6 +4435,10 @@ function renderMatchModal(eid){
   (s !== "post" && !vk
    ? '<button type="button" class="mshare mbell' + (bellOn(eid) ? " on" : "") + '" id="bellBtn" onclick="toggleBellEv(\'' + esc(eid) + '\')">🔔 '
      + esc(t(bellOn(eid) ? "bellBtnOn" : "bellBtn")) + "</button>"
+   : "") +
+  (s === "post" && !vk && hasDetail
+   ? '<button type="button" class="mshare mshare2" onclick="shareMatch(\'' + esc(eid) + '\', \'motm\')">⭐ '
+     + esc(t("shareCardMotm")) + "</button>"
    : "") +
   (hasDetail || preLineups
    ? '<div class="mdtabs" id="mdTabs"></div><div id="mdBody"></div>'

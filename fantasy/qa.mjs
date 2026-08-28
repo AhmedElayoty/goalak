@@ -735,11 +735,47 @@ async function main() {
          come back automatically - nothing here needs editing again. */
       /* it is a function now, not a constant frozen at parse: a tab left open across the
          opening deadline used to keep answering "pre-season" while every other clock moved on */
+      /* AND A ROUND NOBODY HAS PLAYED HAS NO SCOREBOARD EITHER — which the branch below did
+         not know, so this suite died the morning of the first rollover. It asked only whether
+         the SEASON had started. From that rollover onward the points screen opens on the round
+         the calendar is in, which is the round being PICKED, not the one just played, and it
+         draws the same honest holding card the pre-season screen draws. The suite waited six
+         seconds for a pitch that the app was right not to build, then failed as though the app
+         were broken.
+         A pitch is owed only where a pitch is owed: a round that has been played AND that this
+         manager was in. The suite builds its squad through the app's own controls, so the
+         manager it creates joins in TODAY's round — between that and the end of that round
+         there is legitimately nothing to score, and the holding card is the correct answer. It
+         goes back to asserting a real pitch by itself once that round completes. */
       const started = await evaluate(`seasonStarted() === true`);
-      if (started) {
-        await waitFor(`document.querySelectorAll("#viewPoints .cc").length > 0`, 6000, "points pitch");
+      const scored = started ? await evaluate(`playGw() >= joinGw() ? playGw() : 0`) : 0;
+      if (started && scored) {
+        /* point the scrubber at a round that HAS been played, which is what somebody checking
+           their points does, rather than trusting whatever round the calendar opened on */
+        await evaluate(`setGw(${scored})`);
+        await waitFor(`document.querySelectorAll("#viewPoints .cc").length > 0`, 8000, "points pitch");
         await suiteScreen("points", "#viewPoints");
         await suiteAllRounds();
+      } else if (started) {
+        /* THIS SCREEN HAS TWO LEGITIMATE SHAPES and asserting either one specifically is how
+           the first draft of this branch failed on three viewports out of ten: the holding
+           card until the round's fixtures are known, the squad laid out with nothing scored
+           once they are. Wait for whichever arrives, then assert what is true of BOTH -
+           because the failure a user would actually report is a blank screen, and neither
+           shape is blank. */
+        await waitFor(`!!document.querySelector("#viewPoints .card h3") || document.querySelectorAll("#viewPoints .cc").length > 0`,
+                      8000, "the points screen settling on an unplayed round");
+        const hold = await evaluate(`JSON.stringify({
+          cards: document.querySelectorAll("#viewPoints .cc").length,
+          hasNotice: !!document.querySelector("#viewPoints .card h3"),
+          total: seasonTotal()
+        })`).then(JSON.parse);
+        ok(`unplayed round ${lang} ${vp.w}: the screen says something rather than nothing`,
+           hold.hasNotice || hold.cards > 0, "the points screen drew neither a notice nor a squad");
+        /* NOT the rivals: they may well have scored. This manager joined after the last round
+           that was played, which is the only reason HIS total is nought. */
+        ok(`unplayed round ${lang} ${vp.w}: nothing is scored before this manager's first round`,
+           hold.total === 0, `you=${hold.total} with join after the last played round`);
       } else {
         const pre = await evaluate(`JSON.stringify({
           cards: document.querySelectorAll("#viewPoints .cc").length,
@@ -784,16 +820,21 @@ async function main() {
 
       /* the same season total on the standings table and the points screen. Before kick-off
          the points screen prints no total at all - deliberately - so the agreement to check
-         is that everything is zero and nothing anywhere claims otherwise. */
+         is that everything is zero and nothing anywhere claims otherwise.
+         THE SAME IS TRUE OF A ROUND NOBODY HAS PLAYED, which is what this asked before: it
+         branched on the SEASON having started, read a total off a screen that was correctly
+         showing a holding card, got null, and reported the app as disagreeing with itself in
+         ten viewports at once. It is the played round that decides whether a total exists to
+         compare, not the season. */
       await evaluate(`setView("points")`);
       const meRow = sb.table.find(r => r.me);
-      if (started) {
+      if (started && scored) {
         const ptsTotal = await evaluate(`__QA.pointsSeasonTotal()`);
         ok("cross-screen: the season total agrees on the points screen and the standings table",
           meRow && ptsTotal === meRow.pts && ptsTotal === season,
           "points screen " + ptsTotal + ", standings " + (meRow ? meRow.pts : "—") + ", model " + season);
       } else {
-        ok("cross-screen: before kick-off every screen says zero",
+        ok("cross-screen: with nothing played yet, every screen says zero",
           meRow && meRow.pts === 0 && season === 0,
           "standings " + (meRow ? meRow.pts : "—") + ", model " + season);
       }
