@@ -200,6 +200,8 @@ const LEAGUES = [
   { id: "tsl", slug: "tur.1", en: "Süper Lig", ar: "الدوري التركي" },
   { id: "spl", slug: "sco.1", en: "Scottish Premiership", ar: "الدوري الأسكتلندي" }
 ];
+/* far above any plausible audience for this app, and far below what a flood needs to matter */
+const SUB_CAP = 2000;
 const APP_URL = "https://goallak.com/";
 const SUBS_KEY = "goalak_push_subs";
 const SENT_KEY = "goalak_push_sent";
@@ -939,8 +941,25 @@ export class PushCoordinator {
     if (url.pathname === "/sub-set") {
       const rec = body && body.rec;
       if (!rec || !rec.endpoint) return json({ ok: false, error: "bad-sub" }, 400);
-      await this.state.storage.put("sub:" + String(rec.endpoint), rec);
+      const key = "sub:" + String(rec.endpoint);
+      /* A CEILING ON NEW ENDPOINTS, NEVER ON EXISTING ONES. Re-subscribing a device already
+         in the store always succeeds - a real user's endpoint rotating, a language change, a
+         new followed team - so nobody can be locked out of their own record. Only a
+         previously unseen endpoint has to fit under the cap, which bounds what an
+         unauthenticated flood can cost to "no new subscribers" instead of "no subscribers". */
+      const existing = await this.state.storage.get(key);
+      if (!existing) {
+        const all = await this.state.storage.list({ prefix: "sub:" });
+        if (all.size >= SUB_CAP) return json({ ok: false, error: "sub-cap" }, 507);
+      }
+      await this.state.storage.put(key, rec);
       return json({ ok: true });
+    }
+    if (url.pathname === "/sub-all") {
+      /* the chat room's push audience, read from HERE rather than from a store the whole
+         internet can write to - see sendChatPush */
+      const m = await this.state.storage.list({ prefix: "sub:" });
+      return json({ ok: true, subs: [...m.values()] });
     }
     if (url.pathname === "/sub-del") {
       if (body && body.endpoint) await this.state.storage.delete("sub:" + String(body.endpoint));
@@ -955,6 +974,21 @@ export class PushCoordinator {
   }
 }
 
+/* THE KEY MATERIAL IS A SPEC, SO CHECK IT AGAINST THE SPEC. p256dh is an uncompressed
+   P-256 point - 65 bytes - and auth is 16 bytes of entropy (RFC 8291); both arrive
+   base64url. This used to accept any non-empty string, so {"p256dh":"x","auth":"y"} was a
+   valid subscriber. That mattered more than it looks: the send path lists the store by KEY,
+   which is the endpoint, in lexicographic order, and keeps the first 5000 - so a few
+   thousand records beginning "https://aaa..." would sort ahead of every real
+   fcm.googleapis.com and web.push.apple.com endpoint and push the actual audience off the
+   end of the list. Every notification would stop, for everybody, while /health stayed green
+   because the match feed was fine. */
+const B64URL = /^[A-Za-z0-9_-]+=*$/;
+function b64urlBytes(s) {
+  if (!s || !B64URL.test(s)) return -1;
+  const pad = s.replace(/=+$/, "").length;
+  return Math.floor(pad * 3 / 4);          /* base64url has no separators: 4 chars -> 3 bytes */
+}
 /* a push subscription record, held to the shape the app has ever sent - and nothing else */
 function sanitizeSubRec(b) {
   if (!b || typeof b !== "object") return null;
@@ -973,6 +1007,7 @@ function sanitizeSubRec(b) {
     ts: Number(b.ts) || Date.now()
   };
   if (!rec.keys.p256dh || !rec.keys.auth) return null;
+  if (b64urlBytes(rec.keys.p256dh) !== 65 || b64urlBytes(rec.keys.auth) !== 16) return null;
   return rec;
 }
 
