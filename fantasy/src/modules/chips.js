@@ -669,43 +669,44 @@
     }
 
     /* ---- TRIPLE CAPTAIN ---------------------------------------------------
-       Recomputed from the multipliers rather than nudged, because the armband
-       can MOVE: if the captain's club has no fixture the ×3 passes to the
-       vice-captain. Recomputation is what makes that case arithmetic instead of
-       a patch. With the captain playing it reproduces resolveGw's total exactly
-       and adds one more copy of his score. */
+       ONE MORE COPY OF WHATEVER THE ARMBAND ALREADY PAID. This used to recompute
+       the whole total from scratch and re-derive the armband itself, by asking
+       which SCORER matched the captain's id. resolveSquad had long since stopped
+       working that way: it puts the armband on the SHIRT, so a captain with no
+       fixture passes the double to whoever came on for him (the 935-of-10,800
+       post-mortem in index.html). The two answers agreed only while nobody was
+       substituted.
+       When the captain AND the vice both blanked and both were covered, neither
+       id appeared among the scorers, `effective` fell to null, and the rebuilt
+       total silently dropped the ×2 the base engine had already granted — so
+       PLAYING Triple Captain scored FEWER points than not playing it, and burned
+       the chip doing it. Measured at −5 on an eleven scoring 1…11 with a 5-point
+       substitute; it scales with whatever the substitute scored.
+       There is only one armband and resolveSquad has already decided who wore it
+       and what it paid. Read that instead of guessing at it: the chip is now
+       arithmetically incapable of disagreeing with the round it is multiplying. */
     if (fam.id === "tripcap") {
-      var captain = res.captain == null ? null : res.captain;
-      var vice = res.vice == null ? null : res.vice;
-
-      var scorers = [];
-      for (var i = 0; i < lineup.length; i++) scorers.push(scorerOf(lineup[i]));
-
-      function playedBy(id) {
-        if (id == null) return false;
-        for (var j = 0; j < scorers.length; j++) {
-          if (scorers[j].id === id && !blankOf(scorers[j])) return true;
-        }
-        return false;
+      var wearer = res.wearer == null ? null : res.wearer;
+      var wornBy = null, extra = 0;
+      for (var i = 0; i < lineup.length; i++) {
+        if (lineup[i] == null || lineup[i].id !== wearer) continue;
+        var sc = scorerOf(lineup[i]);          /* the substitute if one came on, else the club itself */
+        if (sc && !blankOf(sc)) { wornBy = sc.id; extra = ptsOf(sc); }
+        break;
       }
 
-      var effective = null, passed = false;
-      if (playedBy(captain)) { effective = captain; }
-      else if (playedBy(vice)) { effective = vice; passed = true; }
-
-      var total = 0;
-      for (var k = 0; k < scorers.length; k++) {
-        total += ptsOf(scorers[k]) * (effective != null && scorers[k].id === effective ? 3 : 1);
-      }
+      var total = int(res.total, 0) + extra;
 
       out.total = total;
       out.chip.applied = true;
       out.chip.delta = total - int(res.total, 0);
-      out.chip.effectiveCaptain = effective;
-      out.chip.passedToVice = passed;
+      /* the WEARER is who the manager appointed; wornBy is who actually earned it.
+         Naming the wearer keeps this field meaning what every caller reads it to mean. */
+      out.chip.effectiveCaptain = wornBy == null ? null : wearer;
+      out.chip.passedToVice = !!res.viceTook;
       /* WASTED, AND NOT REFUNDED. Both clubs blank, the bonus is lost and the
          chip is still spent. fantasy-design.md §1.7, §12.2. */
-      out.chip.wasted = effective == null;
+      out.chip.wasted = wornBy == null;
       out.chip.refunded = false;
       return out;
     }

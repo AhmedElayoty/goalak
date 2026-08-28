@@ -1172,10 +1172,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.84";
+const APP_VERSION = "6.84.1";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-28-v684";
+const FORCE_RELOAD = "2026-08-28-v6841";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -3196,7 +3196,7 @@ function detIcon(txt, d){
 }
 /* ---- match detail: summary feed (line-ups, formations, per-player + team stats) ---- */
 const sumCache = {};      // eventId -> {at, json} | {at, failed:true}
-let _mdEid = null, _mdTab = "E";
+let _mdEid = null, _mdTab = "E", _mdLastState = null;
 let _pcPid = null;          /* player currently shown in the card, so setLang can repaint it */
 function slugForEvent(e){
  if(e && e._gkCompetition && e._gkCompetition.slug) return e._gkCompetition.slug;
@@ -3970,7 +3970,14 @@ async function renderMdBody(){
   return;
  }
  const cached = sumCache[eid] && sumCache[eid].json;
+ /* PAINT WHAT WE ALREADY HAVE, THEN GO ASKING. The live tick re-renders the whole sheet
+    every 25 seconds, so #mdBody is a brand-new EMPTY node each time; this wrote nothing
+    into it and then awaited a real round trip, so a line-up or stats tab on a live match
+    went blank for the length of that request - and because .mbox is the scroll container,
+    it snapped back to the top too. You could not read a live team sheet past the first
+    screen. */
  if(!cached) body.innerHTML = '<div class="mdload"><span class="spinner"></span>' + esc(t("loading")) + "</div>";
+ else mdSet(body, _mdTab === "L" ? mdLineupsHtml(cached, H, A) : _mdTab === "F" ? mdFactsHtml(cached, e, H, A) : mdStatsHtml(cached, H, A));
  /* the cache is only the spinner decision; the DATA must pass the staleness gate */
  const sum = await ensureSummary(eid) || cached;
  if(_mdEid !== eid) return;                       /* user moved on while fetching */
@@ -4190,8 +4197,21 @@ async function buildShareCard(eid, kind){
  const cv = document.createElement("canvas");
  cv.width = 1080; cv.height = 1080;
  const ctx = cv.getContext("2d");
+ /* NO CONTEXT, NO CARD - and say so by returning, not by throwing into a promise
+    nobody can catch. A low-memory Android or a privacy mode that disables canvas
+    hands back null here, and the very next line used to dereference it. */
+ if(!ctx || typeof cv.toBlob !== "function") return null;
  const CREAM = "#FFF8F2", CORAL = "#F24B40";
+ /* THE EXECUTOR IS ASYNC, WHICH MEANS EVERY THROW INSIDE IT WAS SILENCE. new Promise
+    ignores what its executor returns, and an async function never throws synchronously
+    - so any error in here produced a discarded rejected promise and this one settled
+    NEVER. The catch below was unreachable for that whole class of failure, and so was
+    shareMatch's own, and so was the text-share fallback underneath it: the user tapped
+    "share" and nothing happened at all, no sheet, no toast, no copy, for ever, with a
+    new hung promise on every tap. Resolving null inside the executor's own catch puts
+    every failure back on the path that already knows what to do with it. */
  const draw = withJersey => new Promise(async (resolve) => {
+  try{
   ctx.clearRect(0, 0, 1080, 1080);
   ctx.fillStyle = "#211235"; ctx.fillRect(0, 0, 1080, 1080);
   ctx.fillStyle = (kH && kH.c1) || CORAL; ctx.fillRect(0, 0, 26, 1080);
@@ -4269,7 +4289,9 @@ async function buildShareCard(eid, kind){
    if(st === "post"){
     strip = t("ft");
     const sh = shootTxt(H, A); if(sh) strip += " · " + t("pens") + " " + sh;
-    const ag = aggTxt(H, A); if(ag) strip += " · " + t("agg") + " " + ag;
+    /* aggTxt(e, H, A) - called with two, `A` arrived undefined, aggNow's first guard
+       fired and the aggregate silently never appeared on any two-legged card */
+    const ag = aggTxt(e, H, A); if(ag) strip += " · " + t("agg") + " " + ag;
    } else if(st === "in") strip = String((e.status && e.status.displayClock) || t("live"));
    else strip = t("notStarted");
    ctx.direction = RTL ? "rtl" : "ltr";
@@ -4312,6 +4334,7 @@ async function buildShareCard(eid, kind){
   ctx.font = "400 28px Cairo, sans-serif"; ctx.fillStyle = "rgba(255,248,242,.5)";
   ctx.fillText(t("motto"), 540, 1012);
   cv.toBlob(b => resolve(b), "image/png");
+  }catch(_){ resolve(null); }
  });
  let blob = null;
  try{ blob = await draw(true); }catch(_){ blob = null; }
@@ -5971,7 +5994,16 @@ function syncHeroVsPinned(){
 function paintClubHero(){
  const el = $("clubHero");
  if(!el) return;
- const e = _clubSched && _clubSched.ev;
+ /* THE SNAPSHOT IS SIX HOURS OLD AND THE MATCH IS NINETY MINUTES LONG. renderClubHero
+    only refetches when forced, and paintHome never forces - so this drew whatever the
+    schedule fetch happened to catch. Opened before kick-off, the card showed a kick-off
+    time for the entire match and v6.83's live hero never appeared at all; opened during
+    it, the score and the clock then never moved again. The live event is already on
+    hand - paintHome keeps EV_INDEX current, and renderClubHero deliberately refuses to
+    overwrite it with this stale copy - so read the fresh one back rather than the
+    snapshot that fetched it. */
+ const snapEv = _clubSched && _clubSched.ev;
+ const e = snapEv && EV_INDEX[snapEv.id] ? EV_INDEX[snapEv.id] : snapEv;
  if(!e){ el.innerHTML = ""; el.classList.remove("herodup"); return; }
  const comp = e.competitions && e.competitions[0] || {};
  const cs = comp.competitors || [];
@@ -6955,7 +6987,14 @@ setInterval(function(){
     staleness rule in ensureSummary is the first. */
  if(_mdEid && !$("modal").classList.contains("hide")){
   const me_ = EV_INDEX[_mdEid];
-  if(me_ && evState(me_) === "in"){ try{ renderMatchModal(_mdEid); }catch(_){} }
+  /* AND ONCE MORE WHEN IT ENDS. Repainting only while the state reads "in" meant the
+     whistle was the one moment the sheet could not notice: it froze on the last live
+     paint - a running 90+3' clock instead of full time, no penalties line, no aggregate,
+     and the star-of-the-match card never arriving - until the sheet was closed and
+     reopened. The transition is exactly when it most needs repainting. */
+  const st_ = me_ ? evState(me_) : null;
+  if(me_ && (st_ === "in" || st_ !== _mdLastState)){ try{ renderMatchModal(_mdEid); }catch(_){} }
+  _mdLastState = st_;
  }
  if(mainView === "chat") return; /* chat has its own 12s poll */
  loadChat(); /* background room check keeps the unread badge honest */
@@ -7010,9 +7049,23 @@ document.addEventListener("visibilitychange", function(){
 /* Last-resort anti-stale guard: ask the network what the current build is and reload once if this
    client is running an older one. Independent of the service worker, so it still rescues an app
    that got stuck for any reason. Guarded per version so it can never loop. */
-let _vCheckBusy = false;
+let _vCheckBusy = false, _vCheckAt = 0;
 async function gkVersionCheck(){
  if(_vCheckBusy || document.hidden) return;
+ /* ONE HUNDRED AND FORTY KILOBYTES, EVERY TIME YOU CAME BACK TO THE APP. This runs on
+    visibilitychange and on focus as well as on its five-minute timer, and it reads the version
+    by downloading the WHOLE SHELL with cache:"no-store" - 452KB of HTML, 141KB gzipped over
+    the wire - to look at one string 100KB into the file. Nothing throttled the event paths:
+    _vCheckBusy only stops two checks OVERLAPPING, not two in a row. Measured on the live site:
+    somebody flicking between this app and WhatsApp paid for the entire application every
+    single time they flicked back. Twenty glances across a match evening is nearly three
+    megabytes spent on a version string, and it lands hardest on exactly the weak mobile
+    connections that produced the "could not connect" reports in the first place.
+    The same resume handler twenty lines above already throttles its account refresh to five
+    minutes with _lastMeAt; this now uses the same clock. The five-minute timer is unchanged,
+    so no build reaches anybody later than it did before - only the waste in between is gone. */
+ if(Date.now() - _vCheckAt < 300000) return;
+ _vCheckAt = Date.now();   /* stamped BEFORE the fetch: a failing network must not retry on every resume */
  _vCheckBusy = true;
  try{
   const r = await fetch("index.html?v=" + Date.now(), {cache:"no-store"});

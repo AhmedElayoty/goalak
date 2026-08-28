@@ -63,19 +63,37 @@ function save(over) { return Object.assign({}, SEASON, over || {}); }
 function st(over, gw) { return chipState(save(over), gw); }
 function s(state, id) { return state.byId[id].state; }
 
-/* resolveGw()'s own arithmetic, copied from index.html so the fixtures are
-   provably the same shape the app produces:
-     total += scorer.m.pts * (scorer.id === captain ? 2 : 1)
-   where scorer is `row.sub || row`. */
-function resolve(lineup, captain) {
-  let total = 0, covered = 0, uncovered = 0;
+/* resolveSquad()'s own arithmetic. THIS HELPER IS WHY THE TRIPLE CAPTAIN BUG
+   SHIPPED GREEN. It used to read `scorer.id === captain` — the arithmetic
+   index.html abandoned when the armband was moved onto the SHIRT — while
+   claiming in its own comment to be "provably the same shape the app produces".
+   It also took no vice-captain, so every fixture here modelled a round in which
+   the armband could not move. 315 assertions passed over a chip that could lose
+   you points, because the base totals they compared against were ones the app
+   cannot produce. It now mirrors index.html: the wearer is decided first (vice
+   inherits when the captain's club has no fixture), the double follows the shirt
+   so a substitute inherits it, and armband/wearer/viceTook come back out. */
+function resolve(lineup, captain, vice) {
+  const starters = lineup.map(r => r.id);
+  const played = id => {
+    if (!id) return false;
+    const i = starters.indexOf(id);
+    return i >= 0 && !lineup[i].m.blank;
+  };
+  let wearer = captain || null, viceTook = false;
+  if (captain && !played(captain) && vice && vice !== captain && played(vice)) {
+    wearer = vice; viceTook = true;
+  }
+  let total = 0, covered = 0, uncovered = 0, armband = null;
   for (const row of lineup) {
     const scorer = row.sub || row;
-    total += scorer.m.pts * (scorer.id === captain ? 2 : 1);
+    const isCap = row.id === wearer;
+    total += scorer.m.pts * (isCap ? 2 : 1);
+    if (isCap && !scorer.m.blank) armband = scorer.id;
     if (row.sub) covered++;
     else if (row.m.blank) uncovered++;
   }
-  return { total, lineup, covered, uncovered };
+  return { total, lineup, covered, uncovered, armband, wearer, viceTook };
 }
 const plays = (id, pts) => ({ id, m: { blank: false, pts }, sub: null });
 const blanks = (id, sub) => ({ id, m: { blank: true, pts: 0 }, sub: sub || null });
@@ -384,13 +402,16 @@ group("Triple Captain — x3 not x2, and what happens when nobody plays");
   eq(applyChip("tripcap", Object.assign({}, solo, { captain: "c01" })).total, 21,
      "x3 with it — not x4, not x2 twice");
 
-  /* THE ARMBAND MOVES. The captain's club has no fixture, so the x3 passes to
-     the vice-captain. Note the base total contains NO doubling at all, because
-     resolveGw only doubles the club that actually scored. */
+  /* THE ARMBAND MOVES. The captain's club has no fixture, so the double — and
+     then the x3 — pass to the vice-captain. The base already contains the vice's
+     DOUBLE: resolveSquad moves the armband before it sums, which is why the chip
+     only ever adds one further copy. (This fixture used to omit the vice entirely
+     while handing applyChip one, so the armband could not move and the chip was
+     measured against a round the app cannot produce.) */
   const rows = xi();
   rows[6] = blanks("c07");                        /* the captain blanks, uncovered */
-  const capBlank = resolve(rows, "c07");
-  eq(capBlank.total, 59, "with the captain blank and nobody covering, 66 - 7 = 59");
+  const capBlank = resolve(rows, "c07", "c11");
+  eq(capBlank.total, 66 - 7 + 11, "captain blank and uncovered; the vice wears it and is doubled");
   const passed = applyChip("tripcap-1", Object.assign({}, capBlank, { captain: "c07", vice: "c11" }));
   eq(passed.total, 59 + 2 * 11, "the x3 passes to the vice-captain, worth 11");
   eq(passed.chip.passedToVice, true, "and the chip says so");
@@ -402,7 +423,7 @@ group("Triple Captain — x3 not x2, and what happens when nobody plays");
   const rows2 = xi();
   rows2[6] = blanks("c07");
   rows2[10] = blanks("c11");
-  const bothBlank = resolve(rows2, "c07");
+  const bothBlank = resolve(rows2, "c07", "c11");
   eq(bothBlank.total, 66 - 7 - 11, "both blank, so both score nothing");
   const wasted = applyChip("tripcap-1", Object.assign({}, bothBlank, { captain: "c07", vice: "c11" }));
   eq(wasted.total, bothBlank.total, "the total is unchanged — the bonus is lost");
@@ -412,15 +433,31 @@ group("Triple Captain — x3 not x2, and what happens when nobody plays");
   eq(wasted.chip.applied, true, "it was still consumed");
   eq(wasted.chip.effectiveCaptain, null, "nobody wore the armband");
 
-  /* a captain who blanked but was covered by a substitute does NOT get x3 —
-     the substitute is a different club and the armband is not his */
+  /* a captain who blanked but was covered by a substitute does NOT get x3 while
+     a vice is available: the armband moves to the vice, and the substitute simply
+     scores his own points into the round */
   const rows3 = xi();
   rows3[6] = blanks("c07", { id: "b1", m: { blank: false, pts: 9 } });
-  const covered = resolve(rows3, "c07");
-  eq(covered.total, 66 - 7 + 9, "the substitute's 9 replaces the captain's 7, undoubled");
+  const covered = resolve(rows3, "c07", "c11");
+  eq(covered.total, 66 - 7 + 9 + 11, "the substitute's 9 replaces the captain's 7; the vice wears the armband");
   const cov = applyChip("tripcap-1", Object.assign({}, covered, { captain: "c07", vice: "c11" }));
   eq(cov.chip.effectiveCaptain, "c11", "the armband passes to the vice, not to the substitute");
-  eq(cov.total, covered.total + 2 * 11, "and the vice is tripled");
+  eq(cov.total, covered.total + 11, "and the vice is tripled — one more copy on top of his double");
+
+  /* THE CASE THAT WAS LOSING PEOPLE POINTS. Captain and vice BOTH blank and both
+     are covered, so neither id is among the scorers. The old chip found no
+     armband, rebuilt the total with no multiplier at all, and handed back LESS
+     than the round was already worth — a chip that charged you to score fewer
+     points. The armband is on the captain's shirt, so his substitute inherits it. */
+  const rows4 = xi();
+  rows4[6] = blanks("c07", { id: "b1", m: { blank: false, pts: 5 } });
+  rows4[10] = blanks("c11", { id: "b2", m: { blank: false, pts: 3 } });
+  const bothCovered = resolve(rows4, "c07", "c11");
+  eq(bothCovered.total, 66 - 7 - 11 + 5 + 3 + 5, "both covered; the captain's substitute inherits the double");
+  const bc = applyChip("tripcap-1", Object.assign({}, bothCovered, { captain: "c07", vice: "c11" }));
+  eq(bc.total, bothCovered.total + 5, "the chip ADDS a copy of what the armband earned");
+  ok(bc.total > bothCovered.total, "and can never be worth less than not playing it");
+  eq(bc.chip.wasted, false, "the armband was worn, so nothing was wasted");
 
   /* the shape survives, exactly */
   ok(Array.isArray(out.lineup), "lineup is still an array");
