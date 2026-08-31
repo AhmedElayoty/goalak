@@ -1169,10 +1169,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.83";
+const APP_VERSION = "6.84";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-28-v683";
+const FORCE_RELOAD = "2026-08-28-v684";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -3173,6 +3173,34 @@ function detIcon(txt, d){
  return "•";
 }
 /* ---- match detail: summary feed (line-ups, formations, per-player + team stats) ---- */
+/* ============ A PUBLISHED XI IS ELEVEN NAMES, NOT ONE ============
+   ESPN answers a pre-match summary with a STUB roster - one name per side, the announced
+   keeper - well before the real team sheet drops. Three separate places read "the roster
+   array is not empty" and concluded the line-ups had arrived:
+
+     mdLineupsHtml's guard   rendered the column list and put ONE goalkeeper under a heading
+                             reading "Starting XI"
+     okPos                   needs eleven, so it refused the formation pitch - the only one of
+                             the three that noticed anything was wrong
+     ensureSummary's pending went FALSE on the stub, so the stub was cached and NEVER
+                             re-checked; nothing in a pre-match sheet can dislodge it, because
+                             switching tabs re-enters renderMdBody and gets the same cached copy
+
+   Barcelona v Rayo, 31 Aug, thirty-nine minutes before kick-off: the sheet read
+   "Barcelona 4-2-3-1 / Starting XI / 1 Joan Garcia" and the same for Rayo, while La Liga had
+   released both elevens twenty minutes earlier. The formations were right, which is what makes
+   it look like a formation bug - rosters[].formation is populated even while the roster is
+   still a stub, so the heading is authoritative and the body is empty.
+
+   These three now share one answer. */
+function isStarter(p){ return !!(p && (p.starter === true || Number(p.formationPlace) > 0)); }
+function startersOf(r){ return (((r && r.roster) || []).filter(isStarter)); }
+/* both sides, eleven each. Fewer than that before kick-off is a stub, never a team sheet. */
+function hasFullXI(sum){
+ const ros = (sum && sum.rosters) || [];
+ if(ros.length < 2) return false;
+ return startersOf(ros[0]).length >= 11 && startersOf(ros[1]).length >= 11;
+}
 const sumCache = {};      // eventId -> {at, json} | {at, failed:true}
 let _mdEid = null, _mdTab = "E";
 let _pcPid = null;          /* player currently shown in the card, so setLang can repaint it */
@@ -3189,7 +3217,9 @@ async function ensureSummary(eid){
   const st = ev ? evState(ev) : "post";
   /* a PRE-match summary with no line-ups yet must not be cached forever: ESPN publishes the XI
      roughly an hour before kick-off, so re-check it every couple of minutes until it appears */
-  const pending = st === "pre" && !((c.json.rosters || []).some(r => (r.roster || []).length));
+  /* NOT "is there a roster" - "is the ELEVEN there". This read roster.length, so a one-man
+     stub satisfied it, pending went false, and the cached stub was returned for ever. */
+  const pending = st === "pre" && !hasFullXI(c.json);
   /* A LIVE MATCH IS NOT A DOCUMENT, and this cache treated it as one: fetched once - usually
      before kick-off - and returned for ever after. The owner watched Barcelona with the
      pre-match XI frozen on screen and not one substitution ever appearing. While the match is
@@ -3247,8 +3277,10 @@ function playerIcons(p){
 }
 function lineupCol(r, benchOnly){
  const list = (r && r.roster) || [];
- /* bench players carry formationPlace "0", so only a positive place (or an explicit starter flag) counts */
- const isStart = p => p && (p.starter === true || Number(p.formationPlace) > 0);
+ /* bench players carry formationPlace "0", so only a positive place (or an explicit starter
+    flag) counts - isStarter above is the sole definition, because the freshness gate has to
+    agree with this list about who is starting */
+ const isStart = isStarter;
  const starters = list.filter(isStart).slice().sort((x, y) => (Number(x.formationPlace) || 99) - (Number(y.formationPlace) || 99));
  /* THE BENCH IS PART OF THE TEAM SHEET. This used to list only substitutes who had already
     come ON - so before kickoff the section was empty and during the match it grew one name
@@ -3349,11 +3381,16 @@ function placeTeam(starters, isHome, formation){
 function mdLineupsHtml(sum, H, A){
  const ros = (sum && sum.rosters) || [];
  if(!ros.length || !ros.some(r => (r.roster || []).length)) return '<div class="mnoev">' + esc(t("mdNoLineups")) + "</div>";
+ /* BEFORE KICK-OFF, a partial roster is always a stub and never a team sheet, so say so
+    rather than printing one goalkeeper under "Starting XI". Deliberately scoped to pre-match:
+    once a match is in play or over, whatever names the feed carries are real, and a data
+    quirk that leaves ten of them must not hide the ten. */
+ if(_mdEid && EV_INDEX[_mdEid] && evState(EV_INDEX[_mdEid]) === "pre" && !hasFullXI(sum))
+  return '<div class="mnoev">' + esc(t("mdNoLineups")) + "</div>";
  const find = tm => ros.find(r => r.team && tm && tm.team && String(r.team.id) === String(tm.team.id)) || null;
  const rh = find(H) || ros[0], ra = find(A) || ros[1];
  const form = r => (r && (r.formation || r.displayFormation)) || "";
- const isStart = p => p && (p.starter === true || Number(p.formationPlace) > 0);
- const hs = ((rh && rh.roster) || []).filter(isStart), as = ((ra && ra.roster) || []).filter(isStart);
+ const hs = startersOf(rh), as = startersOf(ra);
  const okPos = arr => arr.length >= 11 && arr.every(p => (p.position || {}).abbreviation);
  const lbl = (tm, f) => '<div class="flabel"><span>' + crestHtml(tm.team) + "<b>" + esc(teamName(tm)) + "</b></span><span dir=\"ltr\">" + esc(f || "") + "</span></div>";
  if(!okPos(hs) || !okPos(as)){   /* no positions published -> keep the readable column list */
@@ -6729,7 +6766,17 @@ setInterval(function(){
     staleness rule in ensureSummary is the first. */
  if(_mdEid && !$("modal").classList.contains("hide")){
   const me_ = EV_INDEX[_mdEid];
-  if(me_ && evState(me_) === "in"){ try{ renderMatchModal(_mdEid); }catch(_){} }
+  if(me_){
+   const st_ = evState(me_);
+   /* AND A SHEET WAITING FOR A TEAM SHEET FOLLOWS THAT. The line-ups land about an hour
+      before kick-off; a sheet opened before that used to sit on whatever it first got until
+      the reader thought to leave the tab and come back - and after the stub fix above, until
+      they reloaded the page. ensureSummary's own two-minute gate keeps this to one request
+      per two minutes, not one per tick. */
+   const waitingXI = st_ === "pre" && (Date.parse(me_.date) - Date.now()) < 7200000
+     && !hasFullXI(sumCache[_mdEid] && sumCache[_mdEid].json);
+   if(st_ === "in" || waitingXI){ try{ renderMatchModal(_mdEid); }catch(_){} }
+  }
  }
  if(mainView === "chat") return; /* chat has its own 12s poll */
  loadChat(); /* background room check keeps the unread badge honest */
