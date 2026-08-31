@@ -240,6 +240,23 @@ export async function deleteChatMessage(request, env, session) {
   return json(result, result.ok ? 200 : 403);
 }
 
+/* A REACTION MUST NOT NEED A LIVE SOCKET.
+   Tapping one only ever sent a WebSocket frame, with no else branch and no HTTP route to fall
+   back to - so with the socket down (iOS Safari kills it on every backgrounding, and the
+   reconnect can be twenty seconds away) the chip appeared, the count went up, and then it
+   vanished on the next history load. Silently, every time. */
+export async function reactChatMessage(request, env, session) {
+  let body;
+  try { body = await readSmallJson(request); }
+  catch (_) { return json({ ok: false, error: "invalid request" }, 400); }
+  const id = String(body.id || "");
+  const emoji = String(body.emoji || "");
+  if (!id || !emoji) return json({ ok: false, error: "missing id or emoji" }, 400);
+  const stub = roomStub(env);
+  const result = await stub.toggleReaction({ uid: session.uid, name: session.name }, id, emoji);
+  return json(result, result.ok ? 200 : 400);
+}
+
 export async function chatHistory(request, env) {
   const stub = roomStub(env);
   await ensureLegacyImported(env, stub);
@@ -361,13 +378,32 @@ function privateJwkFromEnv(env) {
   return { kty: "EC", crv: "P-256", x: bytesToB64url(pub.slice(1, 33)), y: bytesToB64url(pub.slice(33, 65)), d: bytesToB64url(d) };
 }
 
+/* THE ROOM'S AUDIENCE COMES FROM OUR OWN STORE. Match alerts moved into the push
+   coordinator's Durable Object storage; chat push was left reading goalak_push_subs on
+   textdb.online, which takes writes from anyone with no credential at all - the app's own
+   writer posts to it unauthenticated, which is the proof. Anyone could therefore add their
+   own real subscription to that list and receive every message in the private room, sender
+   and text included, or blank the list and silence chat notifications for everybody.
+   It fails CLOSED: if the coordinator cannot be reached, nobody is notified, because the
+   alternative is trusting a list the internet can edit. */
+async function pushSubsFromStore(env) {
+  try {
+    if (!env.PUSH_COORDINATOR) return null;
+    const id = env.PUSH_COORDINATOR.idFromName("global");
+    const r = await env.PUSH_COORDINATOR.get(id).fetch("https://coordinator/sub-all",
+      { method: "POST", body: "{}" });
+    if (!r || !r.ok) return null;
+    const j = await r.json().catch(() => null);
+    return j && Array.isArray(j.subs) ? j.subs : null;
+  } catch (_) { return null; }
+}
 async function sendChatPush(env, message, activeUids) {
   if (!env.VAPID_PRIVATE_KEY) return;
-  const result = await textdbRead(PUSH_SUBS_KEY, []);
-  if (!result.ok) return;
+  const subs = await pushSubsFromStore(env);
+  if (!subs) return;
   const targets = [];
   const endpoints = new Set();
-  for (const sub of Array.isArray(result.value) ? result.value : []) {
+  for (const sub of subs) {
     if (!sub || !sub.endpoint || endpoints.has(sub.endpoint) || !sub.keys || !sub.keys.p256dh || !sub.keys.auth) continue;
     if (!sub.uid || sub.uid === message.uid || activeUids.has(String(sub.uid))) continue;
     endpoints.add(sub.endpoint);

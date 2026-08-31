@@ -12,6 +12,11 @@ crons = ["* * * * *"]
 DRY_RUN = "false"
 VAPID_PUBLIC_KEY = "BLyDli3t0W8TTo9gL7s4ibxgVJY6_ism0HIyn8DymerLNs1Bs9mo5ct5i_wti8NNUQ_pfXxMXXZfJKdg1Gc02RM"
 VAPID_SUBJECT = "https://goallak.com/"
+# Who gets told when the match feed dies. ESPN answered 403 to every request from this worker
+# for an unknown length of time and nothing anywhere said so - the run reports ok, because an
+# empty board is indistinguishable from an afternoon with no football. After ten dead minutes
+# this uid gets one push. Not a secret: it is already the uid in every chat message they send.
+OWNER_UID = "gun9erwm8"
 
 [[durable_objects.bindings]]
 name = "PUSH_COORDINATOR"
