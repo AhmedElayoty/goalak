@@ -1172,10 +1172,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.84.2";
+const APP_VERSION = "6.85";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-28-v6842";
+const FORCE_RELOAD = "2026-08-31-v685";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -3682,6 +3682,41 @@ function mdEventsHtml(e, H, A, sum){
   if(!iN && !oN) return;
   row(" sub", isHomeId((k.team || {}).id), '<b class="si">' + esc(iN) + '</b> <span class="subo">' + esc(oN) + "</span>", "⇄", (k.clock || {}).displayValue || "", "");
  });
+ /* A SAVED PENALTY IS ONE INCIDENT, AND THE GOALKEEPER DID NOT MISS IT.
+    ESPN logs a saved penalty TWICE - once against the taker's team, once against the
+    goalkeeper's - and both copies match /pen/ and /(miss|sav)/, so the timeline drew two rows
+    on opposite sides of the same minute and printed "Penalty missed" under the keeper's name.
+    Amed SFK v Trabzonspor, 45'+5': Mbaye Diagne missed it and Andre Onana SAVED it, and the
+    sheet accused both men of missing a penalty.
+    The keeper's copy is the duplicate, and which man is the keeper is read from the published
+    rosters rather than guessed from the feed's wording - the wording is what conflated the two
+    in the first place. Applied only where more than one copy shares a clock, so a goalkeeper
+    who genuinely takes a penalty and misses it stands alone at his own minute and is left
+    exactly as he is. Shootout kicks are excluded from the grouping entirely: they legitimately
+    share one clock, and collapsing them would erase the shootout. */
+ const gkIds = new Set();
+ ((sum && sum.rosters) || []).forEach(r => ((r && r.roster) || []).forEach(p => {
+  const ab = String(((p && p.position || {}).abbreviation) || "");
+  const id = String((((p && p.athlete) || {}).id) || "");
+  if(id && ab.charAt(0) === "G") gkIds.add(id);
+ }));
+ const penSkip = new Set();
+ {
+  const byClock = {};
+  ((sum && sum.keyEvents) || []).forEach(k => {
+   const tt = String(((k.type || {}).type || (k.type || {}).text) || "").toLowerCase();
+   if(k.shootout || !(/pen/.test(tt) && /(miss|sav)/.test(tt))) return;
+   const cl = ((k.clock || {}).displayValue) || "";
+   (byClock[cl] = byClock[cl] || []).push(k);
+  });
+  for(const cl of Object.keys(byClock)){
+   const grp = byClock[cl];
+   if(grp.length < 2) continue;
+   const takers = grp.filter(k => !gkIds.has(String((((((k.participants || [])[0] || {}).athlete) || {}).id) || "")));
+   const keep = takers.length ? takers[0] : grp[0];
+   grp.forEach(k => { if(k !== keep) penSkip.add(k); });
+  }
+ }
  /* missed penalties, VAR decisions and the half-time line also live in keyEvents and were
     filtered out with everything else - the timeline told the goals but not the drama */
  ((sum && sum.keyEvents) || []).forEach(k => {
@@ -3690,6 +3725,7 @@ function mdEventsHtml(e, H, A, sum){
   const nm = who.shortName || who.displayName || "";
   const mins = (k.clock || {}).displayValue || "";
   if(/pen/.test(tt) && /(miss|sav)/.test(tt)){
+   if(penSkip.has(k)) return;                    /* the goalkeeper's copy of a save */
    row(" pmiss", isHomeId((k.team || {}).id), "<b>" + esc(nm || t("pens")) + '</b> <span class="subo">' + esc(t("penMissWord")) + "</span>", "❌", mins, "");
   } else if(/\bvar\b|video review/.test(tt)){
    row(" varrow", isHomeId((k.team || {}).id), "<b>" + esc(t("varWord")) + "</b>", "🖥", mins, "");
@@ -4114,7 +4150,7 @@ function vib(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms || 12); }catch
  pill.id = "gkPtr";
  pill.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.5 6.3"/><path d="M20 5v6h-6"/></svg>';
  document.body.appendChild(pill);
- let sy = 0, dy = 0, armed = false, busy = false;
+ let sy = 0, sx = 0, dy = 0, axis = 0, armed = false, busy = false;
  const PULL = 160;                      /* raw finger travel that triggers */
  function settleHome(){
   pill.classList.add("settle");
@@ -4125,11 +4161,22 @@ function vib(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms || 12); }catch
  window.addEventListener("touchstart", function(ev){
   armed = !busy && window.scrollY <= 0 && !anySheetOpen() && mainView === "scores" && view === "home";
   if(!armed) return;
-  sy = ev.touches[0].clientY; dy = 0;
+  sy = ev.touches[0].clientY; sx = ev.touches[0].clientX; dy = 0; axis = 0;
  }, {passive: true});
  window.addEventListener("touchmove", function(ev){
-  if(!armed || busy) return;
+  if(!armed || busy || axis < 0) return;
   dy = ev.touches[0].clientY - sy;
+  /* AN AXIS LOCK, because there wasn't one. This measured Y and nothing else, so every
+     SIDEWAYS drag armed it too: a thumb swiping the live strip left or right always travels a
+     little downward, dy went positive, and the reload pill slid out from under the header on
+     a gesture that had nothing to do with refreshing. The first few pixels decide which
+     gesture this is, once, and a horizontal one is out for the rest of the touch. */
+  if(!axis){
+   const dx = ev.touches[0].clientX - sx;
+   if(Math.abs(dx) < 8 && Math.abs(dy) < 8) return;   /* too early to tell them apart */
+   axis = Math.abs(dx) > Math.abs(dy) ? -1 : 1;
+   if(axis < 0){ dy = 0; pill.style.transform = "translate(-50%,0)"; pill.classList.remove("ready"); return; }
+  }
   if(dy <= 0 || window.scrollY > 0){ dy = 0; pill.style.transform = "translate(-50%,0)"; pill.classList.remove("ready"); return; }
   const t = Math.min(dy * .5, 118);
   pill.style.transform = "translate(-50%," + (56 + t) + "px) rotate(" + Math.min(dy * 1.5, 320) + "deg)";
