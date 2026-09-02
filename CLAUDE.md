@@ -175,8 +175,12 @@ opens it - a capture-phase document listener, so a name inside a match row wins 
 Rows, prediction cards, the standings table, line-up labels, the chat live strip and the
 followed-club sheet header carry it. Sources: ESPN team schedule + roster (edge whitelist now
 allows `teams/<id>/roster` and `teams/<id>`), ESPN core season statistics via the worker's
-`/api/espn-core/` route (1 h cache), `club-facts.json` in the repo root for honours + captain
-(20 clubs; owner-editable, no release needed), `fantasy/clubs.json` for colours and codes.
+`/api/espn-core/` route (1 h cache), `club-facts.json` in the repo root for honours (count,
+last year, and the years themselves - tap a trophy), captain AND coach (20 clubs; the file
+wins over ESPN's roster coach, which is years stale; owner-editable, no release needed),
+`fantasy/clubs.json` for colours and codes. "Last 5" reaches into the previous season when
+the current one is young. Every `years` list is checked against `n` and `last` by w17-style
+self-check before shipping.
 Deep link `?club=<id>&cslug=<slug>`. Every source is optional; an empty tab says so.
 
 ## Conventions that gates and reviewers enforce
