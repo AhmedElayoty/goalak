@@ -22,7 +22,7 @@ import {
 } from "./chat.js";
 import { broadcastScheduleResponse } from "./broadcasts.js";
 import { AccountStore, accountsApi, accountStore } from "./accounts.js";
-import { egyptTick, egyBoard, egySummary, egyStandings, egyStatus } from "./egypt.js";
+import { egyptTick, egyBoard, egySummary, egyStandings, egyStatus, afDoor } from "./egypt.js";
 
 export { ChatRoom, AccountStore };
 
@@ -970,7 +970,19 @@ export class PushCoordinator {
     /* THE EGYPTIAN FEED, read side. Every route here is a storage read; the writes happen in
        egyptTick under the cron, so a phone - or a thousand - can never cause a provider call.
        A bad id answers 404 in the same JSON shape rather than throwing. */
-    if (url.pathname === "/egy-board") { const d = url.searchParams.get("day") || ""; return json(await egyBoard(this.state.storage, /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(d) ? d : null)); }
+    if (url.pathname === "/egy-board") {
+      /* ?dates=YYYYMMDD or YYYYMMDD-YYYYMMDD (ESPN's own spelling, so the shell's URL rewrite is
+         mechanical), ?team=<id> for a club's schedule; anything malformed is simply ignored */
+      const ymd = v => /^[0-9]{8}$/.test(v) ? v.slice(0, 4) + "-" + v.slice(4, 6) + "-" + v.slice(6, 8) : /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(v) ? v : null;
+      const dates = String(url.searchParams.get("dates") || url.searchParams.get("day") || "").split("-").filter(Boolean);
+      const q = {};
+      if (dates.length === 1 && dates[0].length === 8) q.from = q.to = ymd(dates[0]);
+      else if (dates.length === 2 && dates[0].length === 8) { q.from = ymd(dates[0]); q.to = ymd(dates[1]); }
+      else if (dates.length === 3) q.from = q.to = ymd(dates.join("-"));
+      const team = String(url.searchParams.get("team") || "").replace(/[^0-9]/g, "");
+      if (team) q.team = team;
+      return json(await egyBoard(this.state.storage, q, !!afDoor(this.env)));
+    }
     if (url.pathname === "/egy-summary") { const s = await egySummary(this.state.storage, url.searchParams.get("fixture") || ""); return s ? json(s) : json({ ok: false, error: "unknown fixture" }, 404); }
     if (url.pathname === "/egy-standings") { const s = await egyStandings(this.state.storage); return s ? json(s) : json({ ok: false, error: "no table yet" }, 404); }
     if (url.pathname === "/egy-status") return json(await egyStatus(this.env, this.state.storage, Date.now()));

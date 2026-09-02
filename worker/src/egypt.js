@@ -31,6 +31,17 @@
 
 export const AF_LEAGUE = 233;                 /* API-Football's id for Egypt - Premier League; verified on first live call */
 export const AF_HOST = "https://v3.football.api-sports.io";
+export const RAPID_HOST = "api-football-v1.p.rapidapi.com";    /* the same API, through RapidAPI's IPs */
+/* which door do we have a key for? RapidAPI is the one a Worker can use. The direct door is kept
+   for a deployment with its own egress IP and must be switched on by the AF_DIRECT_OK var - from
+   a shared IP every direct call is refused unread, and a refused call that keeps coming back
+   every few minutes is exactly the "abnormal traffic" their firewall bans keys for. */
+export function afDoor(env) {
+  if (env && env.AF_RELAY_URL && env.AF_RELAY_TOKEN) return { relay: env.AF_RELAY_URL, token: env.AF_RELAY_TOKEN, via: "relay" };
+  if (env && env.RAPIDAPI_KEY) return { base: "https://" + RAPID_HOST + "/v3", headers: { "x-rapidapi-key": env.RAPIDAPI_KEY, "x-rapidapi-host": RAPID_HOST }, via: "rapidapi" };
+  if (env && env.APIFOOTBALL_KEY && env.AF_DIRECT_OK === "1") return { base: AF_HOST, headers: { "x-apisports-key": env.APIFOOTBALL_KEY }, via: "direct" };
+  return null;
+}
 export const DAILY_LIMIT = 100;
 export const RESERVE = 8;                     /* never spent: retries, a late kick-off change, tomorrow's first call */
 export const LIVE_WINDOW_BEFORE = 2 * 60000;  /* start watching two minutes before kick-off */
@@ -53,16 +64,42 @@ export function seasonFor(ms) { const d = new Date(ms); return d.getUTCMonth() +
 export function freshBudget(now) { return { day: utcDay(now), used: 0, remaining: DAILY_LIMIT, exhausted: false }; }
 export function budgetFor(stored, now) {
   if (!stored || stored.day !== utcDay(now)) return freshBudget(now);
+  /* records written before `reason` existed filed every provider error as exhaustion; re-open them.
+     So were per-minute rebuffs, until 2026-09-02: re-open those too, as a short block. */
+  if (stored.exhausted && (!stored.reason || /per minute/i.test(stored.lastError || "")))
+    return Object.assign({}, stored, { exhausted: false, reason: null, remaining: Math.max(0, DAILY_LIMIT - (stored.used || 0)),
+      blocked: stored.lastError || null, blockKind: stored.lastError ? "minute" : null, blockedAt: stored.blockedAt || Date.now(), blockN: stored.blockN || 1 });
   return stored;
+}
+/* while blocked, when may we try again? A per-minute rebuff: 2 min, growing to 30. Anything else
+   (plan / key / parameter): 30 min, doubling to 4 h. */
+export function retryAt(b) {
+  if (!b || !b.blocked) return 0;
+  const n = Math.max(0, (b.blockN || 1) - 1);
+  if (b.blockKind === "minute") return (b.blockedAt || 0) + Math.min(30 * 60000, 2 * 60000 * Math.pow(2, n));
+  return (b.blockedAt || 0) + Math.min(4 * 3600000, 30 * 60000 * Math.pow(2, n));
 }
 export function affordable(b) { return Math.max(0, (b.remaining != null ? b.remaining : DAILY_LIMIT - b.used) - RESERVE); }
 /* fold a response's headers/body into the budget - the ONLY place the count moves */
 export function chargeBudget(b, headers, body) {
-  const out = Object.assign({}, b, { used: (b.used || 0) + 1 });
-  const rem = headers && headers.get ? Number(headers.get("x-ratelimit-requests-remaining")) : NaN;
+  const out = Object.assign({}, b, { used: (b.used || 0) + 1, door: b.door || null });
+  /* an absent header is NOT zero: Number(null) is 0, and that once zeroed the day after a plan error */
+  const remRaw = headers && headers.get ? headers.get("x-ratelimit-requests-remaining") : null;
+  const rem = remRaw == null || remRaw === "" ? NaN : Number(remRaw);
   if (Number.isFinite(rem)) out.remaining = rem; else out.remaining = Math.max(0, (b.remaining != null ? b.remaining : DAILY_LIMIT) - 1);
-  const errs = body && body.errors && typeof body.errors === "object" ? body.errors : null;
-  if (errs && (errs.requests || errs.rateLimit || errs.plan)) { out.remaining = 0; out.exhausted = true; }
+  /* API-Football reports problems as HTTP 200 with `errors` filled (an empty [] when all is well) */
+  const errs = body && body.errors && typeof body.errors === "object" && !Array.isArray(body.errors) ? body.errors : null;
+  const keys = errs ? Object.keys(errs) : [];
+  const h = k => (headers && headers.get ? headers.get(k) : null);
+  out.hdr = { dayLimit: h("x-ratelimit-requests-limit"), dayLeft: h("x-ratelimit-requests-remaining"), minLimit: h("x-ratelimit-limit"), minLeft: h("x-ratelimit-remaining"), at: Date.now() };
+  if (errs && errs.requests) { out.remaining = 0; out.exhausted = true; out.reason = "quota"; out.lastError = String(errs.requests).slice(0, 300); }
+  else if (keys.length) {
+    /* rateLimit = the per-MINUTE ceiling, transient. plan / token / season / league = not the quota
+       at all. Either way: say what it said, and back off - never write the day off for it. */
+    out.blocked = keys.map(k => k + ": " + String(errs[k])).join(" | ").slice(0, 300);
+    out.blockKind = errs.rateLimit ? "minute" : "other";
+    out.blockedAt = Date.now(); out.blockN = (b.blockN || 0) + 1; out.lastError = out.blocked; out.reason = "blocked";
+  } else { out.blocked = null; out.blockKind = null; out.blockN = 0; out.reason = out.reason === "blocked" ? null : out.reason; }
   return out;
 }
 
@@ -75,9 +112,14 @@ export function planTick(now, budget, fixtures, sched) {
   const day = utcDay(now);
   const left = affordable(budget);
   if (left <= 0) return null;                                           /* the reserve is not for spending */
+  if (budget.blocked && now < retryAt(budget)) return null;             /* the provider said no; wait, then ask once more */
 
   /* 1. today's schedule, once. Also the schedule for the next two weeks - one call. */
   if (s.scheduleDay !== day) return { kind: "schedule" };
+  /* 1b. the table, once EVER, right after the first schedule: the club picker builds its team
+        list from the standings feed, and the table sheet would otherwise be empty until the
+        first match day's last whistle. One call, then the daily rule below takes over. */
+  if (!s.standingsDay && left > 2) return { kind: "standings" };
 
   const todays = (fixtures || []).filter(f => utcDay(f.ko) === day);
   const live = f => f.state !== "post" && now >= f.ko - LIVE_WINDOW_BEFORE && now <= f.ko + LIVE_WINDOW_AFTER;
@@ -153,7 +195,7 @@ function clockOf(time) {
   return String(time.elapsed) + (time.extra ? "+" + time.extra : "") + "'";
 }
 /* one API-Football fixture -> one ESPN event. `at` is when the provider was asked. */
-export function toEspnEvent(f, at) {
+export function toEspnEvent(f, at, every) {
   const fx = f.fixture || {}, st = fx.status || {}, short = String(st.short || "NS");
   const state = SHORT_TO_STATE[short] || "pre", name = SHORT_TO_NAME[short] || "STATUS_SCHEDULED";
   const home = team(f.teams.home), away = team(f.teams.away);
@@ -184,7 +226,7 @@ export function toEspnEvent(f, at) {
   };
   return { id: String(fx.id), uid: "s:600~l:af233~e:" + fx.id, date: fx.date, name: home.displayName + " vs " + away.displayName,
            shortName: away.abbreviation + " @ " + home.abbreviation, status, competitions: [comp],
-           _gkSrc: "af", _gkLeagueId: "egy", _gkAt: at };
+           _gkSrc: "af", _gkLeagueId: "egy", _gkAt: at, _gkEvery: every || null };
 }
 /* line-ups + events -> the summary shape the match sheet reads (rosters, keyEvents) */
 export function toEspnSummary(f, lineups, at) {
@@ -231,7 +273,18 @@ export function toEspnStandings(afResponse, at) {
 /* ---------------- the provider ----------------
    The only function that spends. Returns {body, headers} or null on a transport failure. */
 async function afGet(env, path) {
-  const r = await fetch(AF_HOST + path, { headers: { "x-apisports-key": env.APIFOOTBALL_KEY }, signal: AbortSignal.timeout(8000) });
+  const door = afDoor(env);
+  if (door.relay) {
+    /* the relay answers {status, headers, body} for the upstream call it made on our behalf; Apps
+       Script serves /exec through a redirect, which fetch follows. A relay-side problem (bad token,
+       unconfigured) comes back as {error} and is reported as a transport failure, not a quota event. */
+    const r = await fetch(door.relay + (door.relay.includes("?") ? "&" : "?") + "t=" + encodeURIComponent(door.token) + "&path=" + encodeURIComponent(path),
+                          { redirect: "follow", signal: AbortSignal.timeout(20000) });
+    const j = await r.json().catch(() => null);
+    if (!r.ok || !j || j.error) throw new Error("relay: " + (j && j.error ? j.error : r.status));
+    return { ok: j.status >= 200 && j.status < 300, status: j.status, headers: new Headers(j.headers || {}), body: j.body };
+  }
+  const r = await fetch(door.base + path, { headers: door.headers, signal: AbortSignal.timeout(8000) });
   const body = await r.json().catch(() => null);
   return { ok: r.ok, status: r.status, headers: r.headers, body };
 }
@@ -242,8 +295,13 @@ const slim = f => ({ id: String(f.fixture.id), ko: Date.parse(f.fixture.date) ||
    Called once a minute from runOnce. Makes at most one provider call, updates storage, and
    returns today's board as ESPN events for the push machinery. Inert without a key. */
 export async function egyptTick(env, store, now, log) {
-  if (!env || !env.APIFOOTBALL_KEY || !store) return null;
+  if (!afDoor(env) || !store) return null;
   let budget = budgetFor(await store.get(K.budget), now);
+  /* a block belongs to the door that earned it. When the door changes (direct -> relay on
+     2026-09-02) the old refusal says nothing about the new path, so it is dropped at once. */
+  const via = afDoor(env).via;
+  if (budget.blocked && (budget.door || "direct") !== via) budget = Object.assign({}, budget, { blocked: null, blockKind: null, blockN: 0, reason: null });
+  budget.door = via;
   const sched = Object.assign({ scheduleDay: null, refreshDay: null, lastLive: 0, lineups: {}, finals: {}, standingsDay: null }, (await store.get(K.sched)) || {});
   const fixtures = (await store.get(K.fixtures)) || { at: 0, list: [] };
   const live = (await store.get(K.live)) || { at: 0, byId: {}, gone: {} };
@@ -255,11 +313,12 @@ export async function egyptTick(env, store, now, log) {
   const slimToday = fixtures.list.map(f => { const s = slim(f); const l = live.byId[s.id]; if (l) s.state = slim(l).state; s.gone = !!live.gone[s.id]; return s; });
   const plan = planTick(now, budget, slimToday, sched);
   const spend = async (path) => {
-    const r = await afGet(env, path).catch(() => null);
-    if (!r) { if (log) log.push("egy:" + path.split("?")[0] + ":ERR"); return null; }
+    const r = await afGet(env, path).catch(e => { if (log) log.push("egy:" + path.split("?")[0] + ":" + ((e && e.message) || "ERR")); return null; });
+    if (!r) { budget = Object.assign({}, budget, { lastError: "transport: " + (log && log.length ? log[log.length - 1] : "ERR"), lastErrorAt: Date.now() }); await store.put(K.budget, budget); return null; }
     budget = chargeBudget(budget, r.headers, r.body);
     await store.put(K.budget, budget);
     if (budget.exhausted) { if (log) log.push("egy:quota"); return null; }
+    if (budget.blocked) { if (log) log.push("egy:blocked " + budget.blocked); return null; }
     if (!r.ok) { if (log) log.push("egy:" + r.status); return null; }
     return r.body;
   };
@@ -272,7 +331,8 @@ export async function egyptTick(env, store, now, log) {
       const list = rows(body);
       /* a finished fixture in this list is also the final result - fold it into the live copy */
       for (const f of list) if (slim(f).state === "post") live.byId[String(f.fixture.id)] = f;
-      await store.put(K.fixtures, { at: now, list });
+      const lg = list[0] && list[0].league ? { id: list[0].league.id, name: list[0].league.name, country: list[0].league.country, season: list[0].league.season } : null;
+      await store.put(K.fixtures, { at: now, list, league: lg });
       await store.put(K.live, { at: live.at, byId: live.byId });
       sched.scheduleDay = day; if (plan.refresh) sched.refreshDay = day;
     } else if (!plan.refresh && fixtures.list.length) sched.scheduleDay = day;   /* keep yesterday's window rather than retry every minute */
@@ -294,7 +354,7 @@ export async function egyptTick(env, store, now, log) {
     sched.lineups[plan.fixture] = l;
   } else if (plan && plan.kind === "live") {
     const body = await spend("/fixtures?live=" + AF_LEAGUE + "&timezone=UTC");
-    sched.lastLive = now;
+    sched.lastLive = now; sched.lastInterval = plan.interval;
     if (body) {
       const seen = new Set();
       for (const fx of rows(body)) { const id = String(fx.fixture.id); seen.add(id); live.byId[id] = fx; delete live.gone[id]; }
@@ -319,16 +379,35 @@ export async function egyptTick(env, store, now, log) {
 
 /* ---------------- readers for the phones (no provider calls, ever) ---------------- */
 export async function egyStatus(env, store, now) {
-  const configured = !!(env && env.APIFOOTBALL_KEY);
+  const door = afDoor(env);
+  const configured = !!door;
   const b = store ? budgetFor(await store.get(K.budget), now) : null;
-  return { ok: true, configured, day: b ? b.day : null, used: b ? b.used : 0, remaining: b ? b.remaining : null, exhausted: !!(b && b.exhausted), reserve: RESERVE };
+  const fx = store ? ((await store.get(K.fixtures)) || null) : null;
+  const sched = store ? ((await store.get(K.sched)) || {}) : {};
+  const days = fx ? fx.list.map(f => utcDay(Date.parse(f.fixture.date))).sort() : [];
+  const teams = {};
+  for (const f of (fx ? fx.list : [])) for (const side of ["home", "away"]) { const tm = f.teams && f.teams[side]; if (tm) teams[String(tm.id)] = tm.name; }
+  return { ok: true, configured, via: door ? door.via : null, day: b ? b.day : null, used: b ? b.used : 0, remaining: b ? b.remaining : null, exhausted: !!(b && b.exhausted), reserve: RESERVE,
+           blocked: b && b.blocked ? b.blocked : null, blockKind: b && b.blockKind ? b.blockKind : null, retryAt: b && b.blocked ? retryAt(b) : null,
+           lastError: b && b.lastError ? b.lastError : null, providerHeaders: b && b.hdr ? b.hdr : null,
+           league: fx ? fx.league || null : null, fixtures: days.length, window: days.length ? [days[0], days[days.length - 1]] : null, fetchedAt: fx ? fx.at : 0,
+           teams, lastLive: sched.lastLive || 0, lastInterval: sched.lastInterval || null, standingsDay: sched.standingsDay || null };
 }
-export async function egyBoard(store, dayStr) {
+/* q = { from, to } as YYYY-MM-DD (inclusive; ESPN's ?dates=A-B maps onto it), { team } an
+   API-Football team id (the club page's schedule), nothing = the whole stored window */
+export async function egyBoard(store, q, configured) {
+  q = q || {};
   const fixtures = (await store.get(K.fixtures)) || { at: 0, list: [] };
   const live = (await store.get(K.live)) || { at: 0, byId: {} };
-  const events = fixtures.list.filter(f => !dayStr || utcDay(Date.parse(f.fixture.date)) === dayStr)
-    .map(f => toEspnEvent(live.byId[String(f.fixture.id)] || f, live.byId[String(f.fixture.id)] ? live.at : fixtures.at));
-  return { events, at: Math.max(fixtures.at || 0, live.at || 0), _gkSrc: "af" };
+  const every = ((await store.get(K.sched)) || {}).lastInterval || null;
+  const events = fixtures.list.filter(f => {
+    const d = utcDay(Date.parse(f.fixture.date));
+    if (q.from && d < q.from) return false;
+    if (q.to && d > q.to) return false;
+    if (q.team && String((f.teams.home || {}).id) !== q.team && String((f.teams.away || {}).id) !== q.team) return false;
+    return true;
+  }).map(f => toEspnEvent(live.byId[String(f.fixture.id)] || f, live.byId[String(f.fixture.id)] ? live.at : fixtures.at, every));
+  return { events, at: Math.max(fixtures.at || 0, live.at || 0), every, configured: configured !== false, _gkSrc: "af" };
 }
 export async function egySummary(store, fixtureId) {
   const live = (await store.get(K.live)) || { byId: {} };

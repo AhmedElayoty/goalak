@@ -138,6 +138,22 @@ it is. Read the header comment of `egypt.js`; in short:
   (league entry with `src:"af"`, match sheet without Facts/ratings, a freshness label that
   prints the real age «يتحدّث كل N دقائق», Arabic names for the ~18 Egyptian clubs); release
   bump.
+- **Update, later the same day - the free plan is a dead end:** API-Sports answers the current
+  season with "Free plans do not have access to this season, try from 2022 to 2024". Free =
+  no live Egyptian data, full stop. Two more facts paid for: API-Sports refuses calls from
+  Cloudflare Workers' shared egress IPs ("too many requests per minute" on the very first
+  call, 0 counted on the dashboard), and RapidAPI no longer lists API-Sports at all. The IP
+  problem IS solved and proven: a Google Apps Script relay in the owner's Google account
+  (`worker/relay/Code.gs`, secrets `AF_RELAY_URL` + `AF_RELAY_TOKEN`); `afDoor()` picks
+  relay > rapidapi > direct, and direct only with the `AF_DIRECT_OK=1` var. A per-minute
+  rebuff is a 2-min block, a plan/key error a 30-min-doubling block, only `errors.requests`
+  ends the day; a block is dropped when the door changes; `/api/egy/status` shows `via`,
+  `blocked`, `lastError`, provider headers. What remains is a money decision for the owner:
+  API-Football Pro $19/mo (works today through the relay, zero code change), Live-Score API
+  EUR 11/mo (Egypt = its competition 36; needs a new adapter; 14-day trial), TheSportsDB
+  $9/mo (2-minute livescores, thin events; new adapter; its free key returns 5 truncated
+  events), or drop the league. The v6.88 shell wiring is built and browser-verified locally,
+  and stays uncommitted until data actually flows.
 
 ## Conventions that gates and reviewers enforce
 

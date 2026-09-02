@@ -10,7 +10,7 @@
  *   node egypt.test.mjs        (from goalak/worker)
  */
 import { planTick, chargeBudget, freshBudget, affordable, toEspnEvent, toEspnSummary, toEspnStandings,
-         seasonFor, utcDay, DAILY_LIMIT, RESERVE, LIVE_WINDOW_AFTER } from "./src/egypt.js";
+         seasonFor, utcDay, DAILY_LIMIT, RESERVE, LIVE_WINDOW_AFTER, budgetFor, retryAt, afDoor, RAPID_HOST } from "./src/egypt.js";
 
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("  FAIL  " + m); } };
@@ -23,7 +23,7 @@ const fx = (id, ko, state) => ({ id, ko, state: state || "pre" });
 /* simulate a whole day minute by minute: apply each decision as the tick would */
 function runDay(fixtures, opts) {
   opts = opts || {};
-  let budget = freshBudget(DAY), sched = {}, calls = [];
+  let budget = freshBudget(DAY), sched = opts.firstEver ? {} : { standingsDay: "2026-09-04" }, calls = [];
   const state = {}; fixtures.forEach(f => state[f.id] = "pre");
   for (let m = 0; m < 24 * 60; m++) {
     const now = DAY + m * 60000;
@@ -90,6 +90,9 @@ console.log("\n4 · a day with no football spends one call, and no more");
   const r = runDay([]);
   eq(r.budget.used, 1, "the schedule window only");
   eq(count(r.calls, "live") + count(r.calls, "standings") + count(r.calls, "finals"), 0, "nothing else");
+  const first = runDay([], { firstEver: true });
+  eq(first.budget.used, 2, "the very first day ever also fetches the table once - the club picker needs it before any match is played");
+  eq(count(first.calls, "standings"), 1, "exactly once");
 }
 
 console.log("\n5 · the reserve is never spent, whatever the day looks like");
@@ -114,14 +117,59 @@ console.log("\n6 · the provider's own count is believed over ours, and its quot
   const q = chargeBudget(freshBudget(DAY), null, { errors: { requests: "You have reached the request limit for the day" } });
   eq(q.remaining, 0, "a 200 carrying errors.requests means the quota is gone");
   eq(q.exhausted, true, "and is marked exhausted, not retried");
+  const m = chargeBudget(freshBudget(DAY), null, { errors: { rateLimit: "Too many requests. You have exceeded the limit of requests per minute of your subscription." } });
+  eq(m.exhausted, false, "a per-MINUTE rebuff does not end the day (2026-09-02: it did, after the second call ever)");
+  eq(m.blockKind, "minute", "it is a minute-block");
+  eq(retryAt(Object.assign({}, m, { blockedAt: DAY })) - DAY, 2 * 60000, "retried two minutes later");
+  const reopened = budgetFor({ day: utcDay(DAY), used: 2, remaining: 0, exhausted: true, reason: "quota", lastError: "Too many requests. You have exceeded the limit of requests per minute of your subscription." }, DAY);
+  eq(reopened.exhausted, false, "a day written off for a per-minute rebuff by the old code is re-opened");
+  eq(reopened.blockKind, "minute", "as a minute-block");
   const noHeader = chargeBudget(freshBudget(DAY), null, {});
   eq(noHeader.remaining, DAILY_LIMIT - 1, "with no header we count down ourselves");
+  const emptyHeaders = chargeBudget(freshBudget(DAY), new Headers({}), {});
+  eq(emptyHeaders.remaining, DAILY_LIMIT - 1, "a Headers object WITHOUT the count is not a count of zero (2026-09-02: it zeroed the day)");
+  const fine = chargeBudget(freshBudget(DAY), null, { errors: [] });
+  eq(fine.exhausted, false, "the provider's normal empty errors array is not an error");
+  eq(fine.blocked, null, "and does not block");
+}
+
+console.log("\n6b · a plan / key / parameter error is NOT the quota: keep its words, back off, try again later");
+{
+  const p = chargeBudget(freshBudget(DAY), null, { errors: { plan: "Free plans do not have access to this season, try from 2021 to 2023." } });
+  eq(p.exhausted, false, "a plan error does not write the day off");
+  ok(/Free plans do not have access/.test(p.blocked), "the provider's sentence is kept for the status route: " + p.blocked);
+  eq(p.blockN, 1, "first block");
+  eq(planTick(DAY + 60000, Object.assign({}, p, { blockedAt: DAY }), [], {}), null, "while blocked, nothing is asked");
+  ok(planTick(DAY + 31 * 60000, Object.assign({}, p, { blockedAt: DAY }), [], {}) !== null, "thirty minutes later, one more try");
+  const p3 = chargeBudget(chargeBudget(p, null, { errors: { plan: "x" } }), null, { errors: { plan: "x" } });
+  eq(p3.blockN, 3, "three blocks");
+  eq(retryAt(Object.assign({}, p3, { blockedAt: DAY })) - DAY, 120 * 60000, "the third wait is two hours");
+  const ok1 = chargeBudget(p3, null, { errors: [], response: [] });
+  eq(ok1.blocked, null, "a clean answer clears the block");
+  const legacy = budgetFor({ day: utcDay(DAY), used: 1, remaining: 0, exhausted: true }, DAY);
+  eq(legacy.exhausted, false, "a record filed as exhausted before reasons were recorded is re-opened");
+  eq(legacy.remaining, DAILY_LIMIT - 1, "with its count intact");
 }
 
 console.log("\n7 · line-ups: two attempts and then stop asking");
 {
   const r = runDay([fx("a", KO1)], { lineupsNeverPublish: true });
   eq(count(r.calls, "lineups"), 2, "a match whose line-up never appears costs exactly two calls");
+}
+
+console.log("\n7b · the door: RapidAPI when we have its key (shared Worker IPs are refused at API-Sports' own door), else direct, else inert");
+{
+  eq(afDoor({}), null, "no key, no door - the whole module is inert");
+  eq(afDoor({ APIFOOTBALL_KEY: "k" }), null, "the direct key alone opens nothing from a Worker (shared egress: refused unread, and repeated refusals get keys banned)");
+  eq(afDoor({ APIFOOTBALL_KEY: "k", AF_DIRECT_OK: "1" }).via, "direct", "the direct door needs the explicit AF_DIRECT_OK var - for a deployment with its own IP");
+  const r = afDoor({ APIFOOTBALL_KEY: "k", RAPIDAPI_KEY: "r" });
+  eq(r.via, "rapidapi", "with both keys, RapidAPI wins over direct");
+  const rl = afDoor({ APIFOOTBALL_KEY: "k", RAPIDAPI_KEY: "r", AF_RELAY_URL: "https://script.google.com/macros/s/x/exec", AF_RELAY_TOKEN: "t" });
+  eq(rl.via, "relay", "and the relay wins over everything - RapidAPI no longer lists API-Sports at all (2026-09-02)");
+  eq(afDoor({ AF_RELAY_URL: "https://x/exec" }), null, "a relay URL without its token opens nothing - the relay would refuse anyway");
+  eq(r.base, "https://" + RAPID_HOST + "/v3", "same v3 paths behind RapidAPI's host");
+  eq(r.headers["x-rapidapi-host"], RAPID_HOST, "RapidAPI needs the host header as well as the key");
+  ok(!("x-apisports-key" in r.headers), "and the direct key is not sent to RapidAPI");
 }
 
 console.log("\n8 · the season and the day are named the provider's way");
