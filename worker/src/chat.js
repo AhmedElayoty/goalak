@@ -572,6 +572,10 @@ export class ChatRoom extends DurableObject {
   }
 
   trimHistory() {
+    /* the rows about to fall off the end may own a photo or a voice note in R2: delete those
+       objects first, or they stay for ever with nothing pointing at them (audit, 2026-09-02) */
+    const doomed = [...this.ctx.storage.sql.exec("SELECT media_key FROM messages WHERE media_key IS NOT NULL AND seq NOT IN (SELECT seq FROM messages ORDER BY seq DESC LIMIT ?)", CHAT_CAP)];
+    for (const r of doomed) if (r.media_key) this.ctx.waitUntil(this.env.CHAT_MEDIA.delete(r.media_key).catch(() => {}));
     this.ctx.storage.sql.exec("DELETE FROM messages WHERE seq NOT IN (SELECT seq FROM messages ORDER BY seq DESC LIMIT ?)", CHAT_CAP);
   }
 

@@ -11,6 +11,10 @@
      page from 72KB to ~400KB, destroying the load-time advantage that is this product's
      one measured edge. These change rarely and cache independently of index.html. -->
 <link rel="stylesheet" href="modules.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>.pts-great{color:#F5C451}.pts-good{color:#4ADE80}.pts-neg{color:#FB7185}.cotw .v{font-weight:800}</style>
 <style>
 /* ============================================================================
    GOALLAK FANTASY — ONE MODE ONLY.
@@ -50,7 +54,7 @@ html,body{margin:0;padding:0}
 html,body{overscroll-behavior:none}
 body{-webkit-tap-highlight-color:transparent;
  background:var(--fx-bg); color:var(--fx-ink);
- font-family:"Segoe UI",system-ui,-apple-system,"Noto Sans Arabic",Tahoma,sans-serif;
+ font-family:'Cairo',"Segoe UI",system-ui,-apple-system,"Noto Sans Arabic",Tahoma,sans-serif;
  font-size:15px; line-height:1.5;
  padding-bottom:78px;
  overflow-x:hidden;
@@ -1002,7 +1006,7 @@ function seasonStarted(){ return Date.now() >= SEASON_OPENS_MS; }
    separate document with its own cache entry, so it can be a different age from the app, and
    it needs to be able to say so. check-release.mjs refuses a commit where it disagrees with
    the release. */
-const FX_BUILD = "6.88";
+const FX_BUILD = "6.89";
 const START_SIZE = 11, BENCH_SIZE = 4;
 const SQUAD_SIZE = START_SIZE + BENCH_SIZE;          /* 15 clubs owned, 11 of them on the pitch */
 const BUDGET = 120.0, MAX_PER_LEAGUE = 3, MIN_CLUB_PRICE = 4.5;
@@ -1187,6 +1191,7 @@ const STR = {
  capTitle:["الكابتن","Captain"], capNote:["الكابتن بياخد ضعف نقاطه","Your captain scores double"],
  setCap:["خليه الكابتن","Make captain"],
  gwTitle:["الجولة","Gameweek"], totalPts:["إجمالي النقاط","Total points"],
+ cotwTitle:["أندية الجولة {n}","Clubs of round {n}"],
  gwPts:["نقاط الجولة","Gameweek points"],
  breakdown:["من فين جت النقاط؟","Where did these points come from?"],
  bdWin:["فوز","Win"], bdDraw:["تعادل","Draw"], bdLoss:["خسارة","Loss"],
@@ -1374,7 +1379,14 @@ function snapLoad(){
  catch(_){ return {}; }
 }
 function snapTake(){
- if(squad.length !== SQUAD_SIZE) return;      /* an unfinished team is not a lineup */
+ if(squad.length !== SQUAD_SIZE){
+  /* AN UNFINISHED TEAM IS NOT A LINEUP - AND ITS OLD SNAPSHOT IS NOT ONE EITHER. Returning here
+     left the open round's earlier snapshot standing, so a club sold this week could still be
+     scored when the round sealed. No full team = no snapshot for the open round. */
+  const g0 = liveGw(); if(g0 > gwCount()) return;
+  const o0 = snapLoad(); if(o0[String(g0)]){ delete o0[String(g0)]; try{ localStorage.setItem("fx_snap", JSON.stringify(o0)); }catch(_){} }
+  return;
+ }
  const g = liveGw(); if(g > gwCount()) return;
  const o = snapLoad();
  o[String(g)] = {sq: squad.slice(), cap: captain || "", vc: vice || ""};
@@ -1391,6 +1403,9 @@ function snapTake(){
    gwTotal scores those as zero. */
 function snapBackfill(){
  if(squad.length !== SQUAD_SIZE) return;
+ /* no join stamp = no idea when this manager arrived. joinGw() falls back to round 1, and a
+    backfill from there INVENTS a history of rounds never entered. Nothing is better than that. */
+ if(!(+ftLoad().join)) return;
  const o = snapLoad(), from = joinGw(), to = playGw();
  let added = 0;
  for(let g = from; g <= to; g++){
@@ -2661,7 +2676,7 @@ function renderPoints(){
  $("viewPoints").innerHTML = gwBarHtml()
   + '<div class="card"><div class="muted" style="text-align:center">' + esc(t("gwTitle")) + " " + num(gw)
   + (gwDates(gw) ? ' <span dir="ltr">· ' + esc(gwDates(gw)) + "</span>" : "") + "</div>"
-  + '<div class="ptsbig" dir="ltr">' + num(gwTotal(gw)) + "</div>"
+  + '<div class="ptsbig ' + ptsClass(gwTotal(gw)) + '" dir="ltr" data-n="' + gwTotal(gw) + '">' + num(gwTotal(gw)) + "</div>"
   + '<div class="muted" style="text-align:center;margin-top:4px">' + esc(t("gwPts")) + "</div></div>"
   + '<div class="card"><h3>' + esc(t("totalPts")) + '</h3><div class="ptsrow"><span class="dim">'
   + esc(t("gwTitle")) + " 1–" + num(gw) + '</span><span class="v" dir="ltr">' + num(seasonTotal()) + "</span></div></div>"
@@ -2681,9 +2696,47 @@ function renderPoints(){
   /* the round in play refreshes every ten minutes; say so instead of apologising for a
      simulator that no longer feeds this screen */
   + (gw === playGw() ? '<div class="note">🔄 ' + esc(t("liveNote")) + "</div>" : "")
+  + clubsOfRoundHtml(gw)
   + pitchHtml(true, gw);
+ countUp($("viewPoints").querySelector(".ptsbig"));
  maybeCoach("pts", "viewPoints", "coachPts");
  centreGwChip();
+}
+/* ============ CLUBS OF THE ROUND ============
+   The round's five best-scoring clubs across the WHOLE game, not just this manager's, from the
+   same real results the pitch is scored with; pending or blank clubs do not compete. A star marks
+   the ones in this squad. Nothing is shown until at least one club has a settled result. */
+function clubsOfRoundHtml(gw){
+ const rows = [];
+ for(const c of CLUBS){
+  const m = simMatch(c.id, gw);
+  if(!m || m.pending || m.blank) continue;
+  rows.push({c, pts: +m.pts || 0});
+ }
+ if(!rows.length) return "";
+ rows.sort((a, b) => b.pts - a.pts || String(cname(a.c)).localeCompare(String(cname(b.c))));
+ const mine = new Set((snapFor(gw) ? snapFor(gw).sq : squad).map(String));
+ return '<div class="card"><h3>' + esc(t("cotwTitle", {n: gw})) + "</h3>"
+  + rows.slice(0, 5).map((r, i) => '<div class="ptsrow cotw"><span>' + (i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : "•") + " "
+     + esc(cname(r.c)) + (mine.has(String(r.c.id)) ? ' <span class="dim">⭐</span>' : "") + '</span><span class="v ' + ptsClass(r.pts) + '" dir="ltr">' + num(r.pts) + "</span></div>").join("")
+  + "</div>";
+}
+function cname(c){ return LANG === "ar" ? (c.ar || c.name || c.n || "") : (c.name || c.en || c.n || ""); }
+/* the points figure is coloured by what it means, not by fixed thresholds picked once:
+   a rating ramp - negative, quiet, good, great */
+function ptsClass(n){ n = +n || 0; return n < 0 ? "pts-neg" : n >= 60 ? "pts-great" : n >= 30 ? "pts-good" : ""; }
+/* a total that counts up from zero, once, when the screen paints - and holds still for anyone
+   who asked their phone for less motion */
+function countUp(el){
+ if(!el) return;
+ const target = +el.dataset.n; if(!Number.isFinite(target) || target === 0) return;
+ if(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+ const t0 = performance.now(), dur = 650;
+ (function step(now){
+  const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+  el.textContent = num(Math.round(target * e));
+  if(k < 1) requestAnimationFrame(step);
+ })(t0);
 }
 /* ============================================================================
    «ليه ماجابوش نقط؟» — the blank-round sheet.

@@ -427,6 +427,11 @@ html[data-theme="light"] .lgsec[data-lg="egy"]{--lgc:#B8001F}
 .mdtab{flex:1;padding:8px 0;border-radius:10px;background:var(--card2);border:1px solid var(--line);font-size:var(--fs-md);font-weight:800;color:var(--dim)}
 .mdtab.on{background:var(--accdark);border-color:var(--acc);color:#fff}
 .afnote{font-size:11px;font-weight:600;color:var(--dim);text-align:center;padding:0 0 6px}
+.mystreak{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:0 0 10px}
+.mystreak .msl1{font-weight:800}.mystreak .msl2{font-size:12px;color:var(--dim);margin-top:4px}
+#chatLive{display:flex;gap:6px;overflow-x:auto;padding:6px 8px 4px;scrollbar-width:none}#chatLive:empty{display:none}
+.clive{flex:0 0 auto;display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:12px;font-weight:700;color:var(--txt)}
+.clive .sc{color:var(--live,#4ADE80);font-weight:900}.clive .ck{color:var(--dim);font-weight:600}
 .mdload{text-align:center;padding:26px 0;color:var(--dim2);font-size:13px}
 .motm{display:flex;align-items:center;gap:10px;width:100%;background:linear-gradient(150deg,#3a2a07,#241a06);border:1px solid var(--gold);border-radius:12px;padding:9px 13px;margin:10px 0 4px;text-align:start}
 .motm.loading{opacity:.85}
@@ -1177,10 +1182,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.88";
+const APP_VERSION = "6.89";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-09-02-v688";
+const FORCE_RELOAD = "2026-09-02-v689";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1652,6 +1657,10 @@ const STR = {
  predComp:["توقعات دوري أبطال أوروبا","Champions League Predictions"],
  mdSummary:["الملخص","Summary"],
  mdLineups:["التشكيل","Line-ups"],
+ streakTxt:["🔥 سلسلتك: {n} توقعات صح ورا بعض","🔥 Your streak: {n} correct in a row"],
+ streakNone:["ابدأ سلسلتك: خلّي التوقع الجاي صح","Start a streak: get the next one right"],
+ bExact:["توقع مظبوط","Exact score"], bFire:["3 ورا بعض","3 in a row"], bFive:["5 توقعات مظبوطة","5 exact scores"], bTop:["قمة الترتيب","Top of the board"],
+ chatLiveNow:["دلوقتي لايف","Live now"],
  afJustNow:["تم التحديث الآن","Updated just now"],
  afFresh:["آخر تحديث قبل {n} د","Updated {n} min ago"],
  afEvery:["يتحدّث كل {n} د تقريبًا خلال المباراة","refreshes about every {n} min during play"],
@@ -5523,18 +5532,28 @@ async function renderLeaderboard(){
   /* A read that FAILED is not a player who scored zero. Keep the two apart: a flaky request must
      never drop a real player to the bottom of the board. WC lesson 2.2. */
   const rows = [];
+  let me = null;
   users.forEach(u => {
    const pk = u.picks || {};
    let pts = 0, exact = 0;
-   for(const eid in pk){ const e = doneMap[eid]; if(!e) continue; const s = scorePredGk(pk[eid], e); pts += s; if(s === 3) exact++; }
+   const hist = [];
+   for(const eid in pk){ const e = doneMap[eid]; if(!e) continue; const s = scorePredGk(pk[eid], e); pts += s; if(s === 3) exact++; hist.push({d: Date.parse(e.date) || 0, s}); }
    rows.push({name:u.username, uid:u.uid, pts, exact, played:u.played || 0, club:u.club || null});
+   /* STREAKS AND BADGES, for the reader only, from the same scored history as the board: the
+      streak is how many of the most recent finished predictions in a row earned points. */
+   if(gkUser && u.uid === gkUser.uid){
+    hist.sort((a, b) => b.d - a.d);
+    let streak = 0; for(const h of hist){ if(h.s > 0) streak++; else break; }
+    me = {streak, exact, pts, n: hist.length};
+   }
   });
   /* A BOARD IS PEOPLE WHO HAVE PLAYED. Every registered account was pushed onto it at zero,
      which put somebody who has never made a prediction on the podium with a crown on. */
   const scored = rows.filter(r => r.played > 0);
   const shown = scored.length ? scored : rows;
   shown.sort((a, b) => b.pts - a.pts || b.exact - a.exact || b.played - a.played || String(a.name).localeCompare(String(b.name)));
-  lbCache = {at:Date.now(), rows:shown};
+  if(me){ me.top = shown.length > 0 && shown[0].uid === gkUser.uid && me.n > 0; }
+  lbCache = {at:Date.now(), rows:shown, me};
   if(mainView === "pred" && predTab === "L") body.innerHTML = lbHtml(shown);
  }catch(_){
   if(lbCache.rows){ body.innerHTML = '<div class="stale">⚠️ ' + esc(t("staleNote")) + "</div>" + lbHtml(lbCache.rows); }
@@ -5548,7 +5567,19 @@ function rankOf(rows, r){
  for(const x of rows){ if(x === r) break; if(x.pts !== r.pts || x.exact !== r.exact) n++; }
  return n;
 }
-function lbHtml(rows){
+/* the reader's own line sits above the board: streak, then the badges earned so far */
+function lbTopHtml(me){
+ if(!me || !gkUser) return "";
+ const badges = [];
+ if(me.exact >= 1) badges.push("🎯 " + t("bExact"));
+ if(me.streak >= 3) badges.push("🔥 " + t("bFire"));
+ if(me.exact >= 5) badges.push("💯 " + t("bFive"));
+ if(me.top) badges.push("👑 " + t("bTop"));
+ return '<div class="mystreak"><div class="msl1">' + esc(me.streak > 0 ? t("streakTxt", {n: me.streak}) : t("streakNone")) + "</div>"
+  + (badges.length ? '<div class="msl2">' + badges.map(esc).join(" · ") + "</div>" : "") + "</div>";
+}
+function lbHtml(rows){ return lbTopHtml(lbCache.me) + lbHtml0(rows); }
+function lbHtml0(rows){
  let h = "";
  /* podium for the top 3 (visual order: 2nd - 1st - 3rd), once there are at least 2 players */
  if(rows.length >= 2){
@@ -6584,9 +6615,29 @@ function toggleReaction(id, emoji){
    })
    .catch(function(){ loadChatHistoryOnly(); });
 }
+/* MATCHDAY MODE FOR THE ROOM. While anything is being played, the live matches sit in a strip
+   above the messages - score and minute, one tap to the sheet - so the people talking about a
+   goal can see it without leaving the conversation. Empty when nothing is live: the strip
+   collapses to nothing rather than announcing an absence. */
+function renderChatLive(){
+ const log = $("chatLog"); if(!log) return;
+ let box = $("chatLive");
+ if(!box){ log.insertAdjacentHTML("beforebegin", '<div id="chatLive"></div>'); box = $("chatLive"); }
+ const tk = todayKey(), live = [];
+ for(const lg of LEAGUES){ const c = dayCache[lg.id + "|" + tk]; for(const e of (c && c.events) || []) if(evState(e) === "in") live.push(e); }
+ live.sort((a, b) => new Date(a.date) - new Date(b.date));
+ box.innerHTML = live.slice(0, 6).map(e => {
+  const cs = (e.competitions && e.competitions[0] && e.competitions[0].competitors) || [];
+  const H = cs.find(x => x.homeAway === "home") || cs[0] || {}, A = cs.find(x => x.homeAway === "away") || cs[1] || {};
+  return '<button type="button" class="clive" data-id="' + esc(e.id) + '" onclick="openMatch(this.dataset.id)">'
+   + '<span>' + esc(clubAr(H.team || {})) + '</span><span class="sc" dir="ltr">' + esc(String(H.score ?? "")) + " - " + esc(String(A.score ?? "")) + "</span><span>" + esc(clubAr(A.team || {})) + "</span>"
+   + '<span class="ck" dir="ltr">' + esc(String((e.status && e.status.displayClock) || "")) + "</span></button>";
+ }).join("");
+}
 function renderChat(){
  const log = $("chatLog");
  if(!log) return;
+ renderChatLive();
  refreshChatNote();
  if(!gkUser){
   log.innerHTML = '<div class="authcard"><div class="autxt">🔒 ' + esc(t("chatLocked")) + '</div><button type="button" class="retrybtn" onclick="openAuth(\'L\')">' + esc(t("login")) + "</button></div>";
@@ -7142,6 +7193,7 @@ setInterval(function(){
  if(document.hidden) return;
  followToday();
  buildStrip(false); /* day rollover rebuilds the strip */
+ if(mainView === "chat") renderChatLive();
  /* AN OPEN SHEET ON A LIVE MATCH FOLLOWS THE MATCH. The list behind the sheet repainted
     every 25 seconds while the sheet itself froze at the moment it was opened - score, clock,
     line-ups, substitutions, all of it. This is the second half of the Barcelona fix; the

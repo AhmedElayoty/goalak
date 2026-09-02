@@ -204,17 +204,14 @@ it is. Read the header comment of `egypt.js`; in short:
 
 ## Open items (owner decides order)
 
-- Owner: create the API-Football account and set the `APIFOOTBALL_KEY` secret — the Egyptian
-  league stays hidden until then (see "The Egyptian feed").
 - Owner: rotate the six passwords exposed 2026-08-28 (still in git history); Cloudflare
   $5 Workers plan before public launch; GoDaddy auto-renew; licensed data feed + crest-free
-  build for an official launch.
-- Fantasy integrity: `snapTake` returns instead of deleting, so a sold club can score a
-  sealed round; `snapBackfill` fabricates history from round 1 when `join` is unstamped.
-- Restore path: the DB export saves `kicks` as a COUNT, not rows — a restore would turn the
-  prediction deadline off until the cron refills it.
-- Security, lower: reset-password returns three distinguishable shapes (account oracle);
-  `BACKUP_TOKEN` travels in a query string and is compared non-constant-time; R2 media
-  objects orphan when chat history is trimmed.
-- Waves still planned: streaks/badges (no weekend rounds), matchday chat mode, Team of the
-  Week, fantasy fonts/rating ramp/count-up.
+  build for an official launch (that feed would also revive the parked Egyptian league).
+- Owner: create the API-Football account and set the `APIFOOTBALL_KEY` secret is DONE and
+  parked - see "The Egyptian feed"; nothing to do unless he decides to pay.
+- Backup script: switch it to `Authorization: Bearer <BACKUP_TOKEN>` (the worker accepts both
+  since v6.89), then delete the `?t=` fallback in `backupTokenOk()`.
+- Closed in v6.89 (2026-09-02): snapTake/snapBackfill integrity, kicks rows in export/import,
+  reset-password single shape, constant-time backup token, R2 orphans on chat trim, retired
+  textdb importers, non-persisted `wipe`; streaks/badges, matchday chat strip, clubs of the
+  round, fantasy Cairo/count-up/ramp. No product waves remain open.
