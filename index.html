@@ -445,7 +445,7 @@ html[data-theme="light"] .lgsec[data-lg="egy"]{--lgc:#B8001F}
 .clgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.clstat{background:var(--card2);border-radius:12px;padding:10px 6px;text-align:center}.clstat b{display:block;font:800 22px/1.1 'Alexandria','Cairo',sans-serif;color:#F5C451}.clstat span{font-size:11px;color:var(--dim)}
 .clpos{font-size:11px;color:var(--dim);margin:10px 0 2px;font-weight:800;letter-spacing:.3px}.clnum{display:inline-block;min-width:28px;text-align:center;font-weight:800;color:var(--dim);font-variant-numeric:tabular-nums}.clage{color:var(--dim);font-size:11px}
 .cltro{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}.cltro:last-child{border-bottom:0}.cltro .n{font:800 22px/1 'Alexandria','Cairo',sans-serif;color:#F5C451;min-width:36px;text-align:center}.cltro .tt{flex:1;font-weight:700}.cltro small{color:var(--dim)}
-.cltro{display:block;padding:0}.cltro .ctop{display:flex;align-items:center;gap:10px;padding:9px 0}.cltro.hasyrs{cursor:pointer}.cltro .chev{display:inline-block;transition:transform .2s;font-weight:800;color:var(--acc,#F5A65B)}.cltro.open .chev{transform:rotate(180deg)}
+.cltro{display:block;padding:0}.cltro .ctop{display:flex;align-items:center;gap:10px;padding:9px 0;width:100%;text-align:start;font:inherit;color:inherit;background:none;border:0}.cltro.hasyrs{cursor:pointer}.cltro .chev{display:inline-block;transition:transform .2s;font-weight:800;color:var(--acc,#F5A65B)}.cltro.open .chev{transform:rotate(180deg)}
 .clyrs{display:none;flex-wrap:wrap;gap:6px;padding:0 0 10px}.cltro.open .clyrs{display:flex}.clyrs span{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:2px 7px;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
 .clhint{font-size:11px;color:var(--dim);text-align:center;padding-top:8px}
 .clstaff{display:flex;gap:8px}.clstaff .clcard{flex:1;margin:0}.clstaff b{display:block;font-size:14px}
@@ -1210,10 +1210,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.91";
+const APP_VERSION = "6.92";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-09-02-v691";
+const FORCE_RELOAD = "2026-09-02-v692";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -4261,7 +4261,7 @@ function renderClub(){
   h += cells ? '<div class="clcard"><h4>' + esc(t("clSeason")) + '</h4><div class="clgrid">' + cells + "</div></div>" : '<div class="clcard"><div class="muted">' + esc(t("clNoData")) + "</div></div>";
  } else {
   const tl = (c.facts && c.facts.titles) || [];
-  h += tl.length ? '<div class="clcard">' + tl.map(x => '<div class="cltro' + (x.years && x.years.length ? ' hasyrs" onclick="this.classList.toggle(\'open\')"' : '"') + '><div class="ctop"><span class="n" dir="ltr">' + esc(String(x.n)) + '</span><span class="tt">' + esc(LANG === "ar" ? x.ar : x.en) + "</span><small>" + esc(t("clLast")) + ' <span dir="ltr">' + esc(String(x.last)) + "</span>" + (x.years && x.years.length ? ' <b class="chev">▾</b>' : "") + "</small></div>"
+  h += tl.length ? '<div class="clcard">' + tl.map(x => '<div class="cltro' + (x.years && x.years.length ? " hasyrs" : "") + '"><button type="button" class="ctop" onclick="troToggle(this)" aria-expanded="false"><span class="n" dir="ltr">' + esc(String(x.n)) + '</span><span class="tt">' + esc(LANG === "ar" ? x.ar : x.en) + "</span><small>" + esc(t("clLast")) + ' <span dir="ltr">' + esc(String(x.last)) + "</span>" + (x.years && x.years.length ? ' <b class="chev">▾</b>' : "") + "</small></button>"
     + (x.years && x.years.length ? '<div class="clyrs" dir="ltr">' + x.years.slice().reverse().map(y => "<span>" + esc(String(y)) + "</span>").join("") + "</div>" : "") + "</div>").join("")
    + (tl.some(x => x.years && x.years.length) ? '<div class="clhint">' + esc(t("clTapYears")) + "</div>" : "") + "</div>"
    : '<div class="clcard"><div class="muted">' + esc(t("clNoFacts")) + "</div></div>";
@@ -4270,6 +4270,8 @@ function renderClub(){
  $("clubBox").innerHTML = h;
 }
 function lgName_(lg){ return LANG === "ar" ? lg.ar : lg.en; }
+/* the years live under the row; the row itself is a button so a phone tap always reaches it */
+function troToggle(btn){ const row = btn.closest(".cltro"); if(!row || !row.classList.contains("hasyrs")) return; const on = row.classList.toggle("open"); btn.setAttribute("aria-expanded", on ? "true" : "false"); }
 /* every club name anywhere opens the page: capture phase, so the row's own tap never fires */
 document.addEventListener("click", function(ev){
  const el = ev.target && ev.target.closest ? ev.target.closest("[data-club]") : null;
