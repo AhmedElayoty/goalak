@@ -22,7 +22,7 @@ import {
 } from "./chat.js";
 import { broadcastScheduleResponse } from "./broadcasts.js";
 import { AccountStore, accountsApi, accountStore } from "./accounts.js";
-import { egyptTick, egyBoard, egySummary, egyStandings, egyStatus, afDoor, fgMatch, fgTwinFor } from "./egypt.js";
+import { egyptTick, egyBoard, egySummary, egyStandings, egyStatus, afDoor, fgMatch, fgTwinFor, enName } from "./egypt.js";
 
 export { ChatRoom, AccountStore };
 
@@ -92,7 +92,7 @@ async function recapRoute(request, url, env) {
   const slug = String(url.searchParams.get("slug") || ""), eid = String(url.searchParams.get("eid") || ""), lang = url.searchParams.get("lang") === "en" ? "en" : "ar";
   if (!/^[a-z0-9._-]{2,40}$/.test(slug) || !/^\d{3,12}$/.test(eid)) return json({ ok: false, error: "params" }, 400);
   if (!env.AI) return json({ ok: false, error: "no-ai" }, 503);
-  const cache = caches.default, key = new Request("https://recap.goallak.internal/v2/" + slug + "/" + eid + "/" + lang);   /* v2: English recaps once carried Arabic names */
+  const cache = caches.default, key = new Request("https://recap.goallak.internal/v3/" + slug + "/" + eid + "/" + lang);   /* v2: English recaps once carried Arabic names */
   const hit = await cache.match(key);
   if (hit) return new Response(hit.body, hit);
   let facts;
@@ -103,12 +103,29 @@ async function recapRoute(request, url, env) {
     const m = await fr.json().catch(() => null);
     if (!m || !m.ok) return json({ ok: false, error: "no-commentary" }, 502);
     if (!m.over) return json({ ok: false, error: "not-finished" }, 409);
-    /* English readers get English club names from our own map; player names are Arabic in the source and
-       the model is told to transliterate them - Arabic script inside an English sentence reads as broken */
+    /* ENGLISH READERS GET ENGLISH. FilGoal's facts are Arabic: club names go through our own map, event
+       types are mapped by hand, and every Arabic personal name is transliterated FIRST by a small
+       separate model call (a glossary), because asking the writer to transliterate as it writes was
+       ignored - the first English recap of an Egyptian match came out with Arabic names inside English
+       sentences. Arabic commentary lines are left out of the English facts for the same reason. */
     const en = lang === "en";
-    facts = { competition: en ? "Egyptian Premier League" : "الدوري المصري", home: { team: en ? (m.homeEn || m.home) : m.home, goals: m.hs }, away: { team: en ? (m.awayEn || m.away) : m.away, goals: m.as }, coaches: { home: m.coachH, away: m.coachA },
-      events: (m.events || []).slice(0, 30).map(e => ({ minute: e.min, type: e.type, team: e.team, player: e.player })),
-      commentary: (m.comments || []).slice().sort((x, y) => (x.t || 0) - (y.t || 0)).map(c => (c.t == null ? "" : c.t + "' ") + String(c.txt).slice(0, 140)).slice(0, 45) };
+    const typeEn = t => /ضائع|مهدر|أهدر/.test(t) ? "missed penalty" : /جزاء/.test(t) ? "penalty goal" : /مرماه|عكسي|ذاتي/.test(t) ? "own goal" : /هدف/.test(t) ? "goal" : /حمراء/.test(t) ? "red card" : /صفراء/.test(t) ? "yellow card" : /تبديل/.test(t) ? "substitution" : t;
+    let glossary = {};
+    if (en) {
+      const names = [...new Set([m.coachH, m.coachA].concat((m.events || []).flatMap(e => [e.player, e.player2])).filter(x => x && /[\u0600-\u06FF]/.test(x)))].slice(0, 30);
+      if (names.length) {
+        try {
+          const g = await env.AI.run(RECAP_MODEL, { messages: [{ role: "system", content: "Transliterate Arabic personal names into English (Latin letters) as football media usually write them. Answer with ONE JSON object mapping each input string to its transliteration. JSON only, nothing else." }, { role: "user", content: JSON.stringify(names) }], max_tokens: 500, temperature: 0 });
+          const txt = String((g && (g.response || (g.result && g.result.response))) || ""); const j = JSON.parse(txt.slice(txt.indexOf("{"), txt.lastIndexOf("}") + 1));
+          if (j && typeof j === "object") glossary = j;
+        } catch (_) {}
+      }
+    }
+    const tr = x => en ? (glossary[x] || x) : x;
+    facts = { competition: en ? "Egyptian Premier League" : "الدوري المصري", home: { team: en ? enName(m.home) : m.home, goals: m.hs }, away: { team: en ? enName(m.away) : m.away, goals: m.as }, coaches: { home: tr(m.coachH), away: tr(m.coachA) },
+      events: (m.events || []).slice(0, 30).map(e => ({ minute: e.min, type: en ? typeEn(String(e.type || "")) : e.type, team: en ? enName(e.team) : e.team, player: tr(e.player) })) };
+    if (!en) facts.commentary = (m.comments || []).slice().sort((x, y) => (x.t || 0) - (y.t || 0)).map(c => (c.t == null ? "" : c.t + "' ") + String(c.txt).slice(0, 140)).slice(0, 45);
+    facts._glossary = en ? glossary : undefined;
   } else {
   const sub = new URL(url.origin + "/api/espn/apis/site/v2/sports/soccer/" + slug + "/summary?event=" + eid);
   const sr = await espnProxy(new Request(sub.toString()), sub);
@@ -137,6 +154,17 @@ async function recapRoute(request, url, env) {
     text = String((out && (out.response || (out.result && out.result.response))) || "").trim();
   } catch (e) { return json({ ok: false, error: "ai:" + String((e && e.message) || e).slice(0, 120) }, 502); }
   if (!text) return json({ ok: false, error: "empty" }, 502);
+  if (lang === "en" && /[\u0600-\u06FF]/.test(text)) {
+    /* Arabic script leaked into an English recap: swap what the glossary knows, then ask once more */
+    for (const k of Object.keys((facts && facts._glossary) || {})) text = text.split(k).join(facts._glossary[k]);
+    if (/[\u0600-\u06FF]/.test(text)) {
+      try {
+        const out2 = await env.AI.run(RECAP_MODEL, { messages: [{ role: "system", content: "Rewrite the text in English only. Transliterate any Arabic names into Latin letters. Keep every fact exactly as given. Output the rewritten text only." }, { role: "user", content: text }], max_tokens: 300, temperature: 0.2 });
+        const t2 = String((out2 && (out2.response || (out2.result && out2.result.response))) || "").trim();
+        if (t2 && !/[\u0600-\u06FF]/.test(t2)) text = t2;
+      } catch (_) {}
+    }
+  }
   const body = JSON.stringify({ ok: true, text, lang, model: RECAP_MODEL, at: Date.now() });
   const res = new Response(body, { headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=2592000" } });
   await cache.put(key, res.clone());

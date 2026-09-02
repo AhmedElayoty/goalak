@@ -31,6 +31,7 @@
 
 import { filgoalTick, fgStatus, fgMatch, fgTwinFor } from "./filgoal.js";
 export { fgMatch, fgTwinFor };
+export { enName } from "./filgoal.js";
 export const AF_LEAGUE = 233;                 /* API-Football's id for Egypt - Premier League; verified on first live call */
 export const AF_HOST = "https://v3.football.api-sports.io";
 export const RAPID_HOST = "api-football-v1.p.rapidapi.com";    /* the same API, through RapidAPI's IPs */
