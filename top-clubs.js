@@ -45,6 +45,17 @@ window.GK_TOP_CLUBS = {
   "sco.1": 38
  },
  "leagues": {
+  "egy": {
+   "slug": null,
+   "en": "Egyptian Premier League",
+   "note": "ESPN carries NO Egyptian league feed - checked 2026-09-02 against its full catalogue (no egy.* slug) and by direct probe (400). The league itself therefore cannot be shown. Its big clubs still reach the app through the cross-competition feed this dataset exists for: CAF Champions League, CAF Confederation Cup, Club World Cup. Ranks are the owner's ordering, not a verified table - there is no ESPN standings feed to verify against.",
+   "top5": [
+    { "r": 1, "id": "10207", "n": "Al Ahly" },
+    { "r": 2, "id": "20220", "n": "Pyramids FC" },
+    { "r": 3, "id": "8392", "n": "Zamalek" },
+    { "r": 4, "id": "7339", "n": "Al-Masry" }
+   ]
+  },
   "epl": {
    "slug": "eng.1",
    "en": "Premier League",

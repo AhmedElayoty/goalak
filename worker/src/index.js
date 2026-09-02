@@ -192,6 +192,8 @@ const LEAGUES = [
   { id: "ucl", slug: "uefa.champions_qual", en: "UCL Qualifying", ar: "تصفيات دوري الأبطال" },
   { id: "uel", slug: "uefa.europa", en: "Europa League", ar: "الدوري الأوروبي" },
   { id: "uel", slug: "uefa.europa_qual", en: "UEL Qualifying", ar: "تصفيات الدوري الأوروبي" },
+  { id: "uecl", slug: "uefa.europa.conf", en: "Conference League", ar: "دوري المؤتمر الأوروبي" },
+  { id: "uecl", slug: "uefa.europa.conf_qual", en: "UECL Qualifying", ar: "تصفيات دوري المؤتمر الأوروبي" },
   { id: "epl", slug: "eng.1", en: "Premier League", ar: "الدوري الإنجليزي" },
   { id: "liga", slug: "esp.1", en: "La Liga", ar: "الدوري الإسباني" },
   { id: "seriea", slug: "ita.1", en: "Serie A", ar: "الدوري الإيطالي" },

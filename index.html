@@ -161,7 +161,7 @@ html[data-theme="light"] .ico-sun{display:none}
 
 /* ---------- league rail: 9 chips in two tidy rows, no scrolling ---------- */
 .rail{position:sticky;top:0;z-index:40;background:linear-gradient(var(--bg) 85%,transparent);padding:6px 0 8px;display:flex;flex-wrap:wrap;gap:5px}
-.railc{flex:1 1 calc(20% - 5px);min-width:calc(20% - 5px);display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 6px;border-radius:12px;background:var(--card);border:1px solid var(--line);color:var(--dim)}
+.railc{flex:0 1 calc(20% - 5px);min-width:calc(20% - 5px);display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 6px;border-radius:12px;background:var(--card);border:1px solid var(--line);color:var(--dim)}
 .railc.on{background:var(--accdark);border-color:var(--acc);color:#fff}
 .railc .rico{font-size:16px;line-height:1.15}
 .rflag{width:20px;height:14px;border-radius:2.5px;object-fit:cover;display:inline-block;vertical-align:middle;border:1px solid rgba(255,255,255,.12)}
@@ -234,6 +234,7 @@ html[data-theme="light"] .ico-sun{display:none}
 .lgsec[data-lg="spl"]{--lgc:#FF5CA8}
 .lgsec[data-lg="ucl"]{--lgc:#E8EDFF}
 .lgsec[data-lg="uel"]{--lgc:#C9885A}
+.lgsec[data-lg="uecl"]{--lgc:#2ECC71}
 html[data-theme="light"] .lgsec[data-lg="epl"]{--lgc:#7C3AED}
 html[data-theme="light"] .lgsec[data-lg="liga"]{--lgc:#D45500}
 html[data-theme="light"] .lgsec[data-lg="seriea"]{--lgc:#1D6FBF}
@@ -243,6 +244,7 @@ html[data-theme="light"] .lgsec[data-lg="tsl"]{--lgc:#7A8F00}
 html[data-theme="light"] .lgsec[data-lg="spl"]{--lgc:#D6337A}
 html[data-theme="light"] .lgsec[data-lg="ucl"]{--lgc:#3B4FA8}
 html[data-theme="light"] .lgsec[data-lg="uel"]{--lgc:#9A6430}
+html[data-theme="light"] .lgsec[data-lg="uecl"]{--lgc:#1E8E4E}
 .lghead{display:flex;align-items:center;border-bottom:1px solid var(--line)}
 .lgopen{flex:1;display:flex;align-items:center;gap:9px;padding:10px 13px;min-width:0;text-align:start}
 .lgopen.allonly{cursor:default}
@@ -1172,10 +1174,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.86";
+const APP_VERSION = "6.87";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-09-02-v686";
+const FORCE_RELOAD = "2026-09-02-v687";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1186,6 +1188,12 @@ const LEAGUES = [
  {id:"ucl", slug:"uefa.champions", qual:"uefa.champions_qual", uefa:true, pred:true, en:"Champions League", ar:"دوري أبطال أوروبا", shortEn:"UCL", shortAr:"الأبطال", ico:"🏆",
   zones:{g:[1,8],a:[9,24],r:[25,36]}, zlabAr:["التأهل المباشر لدور الـ16","الملحق","خارج المنافسة"], zlabEn:["Direct to R16","Playoff","Eliminated"]},
  {id:"uel", slug:"uefa.europa", qual:"uefa.europa_qual", uefa:true, en:"Europa League", ar:"الدوري الأوروبي", shortEn:"UEL", shortAr:"يوروبا", ico:"🥈",
+  zones:{g:[1,8],a:[9,24],r:[25,36]}, zlabAr:["التأهل المباشر لدور الـ16","الملحق","خارج المنافسة"], zlabEn:["Direct to R16","Playoff","Eliminated"]},
+ /* THE THIRD UEFA COMPETITION. Added 2026-09-02 because Trabzonspor dropped into it from the
+    Europa League playoff; ESPN carries it fully (slug uefa.europa.conf, 36 clubs, league phase
+    from 15 Oct). NOT in predictions (no pred flag) and NOT in fantasy (that game reads its own
+    clubs.json). Every Arabic club name was already in AR_TEAMS from the qualifier work. */
+ {id:"uecl", slug:"uefa.europa.conf", qual:"uefa.europa.conf_qual", uefa:true, en:"Conference League", ar:"دوري المؤتمر الأوروبي", shortEn:"UECL", shortAr:"المؤتمر", ico:"🥉",
   zones:{g:[1,8],a:[9,24],r:[25,36]}, zlabAr:["التأهل المباشر لدور الـ16","الملحق","خارج المنافسة"], zlabEn:["Direct to R16","Playoff","Eliminated"]},
  {id:"epl", slug:"eng.1", en:"Premier League", ar:"الدوري الإنجليزي الممتاز", shortEn:"PL", shortAr:"إنجلترا", flag:"gb-eng", zones:{g:[1,4],a:[5,6],r:[18,20]}},
  {id:"liga", slug:"esp.1", en:"La Liga", ar:"الدوري الإسباني", shortEn:"LaLiga", shortAr:"إسبانيا", flag:"es", zones:{g:[1,4],a:[5,6],r:[18,20]}},
@@ -1317,6 +1325,8 @@ const AR_TEAMS = {
     spelling are added here; the rest render in Latin, which is honest, and the QA list of who they
     currently are is in design/top-clubs-coverage.md for the owner to fill in. */
  "al ahly":"الأهلي","al ahly sc":"الأهلي",
+ /* the other Egyptian clubs that reach the app through CAF competitions */
+ "zamalek":"الزمالك","zamalek sc":"الزمالك","pyramids":"بيراميدز","pyramids fc":"بيراميدز","al-masry":"المصري","al masry":"المصري","al masry sc":"المصري",
  /* أوروبا: تصفيات ودوريات صغيرة (Wave 2). Israeli clubs render the BRAND ONLY
     (مكابي/هابويل/بيتار) - the owner's standing rule, never the city. */
  "ararat":"أرارات","ararat-armenia":"أرارات","mjällby":"ميالبي",
