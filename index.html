@@ -441,7 +441,7 @@ html[data-theme="light"] .lgsec[data-lg="egy"]{--lgc:#B8001F}
 .clbody{padding:8px 12px 18px}.clcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:10px}
 .clcard h4{margin:0 0 6px;font-size:13px;color:var(--dim);font-weight:700}
 .clrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}.clrow:last-child{border-bottom:0}
-.clrow .opp{flex:1;font-weight:700}.clha{display:inline-block;font-size:10px;font-weight:800;color:var(--dim);border:1px solid var(--line);border-radius:6px;padding:0 5px;margin-inline-end:6px;vertical-align:middle}.clsc{font-weight:900;min-width:48px;text-align:center;font-variant-numeric:tabular-nums}.clsc.w{color:#22C55E}.clsc.l{color:#F87171}.clsc.d{color:#F5C451}.cldate{color:var(--dim);font-size:11px;min-width:58px;text-align:end}
+.clrow .opp{flex:1;font-weight:700}.clcomp{color:var(--dim);font-weight:600;font-size:10px}.cldt{min-width:0;white-space:nowrap}.clha{display:inline-block;font-size:10px;font-weight:800;color:var(--dim);border:1px solid var(--line);border-radius:6px;padding:0 5px;margin-inline-end:6px;vertical-align:middle}.clsc{font-weight:900;min-width:48px;text-align:center;font-variant-numeric:tabular-nums}.clsc.w{color:#22C55E}.clsc.l{color:#F87171}.clsc.d{color:#F5C451}.cldate{color:var(--dim);font-size:11px;min-width:58px;text-align:end}
 .clgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.clstat{background:var(--card2);border-radius:12px;padding:10px 6px;text-align:center}.clstat b{display:block;font:800 22px/1.1 'Alexandria','Cairo',sans-serif;color:#F5C451}.clstat span{font-size:11px;color:var(--dim)}
 .clpos{font-size:11px;color:var(--dim);margin:10px 0 2px;font-weight:800;letter-spacing:.3px}.clnum{display:inline-block;min-width:28px;text-align:center;font-weight:800;color:var(--dim);font-variant-numeric:tabular-nums}.clage{color:var(--dim);font-size:11px}
 .cltro{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}.cltro:last-child{border-bottom:0}.cltro .n{font:800 22px/1 'Alexandria','Cairo',sans-serif;color:#F5C451;min-width:36px;text-align:center}.cltro .tt{flex:1;font-weight:700}.cltro small{color:var(--dim)}
@@ -1210,10 +1210,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.95";
+const APP_VERSION = "6.96";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-09-02-v695";
+const FORCE_RELOAD = "2026-09-02-v696";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1231,7 +1231,10 @@ const LEAGUES = [
     clubs.json). Every Arabic club name was already in AR_TEAMS from the qualifier work. */
  {id:"uecl", slug:"uefa.europa.conf", qual:"uefa.europa.conf_qual", uefa:true, en:"Conference League", ar:"دوري المؤتمر الأوروبي", shortEn:"UECL", shortAr:"المؤتمر", ico:"🥉",
   zones:{g:[1,8],a:[9,24],r:[25,36]}, zlabAr:["التأهل المباشر لدور الـ16","الملحق","خارج المنافسة"], zlabEn:["Direct to R16","Playoff","Eliminated"]},
- /* THE EGYPTIAN PREMIER LEAGUE - BUILT, PARKED (owner decision 2026-09-02). ESPN does not carry
+ /* THE EGYPTIAN PREMIER LEAGUE - LIVE AGAIN THE SAME EVENING, FOR FREE: the worker reads FilGoal's
+    pages (worker/src/filgoal.js, EGY_FEED="filgoal") into the store this entry's /api/egy/ routes
+    serve from - Arabic names, score, minute, status; no events or line-ups yet. The note below
+    records the paid roads that were closed first. Original parking note: ESPN does not carry
     it and no free feed covers the current season (API-Football's free plan stops at 2024), so the
     owner chose to wait for a licensed feed at the public launch rather than pay for one league.
     Everything is wired and tested and stays: the worker serves /api/egy/* in ESPN's shapes,
@@ -1239,7 +1242,7 @@ const LEAGUES = [
     feed without Facts or Stats (see the `af` branches). To revive: flip the worker's EGY_FEED
     var to "on" with a paying door configured, then uncomment this one line. NOT in predictions
     and NOT in fantasy either way. */
- // {id:"egy", slug:"egy.af", src:"af", en:"Egyptian Premier League", ar:"الدوري المصري الممتاز", shortEn:"Egypt", shortAr:"مصر", flag:"eg", zones:{g:[1,2],a:[3,3]}},
+ {id:"egy", slug:"egy.af", src:"af", en:"Egyptian Premier League", ar:"الدوري المصري الممتاز", shortEn:"Egypt", shortAr:"مصر", flag:"eg", zones:{g:[1,2],a:[3,3]}},
  {id:"epl", slug:"eng.1", en:"Premier League", ar:"الدوري الإنجليزي الممتاز", shortEn:"PL", shortAr:"إنجلترا", flag:"gb-eng", zones:{g:[1,4],a:[5,6],r:[18,20]}},
  {id:"liga", slug:"esp.1", en:"La Liga", ar:"الدوري الإسباني", shortEn:"LaLiga", shortAr:"إسبانيا", flag:"es", zones:{g:[1,4],a:[5,6],r:[18,20]}},
  {id:"seriea", slug:"ita.1", en:"Serie A", ar:"الدوري الإيطالي", shortEn:"Serie A", shortAr:"إيطاليا", flag:"it", zones:{g:[1,4],a:[5,6],r:[18,20]}},
@@ -1686,7 +1689,7 @@ const STR = {
  mdSummary:["الملخص","Summary"],
  mdLineups:["التشكيل","Line-ups"],
  clResults:["النتائج","Results"], clSquad:["اللاعبين","Squad"], clStats:["إحصائيات","Stats"], clTitles:["الألقاب","Honours"],
- clCoach:["المدرب","Coach"], clCaptain:["الكابتن","Captain"], clHome:["أرض","Home"], clAway:["خارج","Away"], clForm:["آخر {n}","Last {n}"], clTapYears:["اضغط على أي لقب لعرض السنوات","Tap a trophy to see the years"], clNoData:["لا توجد بيانات بعد","No data yet"],
+ clFixtures:["القادمة","Fixtures"], clCoach:["المدرب","Coach"], clCaptain:["الكابتن","Captain"], clHome:["أرض","Home"], clAway:["خارج","Away"], clForm:["آخر {n}","Last {n}"], clTapYears:["اضغط على أي لقب لعرض السنوات","Tap a trophy to see the years"], clNoData:["لا توجد بيانات بعد","No data yet"],
  clNoFacts:["الألقاب مش متسجّلة لهذا النادي بعد","Honours not recorded for this club yet"], clLast:["آخرها","last"], clSeason:["إحصائيات الموسم","Season stats"],
  clPosG:["حراسة","Goalkeepers"], clPosD:["دفاع","Defenders"], clPosM:["وسط","Midfielders"], clPosF:["هجوم","Forwards"],
  stGoals:["أهداف","Goals"], stConc:["استقبل","Conceded"], stClean:["شباك نظيفة","Clean sheets"], stShots:["تسديدات","Shots"], stOnT:["على المرمى","On target"], stPoss:["استحواذ","Possession"], stYel:["كروت صفراء","Yellow cards"], stRed:["كروت حمراء","Red cards"], stFouls:["أخطاء","Fouls"],
@@ -4197,9 +4200,10 @@ async function openClub(id, slug, name){
  try{ history.pushState({gkc:1}, ""); }catch(_){}
  const yr = new Date().getUTCMonth() >= 6 ? new Date().getUTCFullYear() : new Date().getUTCFullYear() - 1;
  const core = s => slug ? jgetAt(ESPN_CORE + "sports/soccer/leagues/" + slug + "/seasons/" + s + "/types/1/teams/" + id + "/statistics", 8000).catch(() => null) : Promise.resolve(null);
- const [kits, facts, sched, roster, stand, stats0] = await Promise.all([clubKits(), clubFacts(),
+ const [kits, facts, sched, roster, fixt, stand, stats0] = await Promise.all([clubKits(), clubFacts(),
   slug ? jget(API + slug + "/teams/" + id + "/schedule").catch(() => null) : null,
   slug ? jget(API + slug + "/teams/" + id + "/roster").catch(() => null) : null,
+  slug ? jget(API + slug + "/teams/" + id + "/schedule?fixture=true").catch(() => null) : null,
   slug ? jget(STAND + slug + "/standings").catch(() => null) : null, core(yr)]);
  let stats = stats0; if(!(stats && stats.splits && (stats.splits.categories || []).some(c => (c.stats || []).some(s => +s.value)))) stats = await core(yr - 1);
  if($("club").classList.contains("hide") || !_club || _club.id !== id) return;
@@ -4217,7 +4221,12 @@ async function openClub(id, slug, name){
  }).filter(Boolean).sort((a, b) => b.d - a.d);
  let rank = null, pts = null;
  try{ const en = ((stand.children[0].standings.entries) || []).find(x => x.team && String(x.team.id) === id); if(en){ const st = n => (en.stats || []).find(s => s.name === n); rank = st("rank") && st("rank").value; pts = st("points") && st("points").value; } }catch(_){}
- _club = {id, slug, team, kit: kits[id] || null, facts: facts[id] || null, results, roster: roster || null, stats, rank, pts, lg: slugLeagueObj(slug)};
+ const upcoming = ((fixt && fixt.events) || []).map(e => {
+  const cs = (e.competitions && e.competitions[0] && e.competitions[0].competitors) || [];
+  const me = cs.find(x => x.team && String(x.team.id) === id) || {}, op = cs.find(x => x !== me) || {};
+  return {d: Date.parse(e.date) || 0, id: e.id, opp: op.team || {}, home: me.homeAway === "home", comp: (e.league && (e.league.abbreviation || e.league.name)) || "", tbd: !!(e.timeValid === false)};
+ }).filter(x => x.d >= Date.now() - 3 * 3600000).sort((a, b) => a.d - b.d).slice(0, 12);
+ _club = {id, slug, team, kit: kits[id] || null, facts: facts[id] || null, results, upcoming, roster: roster || null, stats, rank, pts, lg: slugLeagueObj(slug)};
  renderClub();
 }
 function slugLeagueObj(slug){ return LEAGUES.find(l => l.slug === slug || l.qual === slug) || null; }
@@ -4235,9 +4244,13 @@ function renderClub(){
   + '<div class="clid"><div class="clmono" dir="ltr">' + esc(code) + '</div><div><div class="clname">' + esc(nm) + '</div><div class="clsub">' + esc(sub) + "</div></div></div>"
   + (form.length ? '<div class="clform">' + form.map(r => '<i class="' + r.r.toLowerCase() + '" title="' + esc(r.g + "-" + r.a) + '">' + esc(t(r.r)) + "</i>").join("") + "<small>" + esc(t("clForm", {n: form.length})) + "</small></div>" : "")
   + "</div>";
- h += '<div class="mdtabs">' + [["R", "clResults"], ["S", "clSquad"], ["T", "clStats"], ["H", "clTitles"]].map(p => '<button type="button" class="mdtab' + (_clubTab === p[0] ? " on" : "") + '" onclick="setClubTab(\'' + p[0] + '\')">' + esc(t(p[1])) + "</button>").join("") + "</div>";
+ h += '<div class="mdtabs">' + [["F", "clFixtures"], ["R", "clResults"], ["S", "clSquad"], ["T", "clStats"], ["H", "clTitles"]].map(p => '<button type="button" class="mdtab' + (_clubTab === p[0] ? " on" : "") + '" onclick="setClubTab(\'' + p[0] + '\')">' + esc(t(p[1])) + "</button>").join("") + "</div>";
  h += '<div class="clbody">';
- if(_clubTab === "R"){
+ if(_clubTab === "F"){
+  const when = ms => { try{ return new Intl.DateTimeFormat(locale(), {weekday:"short", day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"}).format(new Date(ms)); }catch(_){ return ""; } };
+  h += c.upcoming.length ? '<div class="clcard">' + c.upcoming.map(r => '<div class="clrow"><span class="opp" data-club="' + esc(String(r.opp.id || "")) + '" data-cslug="' + esc(c.slug) + '"><small class="clha">' + esc(t(r.home ? "clHome" : "clAway")) + "</small> " + esc(clubAr(r.opp)) + (r.comp ? ' <small class="clcomp">' + esc(r.comp) + "</small>" : "") + '</span><span class="cldate cldt">' + esc(when(r.d)) + "</span></div>").join("") + "</div>"
+   : '<div class="clcard"><div class="muted">' + esc(t("clNoData")) + "</div></div>";
+ } else if(_clubTab === "R"){
   h += c.results.length ? '<div class="clcard">' + c.results.slice(0, 15).map(r => '<div class="clrow"><span class="opp" data-club="' + esc(String(r.opp.id || "")) + '" data-cslug="' + esc(c.slug) + '">' + '<small class="clha">' + esc(t(r.home ? "clHome" : "clAway")) + "</small> " + esc(clubAr(r.opp)) + '</span><span class="clsc ' + r.r.toLowerCase() + '" dir="ltr">' + r.g + " - " + r.a + '</span><span class="cldate">' + esc(clubDate(r.d)) + "</span></div>").join("") + "</div>"
    : '<div class="clcard"><div class="muted">' + esc(t("clNoData")) + "</div></div>";
  } else if(_clubTab === "S"){

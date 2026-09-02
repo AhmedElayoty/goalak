@@ -997,7 +997,7 @@ export class PushCoordinator {
       else if (dates.length === 3) q.from = q.to = ymd(dates.join("-"));
       const team = String(url.searchParams.get("team") || "").replace(/[^0-9]/g, "");
       if (team) q.team = team;
-      return json(await egyBoard(this.state.storage, q, !!afDoor(this.env)));
+      return json(await egyBoard(this.state.storage, q, (this.env && this.env.EGY_FEED === "filgoal") || !!afDoor(this.env)));
     }
     if (url.pathname === "/egy-summary") { const s = await egySummary(this.state.storage, url.searchParams.get("fixture") || ""); return s ? json(s) : json({ ok: false, error: "unknown fixture" }, 404); }
     if (url.pathname === "/egy-standings") { const s = await egyStandings(this.state.storage); return s ? json(s) : json({ ok: false, error: "no table yet" }, 404); }

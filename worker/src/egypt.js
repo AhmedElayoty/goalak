@@ -29,6 +29,7 @@
    Every stored object carries `at` (when the provider was last asked) so the client can print
    the real age instead of a clock that pretends to run. */
 
+import { filgoalTick, fgStatus } from "./filgoal.js";
 export const AF_LEAGUE = 233;                 /* API-Football's id for Egypt - Premier League; verified on first live call */
 export const AF_HOST = "https://v3.football.api-sports.io";
 export const RAPID_HOST = "api-football-v1.p.rapidapi.com";    /* the same API, through RapidAPI's IPs */
@@ -191,7 +192,7 @@ const SHORT_TO_NAME = { TBD: "STATUS_SCHEDULED", NS: "STATUS_SCHEDULED", "1H": "
                         ET: "STATUS_OVERTIME", BT: "STATUS_HALFTIME_ET", P: "STATUS_SHOOTOUT", LIVE: "STATUS_IN_PROGRESS", INT: "STATUS_INTERRUPTED",
                         SUSP: "STATUS_SUSPENDED", FT: "STATUS_FULL_TIME", AET: "STATUS_FINAL_AET", PEN: "STATUS_FINAL_PEN", PST: "STATUS_POSTPONED",
                         CANC: "STATUS_CANCELED", ABD: "STATUS_ABANDONED", AWD: "STATUS_FINAL", WO: "STATUS_FINAL" };
-function abbr(name) { return String(name || "").replace(/^(Al|El)[ -]/i, "").replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase() || "EGY"; }
+function abbr(name) { const s = String(name || ""); return s.replace(/^(Al|El)[ -]/i, "").replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase() || s.replace(/^(ال)/, "").slice(0, 3) || "EGY"; }
 function team(t) {
   return { id: String(t.id), displayName: t.name, shortDisplayName: t.name, abbreviation: abbr(t.name), logo: t.logo || "" };
 }
@@ -300,6 +301,9 @@ const slim = f => ({ id: String(f.fixture.id), ko: Date.parse(f.fixture.date) ||
    Called once a minute from runOnce. Makes at most one provider call, updates storage, and
    returns today's board as ESPN events for the push machinery. Inert without a key. */
 export async function egyptTick(env, store, now, log) {
+  /* THE FREE DOOR (owner, 2026-09-02: "think of a way to get the egyptian league for free"): FilGoal's
+     pages, read by filgoal.js into the same store this module serves from. No budget, no key. */
+  if (env && env.EGY_FEED === "filgoal" && store) return filgoalTick(env, store, now, log, toEspnEvent);
   if (!afDoor(env) || !store) return null;
   let budget = budgetFor(await store.get(K.budget), now);
   /* a block belongs to the door that earned it. When the door changes (direct -> relay on
@@ -385,14 +389,15 @@ export async function egyptTick(env, store, now, log) {
 /* ---------------- readers for the phones (no provider calls, ever) ---------------- */
 export async function egyStatus(env, store, now) {
   const door = afDoor(env);
-  const configured = !!door;
+  const fg = env && env.EGY_FEED === "filgoal";
+  const configured = fg || !!door;
   const b = store ? budgetFor(await store.get(K.budget), now) : null;
   const fx = store ? ((await store.get(K.fixtures)) || null) : null;
   const sched = store ? ((await store.get(K.sched)) || {}) : {};
   const days = fx ? fx.list.map(f => utcDay(Date.parse(f.fixture.date))).sort() : [];
   const teams = {};
   for (const f of (fx ? fx.list : [])) for (const side of ["home", "away"]) { const tm = f.teams && f.teams[side]; if (tm) teams[String(tm.id)] = tm.name; }
-  return { ok: true, configured, via: door ? door.via : null, day: b ? b.day : null, used: b ? b.used : 0, remaining: b ? b.remaining : null, exhausted: !!(b && b.exhausted), reserve: RESERVE,
+  return { ok: true, configured, via: fg ? "filgoal" : (door ? door.via : null), filgoal: fg && store ? await fgStatus(store) : null, day: b ? b.day : null, used: b ? b.used : 0, remaining: b ? b.remaining : null, exhausted: !!(b && b.exhausted), reserve: RESERVE,
            blocked: b && b.blocked ? b.blocked : null, blockKind: b && b.blockKind ? b.blockKind : null, retryAt: b && b.blocked ? retryAt(b) : null,
            lastError: b && b.lastError ? b.lastError : null, providerHeaders: b && b.hdr ? b.hdr : null,
            league: fx ? fx.league || null : null, fixtures: days.length, window: days.length ? [days[0], days[days.length - 1]] : null, fetchedAt: fx ? fx.at : 0,

@@ -15,7 +15,7 @@ VAPID_SUBJECT = "https://goallak.com/"
 # The Egyptian league is built but PARKED (owner, 2026-09-02): "off" makes egypt.js answer
 # configured:false and make zero provider calls while keys, relay and code stay. Flip to "on"
 # once a paying door exists (API-Football Pro through the relay, or a licensed feed).
-EGY_FEED = "off"
+EGY_FEED = "filgoal"
 # Who gets told when the match feed dies. ESPN answered 403 to every request from this worker
 # for an unknown length of time and nothing anywhere said so - the run reports ok, because an
 # empty board is indistinguishable from an afternoon with no football. After ten dead minutes

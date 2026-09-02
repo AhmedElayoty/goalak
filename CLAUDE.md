@@ -168,6 +168,29 @@ it is. Read the header comment of `egypt.js`; in short:
   unofficial option (structured JSON in its pages, Arabic names, events and line-ups;
   reachable from Workers) if the owner ever prefers it for the friends build.
 
+## The Egyptian league is BACK, free, via FilGoal (v6.96, 2026-09-02 evening)
+
+Owner: "think of a way to get the egyptian league for free". `worker/src/filgoal.js` reads the
+JSON FilGoal embeds in its day page (`var viewModelData = [...]`: Arabic names, kick-off as
+/Date(ms)/ UTC, HomeScore/AwayScore, CurrentMatchStatusText over|live|upcoming, TimeElapsed),
+keeps ChampionshipId 1667, and writes API-Football-shaped fixtures into the SAME store
+egypt.js serves from - so routes, adapters and shell branches were reused unchanged; the
+LEAGUES `egy` line was simply uncommented and `EGY_FEED = "filgoal"` set. Polling: one page a
+minute only while a match is in [KO-5, KO+125], a look every 30 min on match days, the week
+ahead (8 day pages) once a day. No events/line-ups yet (the match page carries them - a later
+release). Unofficial: a publisher's page, friends build only; first thing to replace with a
+licensed feed at the public launch. `/api/egy/status` shows `via:"filgoal"` and the status
+words seen. Status parked notes above remain as history.
+
+## Features roadmap (from the features agent, 2026-09-02) - owner picks the order
+
+1. Reveal the room's picks after lock (leaderboard already returns every user's picks; ~5h).
+2. Club Fixtures tab - SHIPPED v6.96.  3. Friend duel card on the leaderboard (~4h).
+4. Discuss-in-chat button on the match sheet, pre-seeded with the scoreline (~3h).
+5. Team of the Matchday from cached ratings, in a sheet (~10h).  6. "My Table": standings
+filtered to followed clubs (~5h).  7. Add-to-calendar .ics for a followed club (~4h).
+8. Season share card (predictions record + badges; crest-free) (~6h).
+
 ## The club page (v6.90)
 
 `openClub(id, slug, name)` in index.html; any element carrying `data-club` (+ `data-cslug`)
@@ -182,6 +205,8 @@ wins over ESPN's roster coach, which is years stale; owner-editable, no release 
 the current one is young. Every `years` list is checked against `n` and `last` by w17-style
 self-check before shipping.
 Deep link `?club=<id>&cslug=<slug>`. Every source is optional; an empty tab says so.
+v6.95 dropped the captain (owner: armbands change too often) and replaced "@" with Home/Away
+tags; v6.96 added the Fixtures tab (schedule `?fixture=true`).
 
 ## Conventions that gates and reviewers enforce
 
