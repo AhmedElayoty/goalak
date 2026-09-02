@@ -48,13 +48,24 @@ const msOf = v => { const m = /\/Date\((\d+)\)\//.exec(String(v || "")); return 
 export function fgToFixture(m, now) {
   const ko = msOf(m.Date);
   const text = String(m.CurrentMatchStatusText || "").toLowerCase();
-  const mins = m.TimeElapsed && +m.TimeElapsed.Minutes ? +m.TimeElapsed.Minutes : 0;
+  /* THE MINUTE LIVES IN CurrentMatchStatus, not at the top level (measured on a running match: the
+     top-level TimeElapsed is absent; CurrentMatchStatus carries TimeElapsed.Minutes since the half
+     began plus TimeElapsedBeforeStatus, 45 in the second half). Reading the wrong one showed 0'. */
+  const cms = m.CurrentMatchStatus || {};
+  const statusName = String(cms.MatchStatusName || m.MatchStatusName || "");
+  const te = cms.TimeElapsed || m.TimeElapsed || null;
+  const mins = te && te.Minutes != null ? (+te.Minutes || 0) + (+cms.TimeElapsedBeforeStatus || 0) : 0;
   const scored = m.HomeScore != null && m.AwayScore != null;
   let short = "NS", elapsed = null;
-  if (text === "over" || /انتهت/.test(String(m.MatchStatusName || ""))) short = "FT";
-  else if (text === "live" || (scored && ko && now > ko && now < ko + 3 * 3600000 && mins > 0)) { elapsed = Math.min(90, mins); short = mins > 45 ? "2H" : "1H"; }
-  else if (/تأجلت|ألغيت/.test(String(m.MatchStatusName || ""))) short = "PST";
-  const st = { short, elapsed, long: String(m.MatchStatusName || "") };
+  if (text === "over" || /انتهت/.test(statusName)) short = "FT";
+  else if (/استراحة|بين الشوطين/.test(statusName)) { short = "HT"; elapsed = 45; }
+  else if (text === "live" || (scored && ko && now > ko && now < ko + 3 * 3600000 && mins > 0)) {
+    const second = /الثاني|التاني/.test(statusName) || (+cms.TimeElapsedBeforeStatus || 0) >= 45;
+    elapsed = Math.max(1, second ? Math.max(46, mins || 46) : Math.min(45, mins || 1));
+    short = second ? "2H" : "1H";
+  }
+  else if (/تأجلت|ألغيت/.test(statusName)) short = "PST";
+  const st = { short, elapsed, long: statusName };
   return {
     fixture: { id: +m.Id, date: new Date(ko).toISOString(), status: st, venue: { name: m.StadiumName || null, city: null } },
     league: { id: +m.ChampionshipId || FG_LEAGUE_ID, name: m.ChampionshipName || "الدوري المصري", nameEn: +m.ChampionshipId === FG_LEAGUE_ID ? "Egyptian Premier League" : (CUP_EN[Object.keys(CUP_EN).find(k => String(m.ChampionshipName || "").indexOf(k) >= 0)] || m.ChampionshipName), country: "Egypt", season: new Date(ko).getUTCMonth() >= 6 ? new Date(ko).getUTCFullYear() : new Date(ko).getUTCFullYear() - 1, round: m.Week ? "Regular Season - " + m.Week : "" },

@@ -7,7 +7,7 @@ const eq = (a, b, m) => ok(a === b, m + "  (got " + JSON.stringify(a) + ", wante
 const NOW = Date.UTC(2026, 8, 1, 18, 40);
 const html = 'junk <script>\n var viewModelData = [{"Date":"\\/Date(1788210000000)\\/","Matches":[' +
  '{"ChampionshipSlug":"الدوري-المصري","Id":375884,"HomeTeamId":1016,"HomeTeamName":"وادي دجلة","AwayTeamId":12,"AwayTeamName":"القناة","ChampionshipId":1667,"ChampionshipName":"الدوري المصري","Week":3,"Date":"\\/Date(1788282000000)\\/","HomeScore":0,"AwayScore":0,"StadiumName":"استاد السلام","MatchStatusName":"انتهت","CurrentMatchStatusText":"over","TimeElapsed":{"Minutes":796}},' +
- '{"Id":1,"HomeTeamId":5,"HomeTeamName":"الأهلي","AwayTeamId":6,"AwayTeamName":"الزمالك","ChampionshipId":1667,"ChampionshipName":"الدوري المصري","Week":3,"Date":"\\/Date(1788280800000)\\/","HomeScore":2,"AwayScore":1,"MatchStatusName":"الشوط الثاني","CurrentMatchStatusText":"live","TimeElapsed":{"Minutes":67}},' +
+ '{"Id":1,"HomeTeamId":5,"HomeTeamName":"الأهلي","AwayTeamId":6,"AwayTeamName":"الزمالك","ChampionshipId":1667,"ChampionshipName":"الدوري المصري","Week":3,"Date":"\\/Date(1788280800000)\\/","HomeScore":2,"AwayScore":1,"CurrentMatchStatusText":"live","CurrentMatchStatus":{"MatchStatusName":"الشوط الثاني","TimeElapsedBeforeStatus":45,"TimeElapsed":{"Minutes":22,"Seconds":10}}},' +
  '{"Id":2,"HomeTeamId":7,"HomeTeamName":"بيراميدز","AwayTeamId":8,"AwayTeamName":"المصري","ChampionshipId":1667,"ChampionshipName":"الدوري المصري","Week":3,"Date":"\\/Date(1788292800000)\\/","HomeScore":null,"AwayScore":null,"MatchStatusName":"لم تبدأ","CurrentMatchStatusText":"upcoming","TimeElapsed":null},' +
  '{"Id":3,"HomeTeamId":9,"HomeTeamName":"أودينيزي","AwayTeamId":10,"AwayTeamName":"فينيسيا","ChampionshipId":99,"ChampionshipName":"كأس إيطاليا","Date":"\\/Date(1788282000000)\\/","HomeScore":1,"AwayScore":0,"CurrentMatchStatusText":"over"}' +
  ']}];\n bindStreamingCalls();</script> "a ] } trap" ';
@@ -21,8 +21,12 @@ const [ft, live, pre] = rows;
 eq(ft.fixture.status.short, "FT", "\"over\" is full time");
 eq(ft.fixture.date, "2026-09-01T17:00:00.000Z", "/Date(ms)/ becomes ISO UTC (20:00 Cairo summer time)");
 eq(ft.goals.home + "-" + ft.goals.away, "0-0", "finished score kept");
-eq(live.fixture.status.short, "2H", "\"live\" at minute 67 is the second half");
-eq(live.fixture.status.elapsed, 67, "the minute travels");
+eq(live.fixture.status.short, "2H", "\"live\" in the second half");
+eq(live.fixture.status.elapsed, 67, "the minute is 45 + minutes since the half began (CurrentMatchStatus, not the top level - a running match once read 0')");
+const fh = fgToFixture({Id:8,HomeTeamId:1,AwayTeamId:2,HomeTeamName:"الجونة",AwayTeamName:"المقاولون العرب",ChampionshipId:1667,Date:"/Date(1788357600000)/",HomeScore:0,AwayScore:0,CurrentMatchStatusText:"live",CurrentMatchStatus:{MatchStatusName:"الشوط الاول",TimeElapsedBeforeStatus:0,TimeElapsed:{Minutes:17,Seconds:50}}}, 1788358700000);
+eq(fh.fixture.status.short + "/" + fh.fixture.status.elapsed, "1H/17", "first half, 17th minute - the real payload of 2026-09-02");
+const ht = fgToFixture({Id:8,HomeTeamId:1,AwayTeamId:2,HomeTeamName:"a",AwayTeamName:"b",ChampionshipId:1667,Date:"/Date(1788357600000)/",HomeScore:0,AwayScore:0,CurrentMatchStatusText:"live",CurrentMatchStatus:{MatchStatusName:"استراحة بين الشوطين",TimeElapsedBeforeStatus:45,TimeElapsed:{Minutes:5}}}, 1788361000000);
+eq(ht.fixture.status.short, "HT", "the break is half time");
 eq(live.teams.home.name, "Al Ahly", "known clubs travel in English (the shell maps back to Arabic)");
 eq(live.teams.home.nameAr, "الأهلي", "and keep FilGoal's Arabic beside it");
 eq(rows[0].teams.away.name, "El Qanah", "El Qanah too");
