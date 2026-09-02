@@ -124,7 +124,7 @@ async function recapRoute(request, url, env) {
     const tr = x => en ? (glossary[x] || x) : x;
     facts = { competition: en ? "Egyptian Premier League" : "الدوري المصري", home: { team: en ? enName(m.home) : m.home, goals: m.hs }, away: { team: en ? enName(m.away) : m.away, goals: m.as }, coaches: { home: tr(m.coachH), away: tr(m.coachA) },
       events: (m.events || []).slice(0, 30).map(e => ({ minute: e.min, type: en ? typeEn(String(e.type || "")) : e.type, team: en ? enName(e.team) : e.team, player: tr(e.player) })) };
-    if (!en) facts.commentary = (m.comments || []).slice().sort((x, y) => (x.t || 0) - (y.t || 0)).map(c => (c.t == null ? "" : c.t + "' ") + String(c.txt).slice(0, 140)).slice(0, 45);
+    if (!en) facts.commentary = (m.comments || []).slice().sort((x, y) => ((x.m != null ? x.m : x.t) || 0) - ((y.m != null ? y.m : y.t) || 0)).map(c => { const mm = c.ht ? "HT" : (c.m != null ? c.m : c.t); return (mm == null ? "" : mm + " ") + String(c.txt).slice(0, 140); }).slice(0, 45);
     facts._glossary = en ? glossary : undefined;
   } else {
   const sub = new URL(url.origin + "/api/espn/apis/site/v2/sports/soccer/" + slug + "/summary?event=" + eid);

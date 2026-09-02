@@ -1231,10 +1231,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.108";
+const APP_VERSION = "6.109";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-09-02-v6108";
+const FORCE_RELOAD = "2026-09-02-v6109";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -4433,7 +4433,8 @@ function goalLinksHtml(e, H, A, sum){
     search appears only after full time, with the month in the query. */
  const clips = clipsFor(e, H, A);
  let h = '<div class="goalinks"><span>🎬 ' + esc(t(st === "post" ? "watchGoals" : "goalClips")) + '</span>';
- h += clips.map(c => '<a class="clip" href="' + esc(c.url) + '" target="_blank" rel="noopener"><b dir="ltr">' + (c.t == null ? "" : esc(String(c.t)) + "'") + "</b> " + esc(c.txt.slice(0, 26)) + "</a>").join("");
+ /* a clip's minute is the minute the clip was POSTED (often 1' of the next half, or the break), not the goal's - show it only when it plausibly is the goal's */
+ h += clips.map(c => '<a class="clip" href="' + esc(c.url) + '" target="_blank" rel="noopener">' + (c.t != null && c.t > 2 && !c.ht ? '<b dir="ltr">' + esc(String(c.t)) + "'</b> " : "") + esc(c.txt.slice(0, 30)) + "</a>").join("");
  if(st === "post"){
   const when = (function(){ try{ return new Intl.DateTimeFormat("en", {month:"long", year:"numeric"}).format(new Date(e.date)); }catch(_){ return String(new Date(e.date).getFullYear()); } })();
   const q = encodeURIComponent(((H.team || {}).displayName || "") + " vs " + ((A.team || {}).displayName || "") + " highlights " + when);
@@ -4449,7 +4450,7 @@ function goalLinksHtml(e, H, A, sum){
 function clipsFor(e, H, A){
  const c = _comm[e.id];
  if(c && c.m && evState(e) === "in" && Date.now() - c.at > 60000 && !c.loading) fetchComm(e.id, e, H, A).then(function(){ if(_mdEid === e.id && _mdTab === "E") renderMdBody(); });
- if(c && c.m) return (c.m.comments || []).filter(x => /^https?:\/\//i.test(x.url || "")).sort((x, y) => ((x.m != null ? x.m : x.t) || 0) - ((y.m != null ? y.m : y.t) || 0)).map(x => ({t: x.m != null ? x.m : x.t, url: x.url, txt: x.txt}));
+ if(c && c.m) return (c.m.comments || []).filter(x => /^https?:\/\//i.test(x.url || "")).sort((x, y) => ((x.m != null ? x.m : x.t) || 0) - ((y.m != null ? y.m : y.t) || 0)).map(x => ({t: x.m != null ? x.m : x.t, ht: !!x.ht, url: x.url, txt: x.txt}));
  if(!c && (e._gkSrc === "af" || e._gkFg)) fetchComm(e.id, e, H, A).then(function(){ if(_mdEid === e.id && _mdTab === "E") renderMdBody(); });
  return [];
 }

@@ -158,6 +158,8 @@ export async function filgoalTick(env, store, now, log, toEspnEvent) {
       live.at = now;
       await store.put(K.fixtures, fixtures); await store.put(K.live, live);
       state.scheduleDay = day; state.lastLive = now; state.lastError = null;
+      /* match pages are cached one per match for ever otherwise: drop those older than three days */
+      try { const old = await store.list({ prefix: KM }); for (const [k, v] of old) if (!v || now - (v.at || 0) > 3 * 86400000) await store.delete(k); } catch (_) {}
     } else if (plan && plan.kind === "live") {
       const dayHtml = await fgFetch("/matches");
       const rows = parseDay(dayHtml, now);
@@ -172,6 +174,7 @@ export async function filgoalTick(env, store, now, log, toEspnEvent) {
         for (const { f } of ages) {
           const m = await fgMatch(store, f.fixture.id, now, budget).catch(() => null);
           if (m && m.events) { f.events = fgEventsToAf(m.events, f); f._fgComments = m.comments ? m.comments.length : 0; }
+
           else { const prev = live.byId[String(f.fixture.id)]; if (prev && prev.events) f.events = prev.events; }   /* keep last known events */
         }
         for (const f of rows) {
@@ -221,7 +224,7 @@ export function findTwin(rows, hAr, aAr, ko) {
   }
   return best;
 }
-export const FGM_PV = 3;   /* parse version: bump when the cached shape changes so a day-old cache is re-read */
+export const FGM_PV = 4;   /* 4: squads and formations */   /* parse version: bump when the cached shape changes so a day-old cache is re-read */
 export function parseMatchBlob(html, id) {
   const i = html.indexOf('{"TimeZoneConsidered":true,"Id":' + id);
   if (i < 0) return null;
@@ -250,7 +253,18 @@ function shapeMatch(b, id) {
     return { t, m: t == null ? null : (ht ? 45 : t + base(st)), ht, txt: String(c.Content || "").trim(), url: linkOf(c.ContentUrl), st }; }).filter(c => c.txt);
   const events = (b.Events || []).map(e => ({ type: e.MatchEventTypeName || "", team: e.TeamName || "", teamId: e.TeamId != null ? +e.TeamId : null, player: e.PlayerAName || "", player2: e.PlayerBName || "", min: e.Minute != null ? +e.Minute : (e.Time != null ? +e.Time : null),
     goal: /هدف/.test(e.MatchEventTypeName || "") && !/ضائع|مهدر/.test(e.MatchEventTypeName || ""), red: /حمراء/.test(e.MatchEventTypeName || ""), yellow: /صفراء/.test(e.MatchEventTypeName || ""), sub: /تبديل/.test(e.MatchEventTypeName || "") }));
-  return { pv: FGM_PV, id: +id, home: b.HomeTeamName, away: b.AwayTeamName, homeEn: enName(b.HomeTeamName), awayEn: enName(b.AwayTeamName), hs: b.HomeScore, as: b.AwayScore, over, coachH: b.HomeTeamCoachName || "", coachA: b.AwayTeamCoachName || "", formH: b.HomeTeamFormationName || "", formA: b.AwayTeamFormationName || "", comments, events };
+  /* BOTH SQUADS, from the same page - the line-ups tab said "waiting" for Egyptian matches although the
+     eleven and the bench were sitting in HomeTeamSquad / HomeTeamSpareSquad all along. Positions are
+     Arabic words; the pitch wants a letter. */
+  const posOf = p => /حارس/.test(p) ? "G" : /مدافع|ظهير|قلب/.test(p) ? "D" : /وسط|صانع|ارتكاز/.test(p) ? "M" : /مهاجم|جناح|هجوم|رأس/.test(p) ? "F" : "M";
+  const one = (list, spare) => (list || []).filter(x => x && x.PersonName).sort((x, y) => (+x.Order || 0) - (+y.Order || 0))
+    .map(x => ({ player: { id: x.PersonId != null ? +x.PersonId : null, name: x.PersonName, number: x.ShirtNumber != null ? +x.ShirtNumber : null, pos: posOf(String(x.PlayerPositionName || "")), grid: null, captain: !!x.IsCaptin, photo: x.PersonLogoUrl || "" } }));
+  const side = (teamId, teamName, sq, sp, form, coach) => ({ team: { id: teamId != null ? +teamId : null, name: teamName }, formation: form || "", coach: { name: coach || "" },
+    startXI: one((sq || []).filter(x => !x.IsSpare), false), substitutes: one((sp || []).concat((sq || []).filter(x => x.IsSpare)), true) });
+  const lineups = ((b.HomeTeamSquad || []).length || (b.AwayTeamSquad || []).length)
+    ? [side(b.HomeTeamId, b.HomeTeamName, b.HomeTeamSquad, b.HomeTeamSpareSquad, b.HomeTeamFormationName, b.HomeTeamCoachName), side(b.AwayTeamId, b.AwayTeamName, b.AwayTeamSquad, b.AwayTeamSpareSquad, b.AwayTeamFormationName, b.AwayTeamCoachName)]
+    : [];
+  return { pv: FGM_PV, id: +id, lineups, home: b.HomeTeamName, away: b.AwayTeamName, homeEn: enName(b.HomeTeamName), awayEn: enName(b.AwayTeamName), hs: b.HomeScore, as: b.AwayScore, over, coachH: b.HomeTeamCoachName || "", coachA: b.AwayTeamCoachName || "", formH: b.HomeTeamFormationName || "", formA: b.AwayTeamFormationName || "", comments, events };
 }
 /* FilGoal's typed events -> the API-Football event shape egypt.js already turns into ESPN details:
    a goal (normal / penalty / own goal / missed penalty), a card, a substitution (A off, B on). */
@@ -281,8 +295,20 @@ export async function fgMatch(store, id, now, budget) {
     const html = await fgFetch("/matches/" + id);
     const m = parseMatchBlob(html, id);
     if (!m) return cached || null;
-    m.at = now; await store.put(KM + id, m); return m;
+    m.at = now; await store.put(KM + id, m);
+    await storeLineups(store, id, m, now).catch(() => {});
+    return m;
   } catch (_) { return cached || null; }
+}
+/* the line-ups go where egypt.js reads them (egy:lineups), from whichever path parsed the page */
+export async function storeLineups(store, id, m, now) {
+  if (!m || !m.lineups || !m.lineups.length || !m.lineups.every(sd => (sd.startXI || []).length >= 11)) return;
+  const all = (await store.get("egy:lineups")) || {};
+  const have = all[String(id)];
+  if (have && have.at >= m.at) return;
+  all[String(id)] = { at: m.at, data: m.lineups };
+  for (const k of Object.keys(all)) if (now - (all[k].at || 0) > 3 * 86400000) delete all[k];
+  await store.put("egy:lineups", all);
 }
 export async function fgTwinFor(store, hAr, aAr, ko) {
   const idx = (await store.get(KIDX)) || { rows: [] };
