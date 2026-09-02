@@ -1210,10 +1210,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.92";
+const APP_VERSION = "6.93";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-09-02-v692";
+const FORCE_RELOAD = "2026-09-02-v693";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -4243,8 +4243,9 @@ function renderClub(){
  } else if(_clubTab === "S"){
   /* ESPN's roster feed names coaches years out of date (Guardiola at Barcelona, in 2026), so a
      coach recorded in club-facts.json wins; the feed is only the fallback for clubs not in it */
-  const coach = (c.facts && c.facts.coach) || (c.roster && Array.isArray(c.roster.coach) && c.roster.coach[0] ? [c.roster.coach[0].firstName, c.roster.coach[0].lastName].filter(Boolean).join(" ") : "");
-  const cap = c.facts && c.facts.captain || "";
+  const fx = (k) => c.facts ? (LANG === "ar" ? c.facts[k] : (c.facts[k + "En"] || c.facts[k])) : "";
+  const coach = fx("coach") || (c.roster && Array.isArray(c.roster.coach) && c.roster.coach[0] ? [c.roster.coach[0].firstName, c.roster.coach[0].lastName].filter(Boolean).join(" ") : "");
+  const cap = fx("captain");
   if(coach || cap) h += '<div class="clstaff">' + (coach ? '<div class="clcard"><h4>' + esc(t("clCoach")) + "</h4><b>" + esc(coach) + "</b></div>" : "") + (cap ? '<div class="clcard"><h4>' + esc(t("clCaptain")) + "</h4><b>" + esc(cap) + "</b></div>" : "") + "</div>";
   const ath = (c.roster && c.roster.athletes) || [];
   if(!ath.length) h += '<div class="clcard" style="margin-top:10px"><div class="muted">' + esc(t("clNoData")) + "</div></div>";
