@@ -1231,10 +1231,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.109";
+const APP_VERSION = "6.110";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-09-02-v6109";
+const FORCE_RELOAD = "2026-09-02-v6110";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -2884,9 +2884,9 @@ function mrow(e, lg){
   _rowScore[e.id] = curScore;
  }
  return '<button type="button" class="' + rowCls + '" data-eid="' + esc(e.id) + '" onclick="openMatch(this.dataset.eid)">' +
-  '<span class="tm tmh" data-club="' + esc(String((H.team || {}).id || "")) + '" data-cslug="' + esc(slugForEvent(e) || "") + '">' + '<i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + "</span>" +
+  '<span class="tm tmh">' + '<i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + "</span>" +
   '<span class="mid">' + mid + '<span class="msub">' + sub + "</span></span>" +
-  '<span class="tm tma" data-club="' + esc(String((A.team || {}).id || "")) + '" data-cslug="' + esc(slugForEvent(e) || "") + '">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span>" +
+  '<span class="tm tma">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span>" +
   "</button>";
 }
 function paintHome(){
@@ -4173,15 +4173,15 @@ async function renderMdBody(){
     eleven; Facts and Stats would be empty frames, so they are not offered - and a tab chosen on an
     ESPN match a moment ago must not carry over into an empty one here. */
  const af = e._gkSrc === "af";
- if(af && (_mdTab === "S" || _mdTab === "F")) _mdTab = preTabs ? "L" : "E";
+ if(af && (_mdTab === "S" || _mdTab === "F" || _mdTab === "C")) _mdTab = preTabs ? "L" : "E";   /* an Egyptian match's commentary lives IN the summary */
  /* FilGoal commentary: always offered on an Egyptian match, and on any other match once its FilGoal twin
     has been found (fgTwinProbe stamps e._gkFg); a tab that would be empty is not shown */
- const hasC = af || !!e._gkFg;
+ const hasC = !af && !!e._gkFg;
  if(!af && !preTabs && e._gkFg === undefined) fgTwinProbe(e);
  if(_mdTab === "C" && !hasC) _mdTab = "E";
- if(tabsEl) tabsEl.style.display = (af && preTabs && !hasC) ? "none" : "";
- if(tabsEl) tabsEl.innerHTML = (preTabs ? (af ? [["C", "mdComm"], ["L", "mdLineups"]] : [["F", "mdFacts"], ["L", "mdLineups"]])
-                                        : af ? [["E", "mdSummary"], ["C", "mdComm"], ["L", "mdLineups"]]
+ if(tabsEl) tabsEl.style.display = (af && preTabs) ? "none" : "";
+ if(tabsEl) tabsEl.innerHTML = (preTabs ? (af ? [["L", "mdLineups"]] : [["F", "mdFacts"], ["L", "mdLineups"]])
+                                        : af ? [["E", "mdSummary"], ["L", "mdLineups"]]
                                         : hasC ? [["E", "mdSummary"], ["C", "mdComm"], ["L", "mdLineups"], ["S", "mdStats"], ["F", "mdFacts"]]
                                         : [["E", "mdSummary"], ["L", "mdLineups"], ["S", "mdStats"], ["F", "mdFacts"]])
   .map(p => '<button type="button" class="mdtab' + (_mdTab === p[0] ? " on" : "") + '" onclick="setMdTab(\'' + p[0] + '\')">' + esc(t(p[1])) + "</button>").join("");
@@ -4196,7 +4196,7 @@ async function renderMdBody(){
   const finished = evState(e) === "post" && !voidedKey(e);
   const sumNow = sumCache[eid] && sumCache[eid].json;
   const af0 = e._gkSrc === "af";   /* the Egyptian feed has no ratings: no star card, no "analysis failed" */
-  mdSet(body, (finished ? (af0 ? "" : motmCardHtml(eid)) + recapHtml(eid, e) : "") + goalLinksHtml(e, H, A, sumNow) + mdEventsHtml(e, H, A, sumNow));
+  mdSet(body, (finished ? (af0 ? "" : motmCardHtml(eid)) + recapHtml(eid, e) : "") + goalLinksHtml(e, H, A, sumNow) + mdEventsHtml(e, H, A, sumNow) + (af0 ? commInlineHtml(eid, e, H, A) : ""));
   if(finished && !af0){ const rt = _ratings[eid]; if(!rt || (!rt.ready && !rt.loading && (rt.failed || 0) < 3)) loadRatings(eid); }
   /* subs come from the summary feed: fetch once, then repaint the timeline with them */
   if(finished || evState(e) === "in") ensureSummary(eid).then(function(s){ if(s && _mdEid === eid && _mdTab === "E" && !sumNow) renderMdBody(); });
@@ -4252,6 +4252,8 @@ async function openClub(id, slug, name){
  /* three matches into a season "last 5" is not five: reach back into last season's schedule */
  let evs = ((sched && sched.events) || []).slice();
  if(slug && evs.length < 5){ try{ const prev = await jget(API + slug + "/teams/" + id + "/schedule?season=" + (yr - 1)); evs = evs.concat((prev && prev.events) || []); }catch(_){} }
+ /* an Egyptian club's "last season" is the same board answer again - one copy of each match */
+ evs = evs.filter((e, i, arr) => arr.findIndex(x => String(x.id) === String(e.id)) === i);
  if($("club").classList.contains("hide") || !_club || _club.id !== id) return;
  const results = evs.map(e => {
   const cs = (e.competitions && e.competitions[0] && e.competitions[0].competitors) || [];
@@ -4367,6 +4369,24 @@ async function fgTwinProbe(e){
   if(r.ok && j.ok && j.id){ e._gkFg = j.id; if(_mdEid === e.id) renderMdBody(); }
  }catch(_){}
 }
+function commRowsHtml(m){
+ const minOf = x => x.ht ? t("mdHT") : (x.m != null ? x.m : x.t);
+ return (m.comments || []).slice().sort((x, y) => ((y.m != null ? y.m : y.t) || 0) - ((x.m != null ? x.m : x.t) || 0)).map(x => {
+  const goal = /هدف|جووو|جول/.test(x.txt) && !/ضائع|مهدر|ملغ/.test(x.txt);
+  const mm = minOf(x);
+  return '<div class="comm' + (goal ? " goal" : "") + '"><span class="cmin" dir="ltr">' + (mm == null ? "" : esc(String(mm)) + (x.ht ? "" : "'")) + '</span><div class="ctxt" dir="rtl">' + esc(x.txt) + "</div></div>";
+ }).join("");
+}
+/* MINUTE BY MINUTE, INSIDE THE SUMMARY. An Egyptian match's summary had only the typed events - a goal,
+   two cards - while FilGoal writes seventy lines a game; the owner wanted them where the other leagues'
+   timeline is. They sit under the events, newest first, and refresh with the sheet while the match runs. */
+function commInlineHtml(eid, e, H, A){
+ const c = _comm[eid];
+ if(c && c.m && evState(e) === "in" && Date.now() - c.at > 60000 && !c.loading) fetchComm(eid, e, H, A).then(function(){ if(_mdEid === eid && _mdTab === "E") renderMdBody(); });
+ if(!c) { fetchComm(eid, e, H, A).then(function(){ if(_mdEid === eid && _mdTab === "E") renderMdBody(); }); return '<div class="commhead">🎙️ ' + esc(t("commSrc")) + ' · <span class="rcwait">' + esc(t("loading")) + "</span></div>"; }
+ if(!c.m || !(c.m.comments || []).length) return "";
+ return '<div class="commhead">🎙️ ' + esc(t("commSrc")) + (c.m.over ? "" : ' · <span class="livep">' + esc(t("commLive")) + "</span>") + '</div><div class="commlist">' + commRowsHtml(c.m) + "</div>";
+}
 async function renderComm(eid, e, H, A){
  const body = $("mdBody"); if(!body) return;
  const c = _comm[eid];
@@ -4374,13 +4394,7 @@ async function renderComm(eid, e, H, A){
   if(!m || !m.comments || !m.comments.length){ mdSet(body, '<div class="empty"><div class="big">🎙️</div>' + esc(t("commNone")) + "</div>"); return; }
   const staff = (m.coachH || m.coachA) ? '<div class="commstaff">' + (m.coachH ? '<span>👔 ' + esc(m.home) + ": " + esc(m.coachH) + (m.formH ? " · " + esc(m.formH) : "") + "</span>" : "") + (m.coachA ? '<span>👔 ' + esc(m.away) + ": " + esc(m.coachA) + (m.formA ? " · " + esc(m.formA) : "") + "</span>" : "") + "</div>" : "";
   const minOf = x => x.ht ? t("mdHT") : (x.m != null ? x.m : x.t);
-  const rows = m.comments.slice().sort((x, y) => ((y.m != null ? y.m : y.t) || 0) - ((x.m != null ? x.m : x.t) || 0)).map(x => {
-   const goal = /هدف|جووو|جول/.test(x.txt) && !/ضائع|مهدر|ملغ/.test(x.txt);
-   const mm = minOf(x);
-   return '<div class="comm' + (goal ? " goal" : "") + '"><span class="cmin" dir="ltr">' + (mm == null ? "" : esc(String(mm)) + (x.ht ? "" : "'")) + '</span><div class="ctxt" dir="rtl">' + esc(x.txt)
-    + (/^https?:\/\//i.test(x.url || "") ? ' <a class="cclip" href="' + esc(x.url) + '" target="_blank" rel="noopener">🎬 ' + esc(t("commClip")) + "</a>" : "") + "</div></div>";
-  }).join("");
-  mdSet(body, '<div class="commhead">🎙️ ' + esc(t("commSrc")) + (m.over ? "" : ' · <span class="livep">' + esc(t("commLive")) + "</span>") + "</div>" + staff + '<div class="commlist">' + rows + "</div>");
+  mdSet(body, '<div class="commhead">🎙️ ' + esc(t("commSrc")) + (m.over ? "" : ' · <span class="livep">' + esc(t("commLive")) + "</span>") + "</div>" + staff + '<div class="commlist">' + commRowsHtml(m) + "</div>");
  };
  if(c && c.m && Date.now() - c.at < 30000){ paint(c.m); return; }
  if(!c || !c.m) mdSet(body, '<div class="mdload"><span class="spinner"></span>' + esc(t("loading")) + "</div>"); else paint(c.m);
@@ -4427,21 +4441,17 @@ function discussMatch(eid){
    YouTube search for the official highlights otherwise. Never a stream, never an embed. */
 function goalLinksHtml(e, H, A, sum){
  const st = evState(e); if(st === "pre") return "";
- /* A SEARCH DURING A LIVE MATCH RETURNS OLD MEETINGS. The owner opened a running Egyptian match and
-    was offered last season's highlights. So: while a match runs, the row shows the goal CLIPS FilGoal
-    has published so far - one chip per goal, minute and scorer - and nothing else; the highlights
-    search appears only after full time, with the month in the query. */
- const clips = clipsFor(e, H, A);
- let h = '<div class="goalinks"><span>🎬 ' + esc(t(st === "post" ? "watchGoals" : "goalClips")) + '</span>';
- /* a clip's minute is the minute the clip was POSTED (often 1' of the next half, or the break), not the goal's - show it only when it plausibly is the goal's */
- h += clips.map(c => '<a class="clip" href="' + esc(c.url) + '" target="_blank" rel="noopener">' + (c.t != null && c.t > 2 && !c.ht ? '<b dir="ltr">' + esc(String(c.t)) + "'</b> " : "") + esc(c.txt.slice(0, 30)) + "</a>").join("");
+ /* A SEARCH DURING A LIVE MATCH RETURNS OLD MEETINGS, so the highlights search appears only after full
+    time, with the month in the query. During the match the row carries the chat button alone - the
+    owner tried the per-goal clips and asked for them to go: YouTube afterwards is enough. */
+ let h = '<div class="goalinks">' + (st === "post" ? '<span>🎬 ' + esc(t("watchGoals")) + '</span>' : "");
  if(st === "post"){
   const when = (function(){ try{ return new Intl.DateTimeFormat("en", {month:"long", year:"numeric"}).format(new Date(e.date)); }catch(_){ return String(new Date(e.date).getFullYear()); } })();
   const q = encodeURIComponent(((H.team || {}).displayName || "") + " vs " + ((A.team || {}).displayName || "") + " highlights " + when);
   const v = sum && Array.isArray(sum.videos) && sum.videos[0] && sum.videos[0].links && sum.videos[0].links.web && sum.videos[0].links.web.href;
   h += (v ? '<a href="' + esc(v) + '" target="_blank" rel="noopener">' + esc(t("espnVideo")) + "</a>" : "")
     + '<a href="https://www.youtube.com/results?search_query=' + q + '" target="_blank" rel="noopener">' + esc(t("ytSearch")) + "</a>";
- } else if(!clips.length) h += '<small class="clipsoon">' + esc(t("clipsSoon")) + "</small>";
+ }
  h += '<button type="button" class="disc" data-eid="' + esc(e.id) + '" onclick="discussMatch(this.dataset.eid)">💬 ' + esc(t("discuss")) + "</button></div>";
  return h;
 }
@@ -4939,9 +4949,9 @@ function renderMatchModal(eid){
  $("mbox").innerHTML =
   '<button type="button" class="mx" onclick="closeModal()">✕</button>' +
   '<div class="mvs">' +
-   '<span class="mvt">' + crestHtml(H.team) + "<i>" + esc(teamName(H)) + "</i>" + scorerListHtml(e, H) + "</span>" +
+   '<span class="mvt">' + crestHtml(H.team) + '<i data-club="' + esc(String((H.team || {}).id || "")) + '" data-cslug="' + esc(slugForEvent(e) || "") + '">' + esc(teamName(H)) + "</i>" + scorerListHtml(e, H) + "</span>" +
    scoreLine +
-   '<span class="mvt">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i>" + scorerListHtml(e, A) + "</span>" +
+   '<span class="mvt">' + crestHtml(A.team) + '<i data-club="' + esc(String((A.team || {}).id || "")) + '" data-cslug="' + esc(slugForEvent(e) || "") + '">' + esc(teamName(A)) + "</i>" + scorerListHtml(e, A) + "</span>" +
   "</div>" +
   '<div class="mmeta">' + meta
     + (s === "pre" && !vk ? '<br><span class="mcd">⏳ ' + countdown(Date.parse(e.date)) + "</span>" : "")
@@ -5738,7 +5748,7 @@ function predCard(e){
  return '<div class="lgsec"><div class="lgbody"><div class="mrow prow">' +
   '<span class="tm tmh"><i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + "</span>" +
   '<span class="mid">' + mid + '<span class="msub"><span dir="ltr">' + esc(fmtTime(e.date)) + "</span>" + (lg ? " · " + esc(lgShort(lg)) : "") + (e._gkQual ? " · " + esc(t("qualTag")) : "") + "</span></span>" +
-  '<span class="tm tma" data-club="' + esc(String((A.team || {}).id || "")) + '" data-cslug="' + esc(slugForEvent(e) || "") + '">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span>" +
+  '<span class="tm tma">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span>" +
   "</div>" + picksRowHtml(e) + "</div></div>";
 }
 function predResultRow(e){
@@ -5756,7 +5766,7 @@ function predResultRow(e){
  return '<div class="lgsec"><div class="lgbody"><div class="mrow prow">' +
   '<span class="tm tmh"><i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + "</span>" +
   '<span class="mid"><span class="msc" dir="ltr">' + scoreTxt(H, A) + '</span><span class="msub">' + sub + "</span></span>" +
-  '<span class="tm tma" data-club="' + esc(String((A.team || {}).id || "")) + '" data-cslug="' + esc(slugForEvent(e) || "") + '">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span>" +
+  '<span class="tm tma">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span>" +
   "</div>" + picksRowHtml(e) + "</div></div>";
 }
 /* A REPAINT MUST NEVER EAT WHAT SOMEBODY IS TYPING. The tab refreshes on a timer and on
@@ -6986,7 +6996,7 @@ function renderChatLive(){
   const cs = (e.competitions && e.competitions[0] && e.competitions[0].competitors) || [];
   const H = cs.find(x => x.homeAway === "home") || cs[0] || {}, A = cs.find(x => x.homeAway === "away") || cs[1] || {};
   return '<button type="button" class="clive" data-id="' + esc(e.id) + '" onclick="openMatch(this.dataset.id)">'
-   + '<span data-club="' + esc(String((H.team || {}).id || "")) + '" data-cslug="' + esc(slugForEvent(e) || "") + '">' + esc(clubAr(H.team || {})) + '</span><span class="sc" dir="ltr">' + esc(String(H.score ?? "")) + " - " + esc(String(A.score ?? "")) + '</span><span data-club="' + esc(String((A.team || {}).id || "")) + '" data-cslug="' + esc(slugForEvent(e) || "") + '">' + esc(clubAr(A.team || {})) + "</span>"
+   + '<span>' + esc(clubAr(H.team || {})) + '</span><span class="sc" dir="ltr">' + esc(String(H.score ?? "")) + " - " + esc(String(A.score ?? "")) + '</span><span>' + esc(clubAr(A.team || {})) + "</span>"
    + '<span class="ck" dir="ltr">' + esc(String((e.status && e.status.displayClock) || "")) + "</span></button>";
  }).join("");
 }
