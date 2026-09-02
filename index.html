@@ -4182,7 +4182,7 @@ async function renderMdBody(){
    neither), colours and three-letter code from the fantasy club list when the club is in it. */
 const ESPN_CORE = "https://goalak-push.ahmed-ayoty.workers.dev/api/espn-core/";
 let _clubTab = "R", _club = null, _clubFacts = null, _clubKits = null;
-async function clubFacts(){ if(_clubFacts) return _clubFacts; try{ _clubFacts = (await (await fetch("club-facts.json", {cache:"force-cache"})).json()).clubs || {}; }catch(_){ _clubFacts = {}; } return _clubFacts; }
+async function clubFacts(){ if(_clubFacts) return _clubFacts; try{ _clubFacts = (await (await fetch("club-facts.json?v=" + APP_VERSION)).json()).clubs || {}; }catch(_){ _clubFacts = {}; } return _clubFacts; }
 async function clubKits(){ if(_clubKits) return _clubKits; try{ const j = await (await fetch("fantasy/clubs.json", {cache:"force-cache"})).json(); const arr = Array.isArray(j) ? j : (j.clubs || []); _clubKits = {}; arr.forEach(c => { _clubKits[String(c.id)] = c; }); }catch(_){ _clubKits = {}; } return _clubKits; }
 function clubSlugFor(id){
  for(const k in EV_INDEX){ const e = EV_INDEX[k]; const cs = (e && e.competitions && e.competitions[0] && e.competitions[0].competitors) || []; if(cs.some(c => c.team && String(c.team.id) === String(id))) return slugForEvent(e) || ""; }
