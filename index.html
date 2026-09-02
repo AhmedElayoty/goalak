@@ -362,7 +362,9 @@ html[data-theme="light"] .lgsec[data-lg="egy"]{--lgc:#B8001F}
 
 /* ---------- modal ---------- */
 #modal,#tmfx,#promo,#searchSheet{position:fixed;inset:0;background:var(--scrim);z-index:100;display:flex;align-items:flex-end;justify-content:center}
+#modal,#club,#promo,#searchSheet{position:fixed;inset:0;background:var(--scrim);z-index:100;display:flex;align-items:flex-end;justify-content:center}
 @media(min-width:520px){#modal,#tmfx,#promo,#searchSheet{align-items:center}}
+@media(min-width:520px){#modal,#club,#promo,#searchSheet{align-items:center}}
 .pmin{text-align:center;padding:8px 6px 4px}
 .pmoji{font-size:40px;line-height:1;margin-bottom:8px}
 .pmin h2{font-size:18px;font-weight:900;margin:0 0 8px}
@@ -382,6 +384,7 @@ html[data-theme="light"] .lgsec[data-lg="egy"]{--lgc:#B8001F}
 .tmstrip .chip{flex:0 0 auto}
 .tmnote{font-size:11px;color:var(--dim);line-height:1.7;width:100%}
 #tmfxBox .dhead{font-size:14.5px;font-weight:900;color:var(--txt)}
+#clubBox .dhead{font-size:14.5px;font-weight:900;color:var(--txt)}
 .tmfxrow{display:flex;align-items:center;gap:10px;padding:10px 4px;border-block-end:1px solid var(--line)}
 .tmfxrow:last-child{border-block-end:none}
 .tmfxrow .crest,.tmfxrow .crestfb{width:32px;height:32px;flex:0 0 32px}
@@ -427,6 +430,22 @@ html[data-theme="light"] .lgsec[data-lg="egy"]{--lgc:#B8001F}
 .mdtab{flex:1;padding:8px 0;border-radius:10px;background:var(--card2);border:1px solid var(--line);font-size:var(--fs-md);font-weight:800;color:var(--dim)}
 .mdtab.on{background:var(--accdark);border-color:var(--acc);color:#fff}
 .afnote{font-size:11px;font-weight:600;color:var(--dim);text-align:center;padding:0 0 6px}
+[data-club]{cursor:pointer}
+#club .clhead{position:relative;padding:18px 14px 14px;background:linear-gradient(135deg,var(--c1,#1A2447),var(--c2,#0B1229));color:var(--ink,#fff);border-radius:18px 18px 0 0}
+#club .clx{position:absolute;top:10px;inset-inline-end:10px;background:rgba(0,0,0,.28);color:#fff;border-radius:50%;width:32px;height:32px;font-size:15px}
+.clid{display:flex;align-items:center;gap:12px}
+.clmono{flex:0 0 auto;width:58px;height:58px;border-radius:50%;background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.55);display:flex;align-items:center;justify-content:center;font:800 17px 'Alexandria','Cairo',sans-serif;letter-spacing:.5px}
+.clname{font:800 22px/1.15 'Alexandria','Cairo',sans-serif}.clsub{opacity:.88;font-size:12px;margin-top:3px}
+.clform{display:flex;gap:6px;margin-top:12px;align-items:center}.clform i{width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font:800 11px 'Cairo',sans-serif;font-style:normal;background:rgba(255,255,255,.2)}
+.clform i.w{background:#22C55E;color:#04170A}.clform i.l{background:#EF4444;color:#fff}.clform i.d{background:#F5C451;color:#3A2A00}.clform small{opacity:.8;font-size:11px;margin-inline-start:4px}
+.clbody{padding:8px 12px 18px}.clcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:10px}
+.clcard h4{margin:0 0 6px;font-size:13px;color:var(--dim);font-weight:700}
+.clrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}.clrow:last-child{border-bottom:0}
+.clrow .opp{flex:1;font-weight:700}.clsc{font-weight:900;min-width:48px;text-align:center;font-variant-numeric:tabular-nums}.clsc.w{color:#22C55E}.clsc.l{color:#F87171}.clsc.d{color:#F5C451}.cldate{color:var(--dim);font-size:11px;min-width:58px;text-align:end}
+.clgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.clstat{background:var(--card2);border-radius:12px;padding:10px 6px;text-align:center}.clstat b{display:block;font:800 22px/1.1 'Alexandria','Cairo',sans-serif;color:#F5C451}.clstat span{font-size:11px;color:var(--dim)}
+.clpos{font-size:11px;color:var(--dim);margin:10px 0 2px;font-weight:800;letter-spacing:.3px}.clnum{display:inline-block;min-width:28px;text-align:center;font-weight:800;color:var(--dim);font-variant-numeric:tabular-nums}.clage{color:var(--dim);font-size:11px}
+.cltro{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}.cltro:last-child{border-bottom:0}.cltro .n{font:800 22px/1 'Alexandria','Cairo',sans-serif;color:#F5C451;min-width:36px;text-align:center}.cltro .tt{flex:1;font-weight:700}.cltro small{color:var(--dim)}
+.clstaff{display:flex;gap:8px}.clstaff .clcard{flex:1;margin:0}.clstaff b{display:block;font-size:14px}
 .mystreak{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:0 0 10px}
 .mystreak .msl1{font-weight:800}.mystreak .msl2{font-size:12px;color:var(--dim);margin-top:4px}
 #chatLive{display:flex;gap:6px;overflow-x:auto;padding:6px 8px 4px;scrollbar-width:none}#chatLive:empty{display:none}
@@ -593,6 +612,7 @@ html[dir="rtl"] .tlside.r{text-align:right}
    (owner: "when I scroll down it sometimes scrolls the main page with me") */
 .mbox{background:var(--card3);box-shadow:var(--shadow);border:1px solid var(--line2);border-radius:18px 18px 0 0;width:100%;max-width:520px;max-height:82vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:18px 16px 26px}
 #modal,#tmfx,#promo,#searchSheet,#playerCard,#authModal{overscroll-behavior:contain;touch-action:none}
+#modal,#club,#promo,#searchSheet,#playerCard,#authModal{overscroll-behavior:contain;touch-action:none}
 .mbox{touch-action:pan-y}
 /* while a sheet is open the page underneath must not move at all */
 body.gk-lock{overflow:hidden}
@@ -602,6 +622,7 @@ body.gk-lock{overflow:hidden}
 @keyframes gkDim{from{background:rgba(3,5,14,0)}to{background:var(--scrim)}}
 @keyframes gkSheetUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
 #modal:not(.hide),#tmfx:not(.hide),#promo:not(.hide),#searchSheet:not(.hide),#playerCard:not(.hide),#authModal:not(.hide){animation:gkDim .22s ease-out}
+#modal:not(.hide),#club:not(.hide),#promo:not(.hide),#searchSheet:not(.hide),#playerCard:not(.hide),#authModal:not(.hide){animation:gkDim .22s ease-out}
 #modal:not(.hide) .mbox,#tmfx:not(.hide) .mbox,#promo:not(.hide) .mbox,#searchSheet:not(.hide) .mbox,
 #playerCard:not(.hide) .mbox,#authModal:not(.hide) .mbox{animation:gkSheetUp .3s var(--e-out)}
 .mx{position:sticky;top:0;z-index:40;float:inline-end;background:var(--card2);border-radius:50%;width:30px;height:30px;font-size:15px;color:var(--dim)}
@@ -645,6 +666,7 @@ html[data-theme="light"] .skel{
 @media (prefers-reduced-motion: reduce){
  #home,#lg,#predPane,#chatPane,.mrow.live::before,.skel::after,.mrow.scored,
  #modal,#tmfx,#promo,#playerCard,#authModal,.mbox,.toast,#mdBody.mdfade,#gkPtr.spin svg{animation:none !important}
+ #modal,#club,#promo,#playerCard,#authModal,.mbox,.toast,#mdBody.mdfade,#gkPtr.spin svg{animation:none !important}
  .fold::after{transition:none !important}
 }
 .spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--line2);border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-inline-end:8px}
@@ -1098,6 +1120,9 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
 <div id="tmfx" class="hide">
  <div class="mbox" id="tmfxBox"></div>
 </div>
+<div id="club" class="hide">
+ <div class="mbox" id="clubBox"></div>
+</div>
 <div id="searchSheet" class="hide">
  <div class="mbox">
   <div class="mdhead schhead">
@@ -1182,10 +1207,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.89";
+const APP_VERSION = "6.90";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-09-02-v689";
+const FORCE_RELOAD = "2026-09-02-v690";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1657,6 +1682,12 @@ const STR = {
  predComp:["توقعات دوري أبطال أوروبا","Champions League Predictions"],
  mdSummary:["الملخص","Summary"],
  mdLineups:["التشكيل","Line-ups"],
+ clResults:["النتائج","Results"], clSquad:["اللاعبين","Squad"], clStats:["إحصائيات","Stats"], clTitles:["الألقاب","Honours"],
+ clCoach:["المدرب","Coach"], clCaptain:["الكابتن","Captain"], clForm:["آخر 5","Last 5"], clNoData:["لا توجد بيانات بعد","No data yet"],
+ clNoFacts:["الألقاب مش متسجّلة لهذا النادي بعد","Honours not recorded for this club yet"], clLast:["آخرها","last"], clSeason:["إحصائيات الموسم","Season stats"],
+ clPosG:["حراسة","Goalkeepers"], clPosD:["دفاع","Defenders"], clPosM:["وسط","Midfielders"], clPosF:["هجوم","Forwards"],
+ stGoals:["أهداف","Goals"], stConc:["استقبل","Conceded"], stClean:["شباك نظيفة","Clean sheets"], stShots:["تسديدات","Shots"], stOnT:["على المرمى","On target"], stPoss:["استحواذ","Possession"], stYel:["كروت صفراء","Yellow cards"], stRed:["كروت حمراء","Red cards"], stFouls:["أخطاء","Fouls"],
+ W:["ف","W"], D:["ت","D"], L:["خ","L"],
  streakTxt:["🔥 سلسلتك: {n} توقعات صح ورا بعض","🔥 Your streak: {n} correct in a row"],
  streakNone:["ابدأ سلسلتك: خلّي التوقع الجاي صح","Start a streak: get the next one right"],
  bExact:["توقع مظبوط","Exact score"], bFire:["3 ورا بعض","3 in a row"], bFive:["5 توقعات مظبوطة","5 exact scores"], bTop:["قمة الترتيب","Top of the board"],
@@ -2814,9 +2845,9 @@ function mrow(e, lg){
   _rowScore[e.id] = curScore;
  }
  return '<button type="button" class="' + rowCls + '" data-eid="' + esc(e.id) + '" onclick="openMatch(this.dataset.eid)">' +
-  '<span class="tm tmh">' + '<i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + "</span>" +
+  '<span class="tm tmh" data-club="' + esc(String((H.team || {}).id || "")) + '" data-cslug="' + esc(slugForEvent(e) || "") + '">' + '<i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + "</span>" +
   '<span class="mid">' + mid + '<span class="msub">' + sub + "</span></span>" +
-  '<span class="tm tma">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span>" +
+  '<span class="tm tma" data-club="' + esc(String((A.team || {}).id || "")) + '" data-cslug="' + esc(slugForEvent(e) || "") + '">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span>" +
   "</button>";
 }
 function paintHome(){
@@ -3001,6 +3032,8 @@ window.addEventListener("popstate", function(){
  if(pc && !pc.classList.contains("hide")){ _pcPid = null; hideSheet("playerCard"); return; }
  const pm = $("promo");
  if(pm && !pm.classList.contains("hide")){ hideSheet("promo"); return; }
+ const cl = $("club");
+ if(cl && !cl.classList.contains("hide")){ _club = null; hideSheet("club"); return; }
  const tf = $("tmfx");
  if(tf && !tf.classList.contains("hide")){ hideSheet("tmfx"); return; }
  const sch = $("searchSheet");
@@ -3169,7 +3202,7 @@ function tableHtml(j){
   const rank = r.rank || i + 1;
   const gdN = Number(r.gd) || 0;
   h += '<div class="trow ' + zoneCls(lg, rank) + '"><span class="tpos" dir="ltr">' + rank + "</span>" +
-   '<span class="ttm">' + crestHtml(r.team) + "<i>" + esc(clubAr(r.team)) + "</i></span>" +
+   '<span class="ttm" data-club="' + esc(String(r.team.id || "")) + '" data-cslug="' + esc((lg && lg.slug) || "") + '">' + crestHtml(r.team) + "<i>" + esc(clubAr(r.team)) + "</i></span>" +
    '<span class="tnum" dir="ltr">' + esc(r.p == null ? "-" : r.p) + '</span><span class="tnum" dir="ltr">' + esc(r.w == null ? "-" : r.w) + '</span><span class="tnum" dir="ltr">' + esc(r.d == null ? "-" : r.d) + '</span><span class="tnum" dir="ltr">' + esc(r.l == null ? "-" : r.l) + "</span>" +
    '<span class="tnum tgf" dir="ltr">' + esc(r.gf == null ? "-" : r.gf) + '</span><span class="tnum tga" dir="ltr">' + esc(r.ga == null ? "-" : r.ga) + "</span>" +
    '<span class="tgd" dir="ltr">' + (gdN > 0 ? "+" + gdN : gdN) + "</span>" +
@@ -3482,7 +3515,7 @@ function mdLineupsHtml(sum, H, A){
  const form = r => (r && (r.formation || r.displayFormation)) || "";
  const hs = startersOf(rh), as = startersOf(ra);
  const okPos = arr => arr.length >= 11 && arr.every(p => (p.position || {}).abbreviation);
- const lbl = (tm, f) => '<div class="flabel"><span>' + crestHtml(tm.team) + "<b>" + esc(teamName(tm)) + "</b></span><span dir=\"ltr\">" + esc(f || "") + "</span></div>";
+ const lbl = (tm, f) => '<div class="flabel"><span data-club="' + esc(String((tm.team || {}).id || "")) + '" data-cslug="' + esc(slugForEvent(EV_INDEX[_mdEid] || {}) || "") + '">' + crestHtml(tm.team) + "<b>" + esc(teamName(tm)) + "</b></span><span dir=\"ltr\">" + esc(f || "") + "</span></div>";
  if(!okPos(hs) || !okPos(as)){   /* no positions published -> keep the readable column list */
   return '<div class="lnform"><span dir="ltr">' + esc(teamName(H)) + (form(rh) ? " · " + esc(form(rh)) : "") + "</span>" +
    '<span dir="ltr">' + esc(teamName(A)) + (form(ra) ? " · " + esc(form(ra)) : "") + "</span></div>" +
@@ -4137,6 +4170,102 @@ async function renderMdBody(){
  if(!sum){ mdSet(body, '<div class="mnoev">' + esc(t("mdLoadFail")) + "</div>"); return; }
  mdSet(body, _mdTab === "L" ? mdLineupsHtml(sum, H, A) : _mdTab === "F" ? mdFactsHtml(sum, e, H, A) : mdStatsHtml(sum, H, A));
 }
+/* ============ THE CLUB PAGE ============
+   One sheet for any club, reachable from wherever a club's name appears (every element carrying
+   data-club opens it - a capture-phase listener on the document beats the row's own tap). It
+   draws on four sources and says nothing where a source is silent: results and roster from
+   ESPN's team endpoints (through the edge), season statistics from ESPN's core API (edge
+   /api/espn-core/), honours and captain from club-facts.json in this repo (the feeds carry
+   neither), colours and three-letter code from the fantasy club list when the club is in it. */
+const ESPN_CORE = "https://goalak-push.ahmed-ayoty.workers.dev/api/espn-core/";
+let _clubTab = "R", _club = null, _clubFacts = null, _clubKits = null;
+async function clubFacts(){ if(_clubFacts) return _clubFacts; try{ _clubFacts = (await (await fetch("club-facts.json", {cache:"force-cache"})).json()).clubs || {}; }catch(_){ _clubFacts = {}; } return _clubFacts; }
+async function clubKits(){ if(_clubKits) return _clubKits; try{ const j = await (await fetch("fantasy/clubs.json", {cache:"force-cache"})).json(); const arr = Array.isArray(j) ? j : (j.clubs || []); _clubKits = {}; arr.forEach(c => { _clubKits[String(c.id)] = c; }); }catch(_){ _clubKits = {}; } return _clubKits; }
+function clubSlugFor(id){
+ for(const k in EV_INDEX){ const e = EV_INDEX[k]; const cs = (e && e.competitions && e.competitions[0] && e.competitions[0].competitors) || []; if(cs.some(c => c.team && String(c.team.id) === String(id))) return slugForEvent(e) || ""; }
+ return "";
+}
+async function openClub(id, slug, name){
+ id = String(id || ""); if(!id) return;
+ slug = slug || clubSlugFor(id);
+ _clubTab = "R"; _club = {id, slug, name: name || "", loading: true};
+ $("clubBox").innerHTML = '<div class="mdload"><span class="spinner"></span>' + esc(t("loading")) + "</div>";
+ $("club").classList.remove("hide"); sheetOpened($("club")); lockScroll(true);
+ try{ history.pushState({gkc:1}, ""); }catch(_){}
+ const yr = new Date().getUTCMonth() >= 6 ? new Date().getUTCFullYear() : new Date().getUTCFullYear() - 1;
+ const core = s => slug ? jgetAt(ESPN_CORE + "sports/soccer/leagues/" + slug + "/seasons/" + s + "/types/1/teams/" + id + "/statistics", 8000).catch(() => null) : Promise.resolve(null);
+ const [kits, facts, sched, roster, stand, stats0] = await Promise.all([clubKits(), clubFacts(),
+  slug ? jget(API + slug + "/teams/" + id + "/schedule").catch(() => null) : null,
+  slug ? jget(API + slug + "/teams/" + id + "/roster").catch(() => null) : null,
+  slug ? jget(STAND + slug + "/standings").catch(() => null) : null, core(yr)]);
+ let stats = stats0; if(!(stats && stats.splits && (stats.splits.categories || []).some(c => (c.stats || []).some(s => +s.value)))) stats = await core(yr - 1);
+ if($("club").classList.contains("hide") || !_club || _club.id !== id) return;
+ const team = (sched && sched.team) || (roster && roster.team) || {id, displayName: name, shortDisplayName: name};
+ const results = ((sched && sched.events) || []).map(e => {
+  const cs = (e.competitions && e.competitions[0] && e.competitions[0].competitors) || [];
+  const me = cs.find(x => x.team && String(x.team.id) === id) || {}, op = cs.find(x => x !== me) || {};
+  const sc = x => { const v = x.score; return v == null ? null : (typeof v === "object" ? +v.value : +v); };
+  const g = sc(me), a = sc(op); if(g == null || a == null || Number.isNaN(g) || Number.isNaN(a)) return null;
+  return {d: Date.parse(e.date) || 0, opp: op.team || {}, home: me.homeAway === "home", g, a, r: g > a ? "W" : g < a ? "L" : "D", comp: (e.league && e.league.abbreviation) || ""};
+ }).filter(Boolean).sort((a, b) => b.d - a.d);
+ let rank = null, pts = null;
+ try{ const en = ((stand.children[0].standings.entries) || []).find(x => x.team && String(x.team.id) === id); if(en){ const st = n => (en.stats || []).find(s => s.name === n); rank = st("rank") && st("rank").value; pts = st("points") && st("points").value; } }catch(_){}
+ _club = {id, slug, team, kit: kits[id] || null, facts: facts[id] || null, results, roster: roster || null, stats, rank, pts, lg: slugLeagueObj(slug)};
+ renderClub();
+}
+function slugLeagueObj(slug){ return LEAGUES.find(l => l.slug === slug || l.qual === slug) || null; }
+function closeClub(){ if(history.state && history.state.gkc){ try{ history.back(); return; }catch(_){} } hideSheet("club"); }
+function setClubTab(x){ _clubTab = x; renderClub(); const b = $("clubBox"); if(b) b.scrollTop = Math.min(b.scrollTop, 140); }
+function clubDate(ms){ try{ return new Intl.DateTimeFormat(locale(), {day:"numeric", month:"short"}).format(new Date(ms)); }catch(_){ return ""; } }
+function renderClub(){
+ const c = _club; if(!c) return;
+ const kit = c.kit || {}, nm = clubAr(c.team), code = kit.code || String(c.team.abbreviation || nm.slice(0, 3)).toUpperCase();
+ const lgName = c.lg ? lgName_(c.lg) : "";
+ const sub = [lgName, c.rank ? (LANG === "ar" ? "المركز " + c.rank : "#" + c.rank) : "", c.pts != null ? (c.pts + " " + t("pts")) : ""].filter(Boolean).join(" · ");
+ const form = c.results.slice(0, 5).reverse();
+ let h = '<div class="clhead" style="--c1:' + esc(kit.c1 || "#1A2447") + ';--c2:' + esc(kit.c2 || "#0B1229") + ';--ink:' + esc(kit.ink || "#fff") + '">'
+  + '<button type="button" class="mdx clx" onclick="closeClub()" aria-label="✕">✕</button>'
+  + '<div class="clid"><div class="clmono" dir="ltr">' + esc(code) + '</div><div><div class="clname">' + esc(nm) + '</div><div class="clsub">' + esc(sub) + "</div></div></div>"
+  + (form.length ? '<div class="clform">' + form.map(r => '<i class="' + r.r.toLowerCase() + '" title="' + esc(r.g + "-" + r.a) + '">' + esc(t(r.r)) + "</i>").join("") + "<small>" + esc(t("clForm")) + "</small></div>" : "")
+  + "</div>";
+ h += '<div class="mdtabs">' + [["R", "clResults"], ["S", "clSquad"], ["T", "clStats"], ["H", "clTitles"]].map(p => '<button type="button" class="mdtab' + (_clubTab === p[0] ? " on" : "") + '" onclick="setClubTab(\'' + p[0] + '\')">' + esc(t(p[1])) + "</button>").join("") + "</div>";
+ h += '<div class="clbody">';
+ if(_clubTab === "R"){
+  h += c.results.length ? '<div class="clcard">' + c.results.slice(0, 15).map(r => '<div class="clrow"><span class="opp" data-club="' + esc(String(r.opp.id || "")) + '" data-cslug="' + esc(c.slug) + '">' + (r.home ? "" : "@ ") + esc(clubAr(r.opp)) + '</span><span class="clsc ' + r.r.toLowerCase() + '" dir="ltr">' + r.g + " - " + r.a + '</span><span class="cldate">' + esc(clubDate(r.d)) + "</span></div>").join("") + "</div>"
+   : '<div class="clcard"><div class="muted">' + esc(t("clNoData")) + "</div></div>";
+ } else if(_clubTab === "S"){
+  const coach = c.roster && Array.isArray(c.roster.coach) && c.roster.coach[0] ? [c.roster.coach[0].firstName, c.roster.coach[0].lastName].filter(Boolean).join(" ") : "";
+  const cap = c.facts && c.facts.captain || "";
+  if(coach || cap) h += '<div class="clstaff">' + (coach ? '<div class="clcard"><h4>' + esc(t("clCoach")) + "</h4><b>" + esc(coach) + "</b></div>" : "") + (cap ? '<div class="clcard"><h4>' + esc(t("clCaptain")) + "</h4><b>" + esc(cap) + "</b></div>" : "") + "</div>";
+  const ath = (c.roster && c.roster.athletes) || [];
+  if(!ath.length) h += '<div class="clcard" style="margin-top:10px"><div class="muted">' + esc(t("clNoData")) + "</div></div>";
+  else {
+   const grp = {G: [], D: [], M: [], F: []};
+   ath.forEach(p => { const ab = String((p.position && p.position.abbreviation) || "").charAt(0).toUpperCase(); (grp[ab] || grp.M).push(p); });
+   h += '<div class="clcard" style="margin-top:10px">' + ["G", "D", "M", "F"].map(k => grp[k].length ? '<div class="clpos">' + esc(t("clPos" + k)) + "</div>" + grp[k].sort((a, b) => (+a.jersey || 99) - (+b.jersey || 99)).map(p => '<div class="clrow"><span><span class="clnum" dir="ltr">' + esc(p.jersey || "–") + "</span> " + esc(p.displayName || "") + '</span><span class="clage">' + (p.age ? esc(String(p.age)) : "") + (p.citizenship ? " · " + esc(p.citizenship) : "") + "</span></div>").join("") : "").join("") + "</div>";
+  }
+ } else if(_clubTab === "T"){
+  const cats = (c.stats && c.stats.splits && c.stats.splits.categories) || [];
+  const find = n => { for(const cat of cats) for(const s of cat.stats || []) if(s.name === n) return s; return null; };
+  const want = [["totalGoals", "stGoals"], ["goalsConceded", "stConc"], ["cleanSheet", "stClean"], ["totalShots", "stShots"], ["shotsOnTarget", "stOnT"], ["possessionPct", "stPoss"], ["yellowCards", "stYel"], ["redCards", "stRed"], ["foulsCommitted", "stFouls"]];
+  const cells = want.map(w => { const s = find(w[0]); return s && s.value != null ? '<div class="clstat"><b dir="ltr">' + esc(String(s.displayValue != null ? s.displayValue : s.value)) + "</b><span>" + esc(t(w[1])) + "</span></div>" : ""; }).join("");
+  h += cells ? '<div class="clcard"><h4>' + esc(t("clSeason")) + '</h4><div class="clgrid">' + cells + "</div></div>" : '<div class="clcard"><div class="muted">' + esc(t("clNoData")) + "</div></div>";
+ } else {
+  const tl = (c.facts && c.facts.titles) || [];
+  h += tl.length ? '<div class="clcard">' + tl.map(x => '<div class="cltro"><span class="n" dir="ltr">' + esc(String(x.n)) + '</span><span class="tt">' + esc(LANG === "ar" ? x.ar : x.en) + "</span><small>" + esc(t("clLast")) + ' <span dir="ltr">' + esc(String(x.last)) + "</span></small></div>").join("") + "</div>"
+   : '<div class="clcard"><div class="muted">' + esc(t("clNoFacts")) + "</div></div>";
+ }
+ h += "</div>";
+ $("clubBox").innerHTML = h;
+}
+function lgName_(lg){ return LANG === "ar" ? lg.ar : lg.en; }
+/* every club name anywhere opens the page: capture phase, so the row's own tap never fires */
+document.addEventListener("click", function(ev){
+ const el = ev.target && ev.target.closest ? ev.target.closest("[data-club]") : null;
+ if(!el || !el.dataset.club) return;
+ ev.stopPropagation(); ev.preventDefault();
+ openClub(el.dataset.club, el.dataset.cslug || "", (el.textContent || "").replace(/^@\s*/, "").trim());
+}, true);
 function openMatch(eid){
  _mdTab = "E";
  if(!renderMatchModal(eid)) return;
@@ -5384,7 +5513,7 @@ function predCard(e){
  return '<div class="lgsec"><div class="lgbody"><div class="mrow prow">' +
   '<span class="tm tmh"><i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + "</span>" +
   '<span class="mid">' + mid + '<span class="msub"><span dir="ltr">' + esc(fmtTime(e.date)) + "</span>" + (lg ? " · " + esc(lgShort(lg)) : "") + (e._gkQual ? " · " + esc(t("qualTag")) : "") + "</span></span>" +
-  '<span class="tm tma">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span>" +
+  '<span class="tm tma" data-club="' + esc(String((A.team || {}).id || "")) + '" data-cslug="' + esc(slugForEvent(e) || "") + '">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span>" +
   "</div></div></div>";
 }
 function predResultRow(e){
@@ -5402,7 +5531,7 @@ function predResultRow(e){
  return '<div class="lgsec"><div class="lgbody"><div class="mrow prow">' +
   '<span class="tm tmh"><i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + "</span>" +
   '<span class="mid"><span class="msc" dir="ltr">' + scoreTxt(H, A) + '</span><span class="msub">' + sub + "</span></span>" +
-  '<span class="tm tma">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span>" +
+  '<span class="tm tma" data-club="' + esc(String((A.team || {}).id || "")) + '" data-cslug="' + esc(slugForEvent(e) || "") + '">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span>" +
   "</div></div></div>";
 }
 /* A REPAINT MUST NEVER EAT WHAT SOMEBODY IS TYPING. The tab refreshes on a timer and on
@@ -5860,7 +5989,7 @@ function renderTeamFxBody(){
  const d = _tmfxData;
  if(!d) return;
  const c = d.c;
- let h = '<div class="mdhead"><b>' + esc(clubLabel(c)) + '</b>'
+ let h = '<div class="mdhead"><b data-club="' + esc(String(c.id)) + '" data-cslug="' + esc((LEAGUES.find(l => l.id === c.lg) || {}).slug || "") + '">' + esc(clubLabel(c)) + '</b>'
   + '<button type="button" class="mdx" onclick="closeTeamFx()" aria-label="✕">✕</button></div>'
   + '<div class="lseg tmfxseg">'
   + '<button type="button" class="lsegb' + (_tmfxSeg === "up" ? " on" : "") + '" onclick="setTmfxSeg(\'up\')">' + esc(t("upcoming")) + "</button>"
@@ -6630,7 +6759,7 @@ function renderChatLive(){
   const cs = (e.competitions && e.competitions[0] && e.competitions[0].competitors) || [];
   const H = cs.find(x => x.homeAway === "home") || cs[0] || {}, A = cs.find(x => x.homeAway === "away") || cs[1] || {};
   return '<button type="button" class="clive" data-id="' + esc(e.id) + '" onclick="openMatch(this.dataset.id)">'
-   + '<span>' + esc(clubAr(H.team || {})) + '</span><span class="sc" dir="ltr">' + esc(String(H.score ?? "")) + " - " + esc(String(A.score ?? "")) + "</span><span>" + esc(clubAr(A.team || {})) + "</span>"
+   + '<span data-club="' + esc(String((H.team || {}).id || "")) + '" data-cslug="' + esc(slugForEvent(e) || "") + '">' + esc(clubAr(H.team || {})) + '</span><span class="sc" dir="ltr">' + esc(String(H.score ?? "")) + " - " + esc(String(A.score ?? "")) + '</span><span data-club="' + esc(String((A.team || {}).id || "")) + '" data-cslug="' + esc(slugForEvent(e) || "") + '">' + esc(clubAr(A.team || {})) + "</span>"
    + '<span class="ck" dir="ltr">' + esc(String((e.status && e.status.displayClock) || "")) + "</span></button>";
  }).join("");
 }
@@ -7365,6 +7494,7 @@ async function gkVersionCheck(){
   else if(q.get("go") === "fant") goFantasy();
   else if(q.get("go") === "chat") showMain("chat");
   else if(lgq && LEAGUES.some(l => l.id === lgq)) gotoLeague(lgq);
+  const clubq = q.get("club"); if(clubq) setTimeout(function(){ openClub(clubq, q.get("cslug") || "", ""); }, 600);
  }catch(_){}
  if("serviceWorker" in navigator){
   /* One-time hard refresh gated by FORCE_RELOAD: a new SW (skipWaiting + claim) fires controllerchange

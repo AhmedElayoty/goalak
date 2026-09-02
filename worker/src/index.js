@@ -78,7 +78,23 @@ async function espnFetch(url, headers) {
    refusing one hostname, and when every upstream fails the last good copy is served STALE
    with a marker header - old data, honestly labelled, instead of an error card. The client
    still falls back to direct ESPN if this route itself is unreachable. */
-const ESPN_PROXY_OK = /^apis\/(site\/)?v2\/sports\/soccer\/[A-Za-z0-9._-]+\/(scoreboard|summary|standings|teams\/\d+\/schedule)$/;
+const ESPN_PROXY_OK = /^apis\/(site\/)?v2\/sports\/soccer\/[A-Za-z0-9._-]+\/(scoreboard|summary|standings|teams\/\d+\/schedule|teams\/\d+\/roster|teams\/\d+)$/;
+/* THE CORE API - season statistics per team - lives on a different ESPN host and carries no
+   live data, so it gets its own narrow whitelist and a plain hour-long edge cache. */
+const ESPN_CORE_OK = /^sports\/soccer\/leagues\/[A-Za-z0-9._-]+\/seasons\/\d{4}\/types\/\d\/teams\/\d+\/statistics$/;
+async function espnCoreProxy(request, url) {
+  if (request.method !== "GET") return json({ ok: false, error: "method" }, 405);
+  const rest = url.pathname.replace(/^\/api\/espn-core\//, "");
+  if (!ESPN_CORE_OK.test(rest)) return json({ ok: false, error: "not-proxied" }, 404);
+  const cache = caches.default, key = new Request("https://espn-core-edge.goallak.internal/" + rest);
+  const hit = await cache.match(key);
+  if (hit) return new Response(hit.body, hit);
+  const r = await fetch("https://sports.core.api.espn.com/v2/" + rest, { headers: { "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/128 Safari/537.36", "accept": "application/json" }, signal: AbortSignal.timeout(8000) });
+  if (!r.ok) return json({ ok: false, error: "upstream-" + r.status }, 502);
+  const out = new Response(await r.text(), { headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=3600" } });
+  await cache.put(key, out.clone());
+  return out;
+}
 function espnProxyTtl(rest) {
   if (rest.endsWith("/scoreboard") || rest.indexOf("/scoreboard?") >= 0) return 45;
   if (rest.indexOf("/summary") >= 0) return 45;
@@ -1089,6 +1105,7 @@ async function chatApi(request, env, url) {
       const out = new Response(r.body, { status: r.status, headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=20" } });
       return withApiCors(out, request);
     }
+    if (url.pathname.startsWith("/api/espn-core/")) return withApiCors(await espnCoreProxy(request, url), request);
     /* public read-only sports data; the edge cache is the rate limiter */
     if (url.pathname.startsWith("/api/espn/"))
       return withApiCors(await espnProxy(request, url), request);
@@ -1192,7 +1209,7 @@ export default {
     }
     if (url.pathname === "/api/session" || url.pathname.startsWith("/api/session/") || url.pathname.startsWith("/api/chat/")
       || url.pathname.startsWith("/api/auth/") || url.pathname.startsWith("/api/pred/")
-      || url.pathname.startsWith("/api/fx/") || url.pathname.startsWith("/api/espn/") || url.pathname.startsWith("/api/egy/")
+      || url.pathname.startsWith("/api/fx/") || url.pathname.startsWith("/api/espn/") || url.pathname.startsWith("/api/egy/") || url.pathname.startsWith("/api/espn-core/")
       || url.pathname.startsWith("/api/push/")
       || url.pathname === "/api/visit") return chatApi(request, env, url);
     if (url.pathname.startsWith("/media/") && request.method === "GET") {

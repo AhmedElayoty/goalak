@@ -168,6 +168,17 @@ it is. Read the header comment of `egypt.js`; in short:
   unofficial option (structured JSON in its pages, Arabic names, events and line-ups;
   reachable from Workers) if the owner ever prefers it for the friends build.
 
+## The club page (v6.90)
+
+`openClub(id, slug, name)` in index.html; any element carrying `data-club` (+ `data-cslug`)
+opens it - a capture-phase document listener, so a name inside a match row wins over the row.
+Rows, prediction cards, the standings table, line-up labels, the chat live strip and the
+followed-club sheet header carry it. Sources: ESPN team schedule + roster (edge whitelist now
+allows `teams/<id>/roster` and `teams/<id>`), ESPN core season statistics via the worker's
+`/api/espn-core/` route (1 h cache), `club-facts.json` in the repo root for honours + captain
+(20 clubs; owner-editable, no release needed), `fantasy/clubs.json` for colours and codes.
+Deep link `?club=<id>&cslug=<slug>`. Every source is optional; an empty tab says so.
+
 ## Conventions that gates and reviewers enforce
 
 - **Comments are post-mortems**: say the failure the code prevents, never restate the code.
