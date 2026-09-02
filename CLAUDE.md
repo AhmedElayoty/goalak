@@ -222,6 +222,22 @@ on the E tab; Arabic prompt asks for Egyptian colloquial but the model tends to 
   goal celebration (`celebrateGoal`: vib + `body.goalburst` wash, followed clubs only, 4 s
   throttle); global `#liveBar` (`renderLiveBar`, every view except home and chat).
 
+## v6.110 (2026-09-02, late night) - three owner asks after a night with the app
+
+- **Egyptian summary carries the commentary.** `commInlineHtml(eid, e, H, A)` appends FilGoal's
+  minute-by-minute lines (newest first, `commRowsHtml(m)` shared with `renderComm`) under the events
+  in the E tab for `_gkSrc === "af"` matches; it re-fetches every 60 s while live and repaints the E
+  tab. The separate "C" tab exists ONLY for non-Egyptian matches with a FilGoal twin (`hasC = !af && e._gkFg`).
+- **No goal-clip chips.** `goalLinksHtml` shows nothing during a live match except the Discuss button,
+  and after FT the ESPN video / YouTube search + Discuss. `clipsFor` and the `goalClips`/`clipsSoon`/
+  `commClip` strings remain but are unused. Owner: "the youtube is enough".
+- **Club page opens from the match SHEET header, not from rows.** `data-club`/`data-cslug` were removed
+  from `.mrow` team spans, the prediction cards and the chat live strip (a thumb aiming for the card
+  landed on a crest). They now sit on the `<i>` inside each `.mvt` of the sheet header. Still present:
+  standings table, line-up labels, club page lists, `tmfx` header.
+- Egyptian club Results listed a match twice: `/schedule?season=yr-1` maps to the same `board?team=`
+  answer. `evs` is deduped by id in `openClub`.
+
 ## Features roadmap (from the features agent, 2026-09-02) - owner picks the order
 
 1. Reveal the room's picks after lock (leaderboard already returns every user's picks; ~5h).
