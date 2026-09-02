@@ -235,6 +235,7 @@ html[data-theme="light"] .ico-sun{display:none}
 .lgsec[data-lg="ucl"]{--lgc:#E8EDFF}
 .lgsec[data-lg="uel"]{--lgc:#C9885A}
 .lgsec[data-lg="uecl"]{--lgc:#2ECC71}
+.lgsec[data-lg="egy"]{--lgc:#E4002B}
 html[data-theme="light"] .lgsec[data-lg="epl"]{--lgc:#7C3AED}
 html[data-theme="light"] .lgsec[data-lg="liga"]{--lgc:#D45500}
 html[data-theme="light"] .lgsec[data-lg="seriea"]{--lgc:#1D6FBF}
@@ -245,6 +246,7 @@ html[data-theme="light"] .lgsec[data-lg="spl"]{--lgc:#D6337A}
 html[data-theme="light"] .lgsec[data-lg="ucl"]{--lgc:#3B4FA8}
 html[data-theme="light"] .lgsec[data-lg="uel"]{--lgc:#9A6430}
 html[data-theme="light"] .lgsec[data-lg="uecl"]{--lgc:#1E8E4E}
+html[data-theme="light"] .lgsec[data-lg="egy"]{--lgc:#B8001F}
 .lghead{display:flex;align-items:center;border-bottom:1px solid var(--line)}
 .lgopen{flex:1;display:flex;align-items:center;gap:9px;padding:10px 13px;min-width:0;text-align:start}
 .lgopen.allonly{cursor:default}
@@ -424,6 +426,7 @@ html[data-theme="light"] .lgsec[data-lg="uecl"]{--lgc:#1E8E4E}
 .mdtabs{display:flex;gap:6px;padding:10px 0 6px;position:sticky;top:-19px;background:var(--card3);z-index:30;box-shadow:0 6px 10px -6px rgba(0,0,0,.55)}
 .mdtab{flex:1;padding:8px 0;border-radius:10px;background:var(--card2);border:1px solid var(--line);font-size:var(--fs-md);font-weight:800;color:var(--dim)}
 .mdtab.on{background:var(--accdark);border-color:var(--acc);color:#fff}
+.afnote{font-size:11px;font-weight:600;color:var(--dim);text-align:center;padding:0 0 6px}
 .mdload{text-align:center;padding:26px 0;color:var(--dim2);font-size:13px}
 .motm{display:flex;align-items:center;gap:10px;width:100%;background:linear-gradient(150deg,#3a2a07,#241a06);border:1px solid var(--gold);border-radius:12px;padding:9px 13px;margin:10px 0 4px;text-align:start}
 .motm.loading{opacity:.85}
@@ -1174,10 +1177,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.87";
+const APP_VERSION = "6.88";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-09-02-v687";
+const FORCE_RELOAD = "2026-09-02-v688";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1195,6 +1198,15 @@ const LEAGUES = [
     clubs.json). Every Arabic club name was already in AR_TEAMS from the qualifier work. */
  {id:"uecl", slug:"uefa.europa.conf", qual:"uefa.europa.conf_qual", uefa:true, en:"Conference League", ar:"دوري المؤتمر الأوروبي", shortEn:"UECL", shortAr:"المؤتمر", ico:"🥉",
   zones:{g:[1,8],a:[9,24],r:[25,36]}, zlabAr:["التأهل المباشر لدور الـ16","الملحق","خارج المنافسة"], zlabEn:["Direct to R16","Playoff","Eliminated"]},
+ /* THE EGYPTIAN PREMIER LEAGUE - BUILT, PARKED (owner decision 2026-09-02). ESPN does not carry
+    it and no free feed covers the current season (API-Football's free plan stops at 2024), so the
+    owner chose to wait for a licensed feed at the public launch rather than pay for one league.
+    Everything is wired and tested and stays: the worker serves /api/egy/* in ESPN's shapes,
+    jget() rewrites every "egy.af" request onto it, and the match sheet knows how to render a
+    feed without Facts or Stats (see the `af` branches). To revive: flip the worker's EGY_FEED
+    var to "on" with a paying door configured, then uncomment this one line. NOT in predictions
+    and NOT in fantasy either way. */
+ // {id:"egy", slug:"egy.af", src:"af", en:"Egyptian Premier League", ar:"الدوري المصري الممتاز", shortEn:"Egypt", shortAr:"مصر", flag:"eg", zones:{g:[1,2],a:[3,3]}},
  {id:"epl", slug:"eng.1", en:"Premier League", ar:"الدوري الإنجليزي الممتاز", shortEn:"PL", shortAr:"إنجلترا", flag:"gb-eng", zones:{g:[1,4],a:[5,6],r:[18,20]}},
  {id:"liga", slug:"esp.1", en:"La Liga", ar:"الدوري الإسباني", shortEn:"LaLiga", shortAr:"إسبانيا", flag:"es", zones:{g:[1,4],a:[5,6],r:[18,20]}},
  {id:"seriea", slug:"ita.1", en:"Serie A", ar:"الدوري الإيطالي", shortEn:"Serie A", shortAr:"إيطاليا", flag:"it", zones:{g:[1,4],a:[5,6],r:[18,20]}},
@@ -1325,6 +1337,8 @@ const AR_TEAMS = {
     spelling are added here; the rest render in Latin, which is honest, and the QA list of who they
     currently are is in design/top-clubs-coverage.md for the owner to fill in. */
  "al ahly":"الأهلي","al ahly sc":"الأهلي",
+ /* the rest of the Egyptian Premier League, spelled the way API-Football spells them (verified against its team list on the first real call) */
+ "ceramica cleopatra":"سيراميكا كليوباترا","ceramica cleopatra fc":"سيراميكا كليوباترا","enppi":"إنبي","enppi sc":"إنبي","ismaily":"الإسماعيلي","ismaily sc":"الإسماعيلي","smouha":"سموحة","smouha sc":"سموحة","el gouna":"الجونة","el gouna fc":"الجونة","pharco":"فاركو","pharco fc":"فاركو","talaea el gaish":"طلائع الجيش","tala'ea el gaish":"طلائع الجيش","el gaish":"طلائع الجيش","modern sport":"مودرن سبورت","modern sport fc":"مودرن سبورت","modern future":"مودرن فيوتشر","zed":"زد","zed fc":"زد","national bank of egypt":"البنك الأهلي","national bank of egypt sc":"البنك الأهلي","nbe":"البنك الأهلي","ghazl el mahalla":"غزل المحلة","ghazl el mahallah":"غزل المحلة","petrojet":"بتروجت","petrojet sc":"بتروجت","haras el hodood":"حرس الحدود","haras el hodoud":"حرس الحدود","al ittihad":"الاتحاد السكندري","al ittihad alexandria":"الاتحاد السكندري","ittihad alexandria":"الاتحاد السكندري","el ittihad":"الاتحاد السكندري","kahrabaa ismailia":"كهرباء الإسماعيلية","wadi degla":"وادي دجلة","el dakhleya":"الداخلية","aswan":"أسوان","aswan sc":"أسوان","misr lel makkasa":"مصر المقاصة","misr el makasa":"مصر المقاصة","el sharkia lel dokhan":"الشرقية للدخان","bank al ahly":"البنك الأهلي","al mokawloon al arab":"المقاولون العرب","arab contractors":"المقاولون العرب","el entag el harby":"الإنتاج الحربي","tanta":"طنطا","nogoom":"نجوم","nogoom fc":"نجوم",
  /* the other Egyptian clubs that reach the app through CAF competitions */
  "zamalek":"الزمالك","zamalek sc":"الزمالك","pyramids":"بيراميدز","pyramids fc":"بيراميدز","al-masry":"المصري","al masry":"المصري","al masry sc":"المصري",
  /* أوروبا: تصفيات ودوريات صغيرة (Wave 2). Israeli clubs render the BRAND ONLY
@@ -1638,6 +1652,9 @@ const STR = {
  predComp:["توقعات دوري أبطال أوروبا","Champions League Predictions"],
  mdSummary:["الملخص","Summary"],
  mdLineups:["التشكيل","Line-ups"],
+ afJustNow:["تم التحديث الآن","Updated just now"],
+ afFresh:["آخر تحديث قبل {n} د","Updated {n} min ago"],
+ afEvery:["يتحدّث كل {n} د تقريبًا خلال المباراة","refreshes about every {n} min during play"],
  mdStats:["الإحصائيات","Stats"],
  mdStarters:["التشكيل الأساسي","Starting XI"],
  mdSubs:["البدلاء","Substitutes"],
@@ -1711,6 +1728,14 @@ const STR = {
 };
 function t(k, vars){ const e = STR[k]; let s = e ? e[LANG === "ar" ? 0 : 1] : k; if(vars) for(const n in vars) s = s.split("{" + n + "}").join(vars[n]); return s; }
 function lgName(lg){ return LANG === "ar" ? lg.ar : lg.en; }
+/* the Egyptian feed's freshness line: how old the score is, and - while the match runs - how often
+   the worker asks. _gkAt is when the provider was last asked, _gkEvery the current poll interval. */
+function afNoteTxt(e){
+ const age = e && e._gkAt ? Math.max(0, Math.round((Date.now() - e._gkAt) / 60000)) : null;
+ let s = age == null ? "" : age < 1 ? t("afJustNow") : t("afFresh", {n: age});
+ if(evState(e) === "in" && e._gkEvery) s += (s ? " · " : "") + t("afEvery", {n: e._gkEvery});
+ return s;
+}
 /* country leagues get real flag images (emoji flags do not render on Windows); UEFA comps keep their emoji */
 function lgIcon(lg){
  if(lg.flag) return '<img class="rflag" src="https://flagcdn.com/w40/' + lg.flag + '.png" alt="" onerror="this.style.display=\'none\'">';
@@ -1962,6 +1987,21 @@ function espnEdgeUrl(url){
  const m = String(url).match(/^https:\/\/site\.api\.espn\.com\/(apis\/.+)$/);
  return m ? ESPN_EDGE + m[1] : null;
 }
+/* THE EGYPTIAN LEAGUE IS NOT ON ESPN, BUT EVERY SCREEN ASKS IN ESPN'S SPELLING. Rather than teach
+   the list, the table, the sheet, the club page and the search a second feed, the one place all
+   of them pass through translates: scoreboard -> board, standings -> standings, summary -> summary,
+   a club's schedule -> board?team=. The worker answers in ESPN's shapes from what its cron stored,
+   so nothing downstream knows the difference - and there is no fallback to ESPN, which would 400. */
+const EGY_EDGE = "https://goalak-push.ahmed-ayoty.workers.dev/api/egy/";
+function egyEdgeUrl(url){
+ const m = String(url).match(/^https:\/\/site\.api\.espn\.com\/apis\/(?:site\/v2|v2)\/sports\/soccer\/egy\.af\/(scoreboard|standings|summary|teams\/(\d+)\/schedule)(?:\?(.*))?$/);
+ if(!m) return null;
+ const q = new URLSearchParams(m[3] || "");
+ if(m[1] === "scoreboard") return EGY_EDGE + "board?dates=" + encodeURIComponent(q.get("dates") || "");
+ if(m[1] === "standings") return EGY_EDGE + "standings";
+ if(m[1] === "summary") return EGY_EDGE + "summary?fixture=" + encodeURIComponent(q.get("event") || "");
+ return EGY_EDGE + "board?team=" + m[2];
+}
 /* IDENTICAL REQUESTS WITHIN FIFTEEN SECONDS SHARE ONE ANSWER. Different screens ask for the
    same scoreboard within the same tick (the list, the live strip, an open sheet), and every
    ask used to be its own round trip - which is real money against the worker's daily request
@@ -1969,6 +2009,15 @@ function espnEdgeUrl(url){
    the app asking the same question twice in the same breath. */
 const _jgetMem = new Map();
 async function jget(url){
+ const egy = egyEdgeUrl(url);
+ if(egy){
+  const heldE = _jgetMem.get(egy);
+  if(heldE && Date.now() - heldE.at < 15000) return heldE.p;
+  const pe = jgetAt(egy, 8000);
+  _jgetMem.set(egy, {at: Date.now(), p: pe});
+  pe.catch(function(){ _jgetMem.delete(egy); });
+  return pe;
+ }
  const edge = espnEdgeUrl(url);
  if(!edge) return jgetAt(url, 12000);
  const held = _jgetMem.get(edge);
@@ -4039,9 +4088,18 @@ async function renderMdBody(){
  const tabsEl = $("mdTabs"), body = $("mdBody");
  if(!body) return;                                   /* pre-match sheets render line-ups with no tab bar */
  const preTabs = evState(e) === "pre";
- if(tabsEl) tabsEl.innerHTML = (preTabs ? [["F", "mdFacts"], ["L", "mdLineups"]]
+ /* THE EGYPTIAN FEED HAS NO FACTS AND NO STATS. The free tier gives the score, the events and the
+    eleven; Facts and Stats would be empty frames, so they are not offered - and a tab chosen on an
+    ESPN match a moment ago must not carry over into an empty one here. */
+ const af = e._gkSrc === "af";
+ if(af && (_mdTab === "S" || _mdTab === "F")) _mdTab = preTabs ? "L" : "E";
+ if(tabsEl) tabsEl.style.display = (af && preTabs) ? "none" : "";
+ if(tabsEl) tabsEl.innerHTML = (preTabs ? (af ? [["L", "mdLineups"]] : [["F", "mdFacts"], ["L", "mdLineups"]])
+                                        : af ? [["E", "mdSummary"], ["L", "mdLineups"]]
                                         : [["E", "mdSummary"], ["L", "mdLineups"], ["S", "mdStats"], ["F", "mdFacts"]])
   .map(p => '<button type="button" class="mdtab' + (_mdTab === p[0] ? " on" : "") + '" onclick="setMdTab(\'' + p[0] + '\')">' + esc(t(p[1])) + "</button>").join("");
+ /* the age of what is on screen, in the reader's words: a clock that does not tick must say why */
+ if(tabsEl){ let n = $("mdAfNote"); if(af){ if(!n){ tabsEl.insertAdjacentHTML("afterend", '<div id="mdAfNote" class="afnote"></div>'); n = $("mdAfNote"); } n.textContent = afNoteTxt(e); } else if(n) n.remove(); }
  const comp = e.competitions && e.competitions[0] || {};
  const cs = comp.competitors || [];
  const H = cs.find(c => c.homeAway === "home") || cs[0] || {};
@@ -4539,7 +4597,7 @@ function renderMatchModal(eid){
     landed: a reader who tapped Line-ups to wait for the team sheet was thrown back to Facts
     on the next tick, every tick, for up to two hours. "E" is openMatch's default and is never
     a valid tab for a pre-match sheet, so it means exactly one thing here: freshly opened. */
- if(preLineups && _mdTab === "E") _mdTab = "F";
+ if(preLineups && _mdTab === "E") _mdTab = (EV_INDEX[eid] && EV_INDEX[eid]._gkSrc === "af") ? "L" : "F";
  _mdEid = eid;
  scheduleFit();
  $("mbox").innerHTML =

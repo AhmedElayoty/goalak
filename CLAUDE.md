@@ -48,7 +48,7 @@ NOT bump.
 `node fantasy/src/build-bundle.mjs`. Edit `src/`, rebuild, commit both. A fix that only
 touches `src/` passes its tests and ships nothing — this happened (Triple Captain, v6.84.1).
 
-## Gates — all must pass before a commit (1,868 assertions as of 2026-09-02)
+## Gates — all must pass before a commit (1,898 assertions as of 2026-09-02)
 
 ```
 node check-release.mjs  check-sync.mjs  check-fantasy-tab.mjs  predscore.test.mjs
@@ -79,10 +79,12 @@ names the incident it prevents.
   and consumed. Triple Captain adds one more copy of whatever the armband actually paid.
 - **The homepage must not get more crowded** — new surfaces go in sheets, not on the home
   screen (~31% chrome budget). The hero card hides on days its match is pinned below.
-- **Egyptian Premier League is NOT on ESPN** (checked 2026-09-02: no `egy.*` slug in its
-  full catalogue). It comes from API-Football's free tier instead (`worker/src/egypt.js`,
-  100 calls/day) - see "The Egyptian feed" below. **NOT in fantasy, NOT in predictions.**
-  Its clubs also reach the app through the top-clubs dataset (`top-clubs.js`, group `egy`).
+- **Egyptian Premier League is PARKED (owner, 2026-09-02).** ESPN does not carry it and no
+  free feed covers the current season; the owner chose not to pay for one league and not to
+  read a publisher's pages. Everything built stays in place but hidden (see "The Egyptian
+  feed") - do not delete it, and do not re-raise until the owner decides to pay for a feed,
+  most likely a licensed one at the public launch. Its clubs still reach the app through the
+  top-clubs dataset (`top-clubs.js`, group `egy`) and now have Arabic names.
 
 ## Competitions (v6.87): UCL, UEL, **UECL (new)**, PL, La Liga, Serie A, Bundesliga, Ligue 1, Süper Lig, SPFL
 
@@ -154,6 +156,17 @@ it is. Read the header comment of `egypt.js`; in short:
   $9/mo (2-minute livescores, thin events; new adapter; its free key returns 5 truncated
   events), or drop the league. The v6.88 shell wiring is built and browser-verified locally,
   and stays uncommitted until data actually flows.
+- **Parked, end of the day (owner decision):** "forget the Egyptian league for now ... do not
+  delete all what u did, just do not show it in the app." So: v6.88 shipped with the `egy`
+  LEAGUES entry commented out (index.html, one line, with the revive note above it); the
+  worker got `EGY_FEED = "off"` in `[vars]`, which makes `afDoor()` return null - configured
+  false, empty board, no provider calls - while every secret (APIFOOTBALL_KEY, AF_RELAY_URL,
+  AF_RELAY_TOKEN), the relay script in the owner's Google account, the scheduler, adapters,
+  routes and 88 tests stay. **To revive:** pay for a door (API-Football Pro works through the
+  relay with no code change; a licensed feed needs its own adapter), set `EGY_FEED = "on"`,
+  redeploy, uncomment the LEAGUES line, release. FilGoal remains the documented free-but-
+  unofficial option (structured JSON in its pages, Arabic names, events and line-ups;
+  reachable from Workers) if the owner ever prefers it for the friends build.
 
 ## Conventions that gates and reviewers enforce
 

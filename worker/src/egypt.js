@@ -37,6 +37,11 @@ export const RAPID_HOST = "api-football-v1.p.rapidapi.com";    /* the same API, 
    a shared IP every direct call is refused unread, and a refused call that keeps coming back
    every few minutes is exactly the "abnormal traffic" their firewall bans keys for. */
 export function afDoor(env) {
+  /* THE PARKING BRAKE. Owner decision 2026-09-02: the league is built but not shown, and while
+     it is not shown the cron must not keep knocking on API-Sports' door every few hours with a
+     key that has no current season. EGY_FEED "off" in [vars] makes every door null - configured
+     false, empty board, zero provider calls - and leaves keys, relay and code exactly in place. */
+  if (!env || env.EGY_FEED === "off") return null;
   if (env && env.AF_RELAY_URL && env.AF_RELAY_TOKEN) return { relay: env.AF_RELAY_URL, token: env.AF_RELAY_TOKEN, via: "relay" };
   if (env && env.RAPIDAPI_KEY) return { base: "https://" + RAPID_HOST + "/v3", headers: { "x-rapidapi-key": env.RAPIDAPI_KEY, "x-rapidapi-host": RAPID_HOST }, via: "rapidapi" };
   if (env && env.APIFOOTBALL_KEY && env.AF_DIRECT_OK === "1") return { base: AF_HOST, headers: { "x-apisports-key": env.APIFOOTBALL_KEY }, via: "direct" };

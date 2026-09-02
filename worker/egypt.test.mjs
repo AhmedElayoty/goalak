@@ -160,6 +160,7 @@ console.log("\n7 · line-ups: two attempts and then stop asking");
 console.log("\n7b · the door: RapidAPI when we have its key (shared Worker IPs are refused at API-Sports' own door), else direct, else inert");
 {
   eq(afDoor({}), null, "no key, no door - the whole module is inert");
+  eq(afDoor({ EGY_FEED: "off", AF_RELAY_URL: "https://x/exec", AF_RELAY_TOKEN: "t", APIFOOTBALL_KEY: "k" }), null, "EGY_FEED=off closes every door however many keys exist (parked 2026-09-02 by owner decision)");
   eq(afDoor({ APIFOOTBALL_KEY: "k" }), null, "the direct key alone opens nothing from a Worker (shared egress: refused unread, and repeated refusals get keys banned)");
   eq(afDoor({ APIFOOTBALL_KEY: "k", AF_DIRECT_OK: "1" }).via, "direct", "the direct door needs the explicit AF_DIRECT_OK var - for a deployment with its own IP");
   const r = afDoor({ APIFOOTBALL_KEY: "k", RAPIDAPI_KEY: "r" });
