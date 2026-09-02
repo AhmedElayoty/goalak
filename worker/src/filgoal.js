@@ -107,7 +107,7 @@ export async function filgoalTick(env, store, now, log, toEspnEvent) {
   const state = (await store.get(K.fg)) || { lastLive: 0, scheduleDay: null, statuses: {} };
   const fixtures = (await store.get(K.fixtures)) || { at: 0, list: [] };
   const live = (await store.get(K.live)) || { at: 0, byId: {} };
-  if (fixtures.list.some(f => f.teams && f.teams.home && f.teams.home.nameAr === undefined)) state.scheduleDay = null;   /* stored before English names existed: re-read once */
+  if (fixtures.list.some(f => f.teams && f.teams.home && f.teams.home.nameAr === undefined) || Object.values(live.byId).some(f => f && f.teams && f.teams.home && f.teams.home.nameAr === undefined)) state.scheduleDay = null;   /* stored before English names existed: re-read once */
   const plan = fgPlan(now, state, fixtures.list);
   const day = utcDay(now);
   try {
@@ -121,7 +121,9 @@ export async function filgoalTick(env, store, now, log, toEspnEvent) {
       const seen = new Set();
       fixtures.list = list.filter(f => !seen.has(f.fixture.id) && seen.add(f.fixture.id));
       fixtures.at = now; fixtures.league = { id: FG_LEAGUE_ID, name: "الدوري المصري", country: "Egypt", season: fixtures.list[0] ? fixtures.list[0].league.season : null, via: "filgoal" };
-      for (const f of fixtures.list) if (f.fixture.status.short !== "NS") live.byId[String(f.fixture.id)] = f;
+      /* the schedule read is the freshest copy of EVERY match it lists; the live copy must not outrank it
+         (it did once: live copies stored before names travelled in English kept winning after the re-read) */
+      for (const f of fixtures.list) live.byId[String(f.fixture.id)] = f;
       live.at = now;
       await store.put(K.fixtures, fixtures); await store.put(K.live, live);
       state.scheduleDay = day; state.lastLive = now;
