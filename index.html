@@ -1231,10 +1231,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.106";
+const APP_VERSION = "6.107";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-09-02-v6106";
+const FORCE_RELOAD = "2026-09-02-v6107";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -4376,7 +4376,7 @@ async function renderComm(eid, e, H, A){
   const rows = m.comments.slice().sort((x, y) => (y.t || 0) - (x.t || 0)).map(x => {
    const goal = /هدف|جووو|جول/.test(x.txt) && !/ضائع|مهدر|ملغ/.test(x.txt);
    return '<div class="comm' + (goal ? " goal" : "") + '"><span class="cmin" dir="ltr">' + (x.t == null ? "" : esc(String(x.t)) + "'") + '</span><div class="ctxt" dir="rtl">' + esc(x.txt)
-    + (x.url ? ' <a class="cclip" href="' + esc(x.url) + '" target="_blank" rel="noopener">🎬 ' + esc(t("commClip")) + "</a>" : "") + "</div></div>";
+    + (/^https?:\/\//i.test(x.url || "") ? ' <a class="cclip" href="' + esc(x.url) + '" target="_blank" rel="noopener">🎬 ' + esc(t("commClip")) + "</a>" : "") + "</div></div>";
   }).join("");
   mdSet(body, '<div class="commhead">🎙️ ' + esc(t("commSrc")) + (m.over ? "" : ' · <span class="livep">' + esc(t("commLive")) + "</span>") + "</div>" + staff + '<div class="commlist">' + rows + "</div>");
  };
@@ -4447,7 +4447,7 @@ function goalLinksHtml(e, H, A, sum){
 function clipsFor(e, H, A){
  const c = _comm[e.id];
  if(c && c.m && evState(e) === "in" && Date.now() - c.at > 60000 && !c.loading) fetchComm(e.id, e, H, A).then(function(){ if(_mdEid === e.id && _mdTab === "E") renderMdBody(); });
- if(c && c.m) return (c.m.comments || []).filter(x => x.url).sort((x, y) => (x.t || 0) - (y.t || 0)).map(x => ({t: x.t, url: x.url, txt: x.txt}));
+ if(c && c.m) return (c.m.comments || []).filter(x => /^https?:\/\//i.test(x.url || "")).sort((x, y) => (x.t || 0) - (y.t || 0)).map(x => ({t: x.t, url: x.url, txt: x.txt}));
  if(!c && (e._gkSrc === "af" || e._gkFg)) fetchComm(e.id, e, H, A).then(function(){ if(_mdEid === e.id && _mdTab === "E") renderMdBody(); });
  return [];
 }

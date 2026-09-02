@@ -1,5 +1,6 @@
 /* Goallak service worker
    CACHE changelog (bump on EVERY deploy, newest first):
+   goalak-v163 2026-09-02  v6.107 THE "OFFLINE" PAGE WAS A 404 IN DISGUISE. The owner, online, tapped a goal clip and got "you are offline" again; the YouTube link beside it worked. The clip's "URL" from FilGoal is not a URL at all but the embed HTML of a tweet; put into an href it became a relative path on goallak.com, the server answered 404, and the worker's navigation path treated any non-OK answer as an outage and showed the offline page. Two corrections: the worker now pulls the real link out of the embed (the tweet's status URL, or a video link) and the shell refuses to link anything that is not an absolute http(s) address; and a 4xx now passes through as itself - only a 5xx or a failed connection means the network is down.
    goalak-v162 2026-09-02  v6.106 THE OFFLINE PAGE, SEEN ONLINE. The owner, on 4G, opened the app and got "you are offline" in two languages at once. Two faults. The worker's navigation path tries the network once and then the cache - and a worker that has just installed has an EMPTY cache for a moment; twelve releases in one day meant twelve such moments, and one of them met a dropped 4G packet. The path now tries the network a second time after 700 ms before giving up, and the root falls to the same page as any other path rather than to a browser error. And the page itself: it printed Arabic and English together because a service worker cannot see the app's language - it now reads the same gk_lang key index.html keeps and shows one language, and it retries the shell every four seconds and the moment the browser reports it is online, reloading in place instead of waiting to be closed.
    goalak-v161 2026-09-02  v6.105 NO OLD HIGHLIGHTS FOR A MATCH THAT IS STILL ON. The owner opened a running Egyptian match, tapped "watch the goals" and got last season's meeting - a YouTube search during a live match can only find old ones. Now, while a match runs, that row shows the goal CLIPS FilGoal has published so far, one chip per goal with the minute and the scorer, refreshed with the sheet; and if there are none yet it says so in one line. The highlights search appears only after full time, and carries the month so it finds this meeting, not an earlier one. Commentary is fetched quietly for the clips the first time the sheet opens on an Egyptian match or a found twin.
    goalak-v160 2026-09-02  v6.104 THE REST OF THE LIST. (1) Egyptian matches now carry their goals, cards and substitutions - read from FilGoal's match page the moment a match has started - so the timeline fills in, the goal push names the scorer, and the recap exists for Egypt too, written from FilGoal's own commentary lines rather than a bare event list. (2) The Arabic recap is told, with an example, to talk like an Egyptian commentator at the coffee shop - "الماتش", "جاب جول", "قفل الماتش" - not a newsreader. (3) THE ROOM'S PICKS: once a Champions League match is locked, its card lists every friend's scoreline; on a finished match the exact ones wear a target and the points sit beside the name. Before the lock nothing shows - a pick is private until it counts. The board's users were always downloaded and thrown away; now they are kept. (4) "Discuss in chat" on the match sheet: one tap closes the sheet, opens the room and seeds the message with the scoreline. (5) A goal by a club you follow is FELT: a double buzz and a gold wash over the screen for under a second (reduced-motion users get neither). (6) The live bar: a thin row of live scores on every tab except home (which has the list) and chat (which has its own strip), one tap to the sheet, gone when nothing is on.
@@ -160,7 +161,7 @@
    goalak-v2   2026-08-14  QA pass: WCup navy palette; precise shell matching vs SW scope; non-ok responses fall back to cached shell; redirected responses re-wrapped before use/caching; cache writes tied to event lifetime.
    goalak-v1   2026-08-14  v1.0 initial build: 7 leagues, all-leagues day view, league pages (matches / table / stats), AR/EN RTL.
 */
-const CACHE = "goalak-v162";
+const CACHE = "goalak-v163";
 /* top-clubs.js is a static DATA file (last season's top five per league + the ESPN competition-id
    map). It is cache-first like every other asset here, so it refreshes on the next CACHE bump —
    which is the right cadence: the club list only changes once a season. */
@@ -332,7 +333,10 @@ self.addEventListener("fetch", e => {
     e.respondWith((async () => {
       try {
         let r = await fetch(url, { cache: "no-store" });
-        if (!r.ok) throw new Error("http " + r.status);
+        /* a 4xx is an answer, not an outage: a link to a path that does not exist must show the
+           browser's own not-found page, not "you are offline" (2026-09-02: a malformed clip link did) */
+        if (r.status >= 500) throw new Error("http " + r.status);
+        if (!r.ok) return r;
         r = await unredirect(r);
         const cp = r.clone();
         e.waitUntil(caches.open(CACHE).then(c => c.put(key, cp)).catch(() => {}));

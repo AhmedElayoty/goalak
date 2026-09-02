@@ -215,7 +215,12 @@ export function parseMatchBlob(html, id) {
   }
   let b; try { b = JSON.parse(html.slice(i, k)); } catch (_) { return null; }
   const over = String(b.CurrentMatchStatusText || "").toLowerCase() === "over" || /انتهت/.test(String((b.CurrentMatchStatus && b.CurrentMatchStatus.MatchStatusName) || b.MatchStatusName || ""));
-  const comments = (b.Comments || []).map(c => ({ t: c.Time == null ? null : +c.Time, txt: String(c.Content || "").trim(), url: c.ContentUrl ? String(c.ContentUrl) : "", st: c.MatchStatusName || "" })).filter(c => c.txt);
+  /* ContentUrl is NOT a URL: it is the embed HTML of a tweet or a video (a <blockquote class="twitter-tweet">
+     ending in the status link). Handed to an <a href> as-is it became a relative path on goallak.com, a
+     404, and the offline page - the owner saw exactly that. Pull the first absolute link out of it. */
+  const linkOf = v => { const str = String(v || "").trim(); if (!str) return ""; if (/^https?:\/\//i.test(str)) return str; if (/^\/\//.test(str)) return "https:" + str;
+    const all = str.match(/https?:\/\/[^\s"'<>]+/g) || []; const pick = all.find(u => /twitter\.com\/[^/]+\/status|x\.com\/[^/]+\/status|youtu\.be|youtube\.com\/(watch|shorts|embed)|filgoal\.com\/videos/i.test(u)) || all.find(u => !/twitter\.com\/?$|x\.com\/?$/i.test(u)) || ""; return pick.replace(/\?ref_src=[^&]*$/, ""); };
+  const comments = (b.Comments || []).map(c => ({ t: c.Time == null ? null : +c.Time, txt: String(c.Content || "").trim(), url: linkOf(c.ContentUrl), st: c.MatchStatusName || "" })).filter(c => c.txt);
   const events = (b.Events || []).map(e => ({ type: e.MatchEventTypeName || "", team: e.TeamName || "", teamId: e.TeamId != null ? +e.TeamId : null, player: e.PlayerAName || "", player2: e.PlayerBName || "", min: e.Minute != null ? +e.Minute : (e.Time != null ? +e.Time : null),
     goal: /هدف/.test(e.MatchEventTypeName || "") && !/ضائع|مهدر/.test(e.MatchEventTypeName || ""), red: /حمراء/.test(e.MatchEventTypeName || ""), yellow: /صفراء/.test(e.MatchEventTypeName || ""), sub: /تبديل/.test(e.MatchEventTypeName || "") }));
   return { id: +id, home: b.HomeTeamName, away: b.AwayTeamName, homeEn: enName(b.HomeTeamName), awayEn: enName(b.AwayTeamName), hs: b.HomeScore, as: b.AwayScore, over, coachH: b.HomeTeamCoachName || "", coachA: b.AwayTeamCoachName || "", formH: b.HomeTeamFormationName || "", formA: b.AwayTeamFormationName || "", comments, events };
