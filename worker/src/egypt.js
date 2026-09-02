@@ -29,7 +29,8 @@
    Every stored object carries `at` (when the provider was last asked) so the client can print
    the real age instead of a clock that pretends to run. */
 
-import { filgoalTick, fgStatus } from "./filgoal.js";
+import { filgoalTick, fgStatus, fgMatch, fgTwinFor } from "./filgoal.js";
+export { fgMatch, fgTwinFor };
 export const AF_LEAGUE = 233;                 /* API-Football's id for Egypt - Premier League; verified on first live call */
 export const AF_HOST = "https://v3.football.api-sports.io";
 export const RAPID_HOST = "api-football-v1.p.rapidapi.com";    /* the same API, through RapidAPI's IPs */
@@ -432,5 +433,14 @@ export async function egySummary(store, fixtureId) {
 }
 export async function egyStandings(store) {
   const s = await store.get(K.standings);
-  return s ? toEspnStandings(s.data, s.at) : null;
+  if (s) return toEspnStandings(s.data, s.at);
+  /* NO TABLE YET (the FilGoal door carries none): the club picker builds its list from this feed, so
+     without it nobody could follow an Egyptian club. Offer the clubs we know from the fixtures, with
+     no statistics - a picker needs names, a table can say "no table yet" honestly. */
+  const fixtures = (await store.get(K.fixtures)) || { list: [] };
+  const seen = {};
+  for (const f of fixtures.list) for (const side of ["home", "away"]) { const tm = f.teams && f.teams[side]; if (tm && tm.id && !seen[tm.id]) seen[tm.id] = tm; }
+  const teams = Object.values(seen).sort((x, y) => String(x.name).localeCompare(String(y.name)));
+  if (!teams.length) return null;
+  return { children: [{ name: "Egyptian Premier League", standings: { entries: teams.map(tm => ({ team: { id: String(tm.id), displayName: tm.name, shortDisplayName: tm.name, abbreviation: abbr(tm.name), logo: tm.logo || "" }, stats: [] })) } }], _gkSrc: "af", _gkProvisional: true, _gkAt: fixtures.at || 0 };
 }

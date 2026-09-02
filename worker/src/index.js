@@ -22,7 +22,7 @@ import {
 } from "./chat.js";
 import { broadcastScheduleResponse } from "./broadcasts.js";
 import { AccountStore, accountsApi, accountStore } from "./accounts.js";
-import { egyptTick, egyBoard, egySummary, egyStandings, egyStatus, afDoor } from "./egypt.js";
+import { egyptTick, egyBoard, egySummary, egyStandings, egyStatus, afDoor, fgMatch, fgTwinFor } from "./egypt.js";
 
 export { ChatRoom, AccountStore };
 
@@ -1047,6 +1047,18 @@ export class PushCoordinator {
     if (url.pathname === "/egy-summary") { const s = await egySummary(this.state.storage, url.searchParams.get("fixture") || ""); return s ? json(s) : json({ ok: false, error: "unknown fixture" }, 404); }
     if (url.pathname === "/egy-standings") { const s = await egyStandings(this.state.storage); return s ? json(s) : json({ ok: false, error: "no table yet" }, 404); }
     if (url.pathname === "/egy-status") return json(await egyStatus(this.env, this.state.storage, Date.now()));
+    /* FilGoal commentary: by our fixture id (Egyptian matches) or by the twin of an ESPN match
+       (two Arabic names + kick-off). Cached a minute while live, a day when over. */
+    if (url.pathname === "/egy-fg") {
+      const now = Date.now();
+      let id = String(url.searchParams.get("fixture") || "").replace(/[^0-9]/g, "");
+      let twin = null;
+      if (!id) { const ko = +url.searchParams.get("ko") || 0; twin = await fgTwinFor(this.state.storage, url.searchParams.get("h") || "", url.searchParams.get("a") || "", ko); if (twin) id = String(twin.id); }
+      if (!id) return json({ ok: false, error: "no-twin" }, 404);
+      if (url.searchParams.get("probe") === "1") return json({ ok: true, id: +id, twin });
+      const m = await fgMatch(this.state.storage, id, now);
+      return m ? json(Object.assign({ ok: true }, m)) : json({ ok: false, error: "no-page" }, 502);
+    }
     if (url.pathname === "/sub-all") {
       /* the chat room's push audience, read from HERE rather than from a store the whole
          internet can write to - see sendChatPush */
@@ -1144,7 +1156,7 @@ async function chatApi(request, env, url) {
        stored in the coordinator. Nothing a client sends can reach the provider. */
     if (url.pathname.startsWith("/api/egy/")) {
       const sub = url.pathname.slice(9).replace(/[^a-z]/g, "");
-      if (!["board", "summary", "standings", "status"].includes(sub)) return withApiCors(json({ ok: false, error: "not found" }, 404), request);
+      if (!["board", "summary", "standings", "status", "fg"].includes(sub)) return withApiCors(json({ ok: false, error: "not found" }, 404), request);
       const id = env.PUSH_COORDINATOR.idFromName("global");
       const r = await env.PUSH_COORDINATOR.get(id).fetch("https://coord/egy-" + sub + url.search, { method: "POST", body: "{}" });
       const out = new Response(r.body, { status: r.status, headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=20" } });

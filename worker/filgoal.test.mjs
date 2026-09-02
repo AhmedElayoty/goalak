@@ -1,6 +1,6 @@
 /* THE PUBLISHER'S PAGE, PARSED DEFENSIVELY. A sample of FilGoal's embedded JSON (shape captured
  * 2026-09-02) walks through the extractor, the mapping and the polling plan.  node filgoal.test.mjs */
-import { extractViewModel, parseDay, fgToFixture, fgPlan, utcDay, wanted } from "./src/filgoal.js";
+import { extractViewModel, parseDay, fgToFixture, fgPlan, utcDay, wanted, parseMatchBlob, findTwin, norm, indexRows } from "./src/filgoal.js";
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("  FAIL  " + m); } };
 const eq = (a, b, m) => ok(a === b, m + "  (got " + JSON.stringify(a) + ", wanted " + JSON.stringify(b) + ")");
@@ -34,6 +34,18 @@ ok(wanted({Id:9,HomeTeamName:"الأهلي",AwayTeamName:"الزمالك",Champi
 ok(!wanted({Id:9,HomeTeamName:"الأهلي",AwayTeamName:"صن داونز",ChampionshipId:7,ChampionshipName:"دوري أبطال أفريقيا"}), "CAF Champions League: left to ESPN's Top Clubs feed");
 ok(!wanted({Id:9,HomeTeamName:"الهلال",AwayTeamName:"النصر",ChampionshipId:8,ChampionshipName:"كأس السوبر السعودي"}), "another country's cup: no");
 eq(fgToFixture({Id:9,HomeTeamId:1,AwayTeamId:2,HomeTeamName:"الأهلي",AwayTeamName:"الزمالك",ChampionshipId:5,ChampionshipName:"كأس السوبر المصري",Date:"/Date(1788282000000)/",HomeScore:null,AwayScore:null,CurrentMatchStatusText:"upcoming"}, NOW).league.nameEn, "Egyptian Super Cup", "the cup's English name travels");
+console.log("\n2c · a match page: commentary, clips, events");
+const page = 'x {"TimeZoneConsidered":true,"Id":375883,"HomeTeamName":"غزل المحلة","AwayTeamName":"الشرقية إنبي","HomeScore":0,"AwayScore":0,"CurrentMatchStatusText":"over","HomeTeamCoachName":"أ","AwayTeamCoachName":"ب","Comments":[{"Id":1,"Time":49,"ContentUrl":"","Content":"تسديدة قوية","MatchStatusName":"الشوط الثاني"},{"Id":2,"Time":30,"ContentUrl":"https://www.filgoal.com/videos/1","Content":"جووول","MatchStatusName":"الشوط الأول"}],"Events":[{"MatchEventTypeName":"بطاقة صفراء","TeamName":"غزل المحلة","PlayerAName":"عمرو جمعة","Minute":12},{"MatchEventTypeName":"هدف","TeamName":"الشرقية إنبي","PlayerAName":"س","Minute":30}]} y';
+const mb = parseMatchBlob(page, 375883);
+eq(mb.comments.length, 2, "two commentary lines"); eq(mb.comments[1].url, "https://www.filgoal.com/videos/1", "the clip link travels"); eq(mb.events.filter(e => e.goal).length, 1, "one goal event"); eq(mb.events[0].yellow, true, "a yellow is a yellow"); eq(mb.over, true, "finished");
+console.log("\n2d · finding a European match's twin by Arabic names and kick-off");
+const idx = indexRows(html);
+eq(idx.length, 4, "the index keeps every competition");
+const ko = 1788280800000;
+eq(findTwin(idx, "الأهلي", "الزمالك", ko).id, 1, "exact names");
+eq(findTwin(idx, "نادي الأهلي", "الزمالك", ko + 60000).id, 1, "'نادي' and a minute's drift are forgiven");
+eq(findTwin(idx, "ليفربول", "إيفرتون", ko), null, "no twin invents nothing");
+eq(norm("نوتينجهام فورست"), norm("نوتينجهام فورست"), "normalisation is stable");
 console.log("\n3 · the plan: one page a minute during a match, once a day otherwise");
 const fx = rows;
 eq(fgPlan(NOW, { scheduleDay: utcDay(NOW), lastLive: NOW - 61000 }, fx).kind, "live", "a match in its window: fetch the day page");

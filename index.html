@@ -440,6 +440,9 @@ body.dayflip .mrow:nth-child(2){animation-delay:.03s}body.dayflip .mrow:nth-chil
 [data-club]{cursor:pointer}
 .recap{background:linear-gradient(160deg,color-mix(in srgb,var(--acc) 12%,var(--card)),var(--card));border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin:8px 0;box-shadow:0 10px 26px -18px rgba(0,0,0,.75)}
 .recap .rchead{font-weight:800;font-size:13px;margin-bottom:4px}.recap p{margin:0;font-size:14px;line-height:1.75}.recap small{display:block;color:var(--dim);font-size:10.5px;margin-top:6px}.recap .rcwait{color:var(--dim);font-style:italic}
+.commhead{font-size:12px;color:var(--dim);font-weight:700;padding:6px 2px}.commhead .livep{color:#4ADE80}.commstaff{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--dim);padding:0 2px 8px}
+.commlist{display:flex;flex-direction:column;gap:6px}.comm{display:flex;gap:10px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 10px}.comm.goal{border-color:#F5C451;background:color-mix(in srgb,#F5C451 10%,var(--card))}
+.comm .cmin{flex:0 0 auto;min-width:34px;text-align:center;font-weight:900;color:var(--acc);font-variant-numeric:tabular-nums}.comm .ctxt{font-size:13.5px;line-height:1.7}.cclip{display:inline-block;margin-inline-start:6px;color:var(--acc);border:1px solid var(--acc);border-radius:8px;padding:1px 8px;font-size:12px;font-weight:800;text-decoration:none}
 .goalinks{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:8px 0;font-size:12px;font-weight:700}.goalinks a{color:var(--acc);text-decoration:none;border:1px solid var(--acc);border-radius:8px;padding:3px 9px}
 .lgsec[data-lg="egy"] .mrow .tm i{white-space:normal;line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:13px}
 #club .clhead{position:relative;padding:18px 14px 14px;background:linear-gradient(135deg,var(--c1,#1A2447),var(--c2,#0B1229));color:var(--ink,#fff);border-radius:18px 18px 0 0}
@@ -1221,10 +1224,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.102";
+const APP_VERSION = "6.103";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-09-02-v6102";
+const FORCE_RELOAD = "2026-09-02-v6103";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1700,7 +1703,7 @@ const STR = {
  mdSummary:["الملخص","Summary"],
  mdLineups:["التشكيل","Line-ups"],
  clResults:["النتائج","Results"], clSquad:["اللاعبين","Squad"], clStats:["إحصائيات","Stats"], clTitles:["البطولات","Trophies"],
- clFixtures:["القادمة","Fixtures"], recapTitle:["ملخص الماتش","Match recap"], recapWriting:["بنكتب الملخص…","Writing the recap…"], recapBy:["مكتوب آليًا من أحداث المباراة","Written automatically from the match events"], watchGoals:["شوف الأهداف","Watch the goals"], ytSearch:["على يوتيوب","YouTube highlights"], espnVideo:["فيديو ESPN","ESPN video"], clCoach:["المدرب","Coach"], clCaptain:["الكابتن","Captain"], clHome:["أرض","Home"], clAway:["خارج","Away"], clForm:["آخر {n}","Last {n}"], clTapYears:["اضغط على أي لقب لعرض السنوات","Tap a trophy to see the years"], clNoData:["لا توجد بيانات بعد","No data yet"],
+ clFixtures:["القادمة","Fixtures"], mdComm:["التعليق","Commentary"], commNone:["مفيش تعليق لهذه المباراة","No commentary for this match"], commSrc:["تعليق مباشر بالعربي من FilGoal","Live Arabic commentary from FilGoal"], commLive:["مباشر","live"], commClip:["شوف الهدف","Watch the goal"], recapTitle:["ملخص الماتش","Match recap"], recapWriting:["بنكتب الملخص…","Writing the recap…"], recapBy:["مكتوب آليًا من أحداث المباراة","Written automatically from the match events"], watchGoals:["شوف الأهداف","Watch the goals"], ytSearch:["على يوتيوب","YouTube highlights"], espnVideo:["فيديو ESPN","ESPN video"], clCoach:["المدرب","Coach"], clCaptain:["الكابتن","Captain"], clHome:["أرض","Home"], clAway:["خارج","Away"], clForm:["آخر {n}","Last {n}"], clTapYears:["اضغط على أي لقب لعرض السنوات","Tap a trophy to see the years"], clNoData:["لا توجد بيانات بعد","No data yet"],
  clNoFacts:["الألقاب مش متسجّلة لهذا النادي بعد","Trophies not recorded for this club yet"], clLast:["آخرها","last"], clSeason:["إحصائيات الموسم","Season stats"],
  clPosG:["حراسة","Goalkeepers"], clPosD:["دفاع","Defenders"], clPosM:["وسط","Midfielders"], clPosF:["هجوم","Forwards"],
  stGoals:["أهداف","Goals"], stConc:["استقبل","Conceded"], stClean:["شباك نظيفة","Clean sheets"], stShots:["تسديدات","Shots"], stOnT:["على المرمى","On target"], stPoss:["استحواذ","Possession"], stYel:["كروت صفراء","Yellow cards"], stRed:["كروت حمراء","Red cards"], stFouls:["أخطاء","Fouls"],
@@ -4152,9 +4155,15 @@ async function renderMdBody(){
     ESPN match a moment ago must not carry over into an empty one here. */
  const af = e._gkSrc === "af";
  if(af && (_mdTab === "S" || _mdTab === "F")) _mdTab = preTabs ? "L" : "E";
- if(tabsEl) tabsEl.style.display = (af && preTabs) ? "none" : "";
- if(tabsEl) tabsEl.innerHTML = (preTabs ? (af ? [["L", "mdLineups"]] : [["F", "mdFacts"], ["L", "mdLineups"]])
-                                        : af ? [["E", "mdSummary"], ["L", "mdLineups"]]
+ /* FilGoal commentary: always offered on an Egyptian match, and on any other match once its FilGoal twin
+    has been found (fgTwinProbe stamps e._gkFg); a tab that would be empty is not shown */
+ const hasC = af || !!e._gkFg;
+ if(!af && !preTabs && e._gkFg === undefined) fgTwinProbe(e);
+ if(_mdTab === "C" && !hasC) _mdTab = "E";
+ if(tabsEl) tabsEl.style.display = (af && preTabs && !hasC) ? "none" : "";
+ if(tabsEl) tabsEl.innerHTML = (preTabs ? (af ? [["C", "mdComm"], ["L", "mdLineups"]] : [["F", "mdFacts"], ["L", "mdLineups"]])
+                                        : af ? [["E", "mdSummary"], ["C", "mdComm"], ["L", "mdLineups"]]
+                                        : hasC ? [["E", "mdSummary"], ["C", "mdComm"], ["L", "mdLineups"], ["S", "mdStats"], ["F", "mdFacts"]]
                                         : [["E", "mdSummary"], ["L", "mdLineups"], ["S", "mdStats"], ["F", "mdFacts"]])
   .map(p => '<button type="button" class="mdtab' + (_mdTab === p[0] ? " on" : "") + '" onclick="setMdTab(\'' + p[0] + '\')">' + esc(t(p[1])) + "</button>").join("");
  /* the age of what is on screen, in the reader's words: a clock that does not tick must say why */
@@ -4163,6 +4172,7 @@ async function renderMdBody(){
  const cs = comp.competitors || [];
  const H = cs.find(c => c.homeAway === "home") || cs[0] || {};
  const A = cs.find(c => c.homeAway === "away") || cs[1] || {};
+ if(_mdTab === "C"){ renderComm(eid, e, H, A); return; }
  if(_mdTab === "E"){
   const finished = evState(e) === "post" && !voidedKey(e);
   const sumNow = sumCache[eid] && sumCache[eid].json;
@@ -4316,6 +4326,50 @@ document.addEventListener("click", function(ev){
  ev.stopPropagation(); ev.preventDefault();
  openClub(el.dataset.club, el.dataset.cslug || "", (el.textContent || "").replace(/^@\s*/, "").trim());
 }, true);
+/* ============ FILGOAL COMMENTARY ============
+   Arabic minute-by-minute text from FilGoal's match page, through the worker: by our fixture id for an
+   Egyptian match, by the twin (two Arabic names + kick-off) for any other. Goal lines that carry a
+   clip link get a "watch the goal" button - a link to their page, never an embed. Re-read every
+   minute while live, from the worker's own one-minute cache. */
+const FG_API = new URL(ESPN_EDGE).origin + "/api/egy/fg";
+const _comm = {};
+function fgQuery(e, H, A){
+ if(e._gkSrc === "af") return "fixture=" + encodeURIComponent(e.id);
+ if(e._gkFg) return "fixture=" + encodeURIComponent(e._gkFg);
+ return "h=" + encodeURIComponent(clubAr(H.team || {})) + "&a=" + encodeURIComponent(clubAr(A.team || {})) + "&ko=" + (Date.parse(e.date) || 0);
+}
+async function fgTwinProbe(e){
+ e._gkFg = null;
+ try{
+  const cs = (e.competitions && e.competitions[0] && e.competitions[0].competitors) || [];
+  const H = cs.find(c => c.homeAway === "home") || cs[0] || {}, A = cs.find(c => c.homeAway === "away") || cs[1] || {};
+  const r = await fetch(FG_API + "?" + fgQuery(e, H, A) + "&probe=1"); const j = await r.json();
+  if(r.ok && j.ok && j.id){ e._gkFg = j.id; if(_mdEid === e.id) renderMdBody(); }
+ }catch(_){}
+}
+async function renderComm(eid, e, H, A){
+ const body = $("mdBody"); if(!body) return;
+ const c = _comm[eid];
+ const paint = m => {
+  if(!m || !m.comments || !m.comments.length){ mdSet(body, '<div class="empty"><div class="big">🎙️</div>' + esc(t("commNone")) + "</div>"); return; }
+  const staff = (m.coachH || m.coachA) ? '<div class="commstaff">' + (m.coachH ? '<span>👔 ' + esc(m.home) + ": " + esc(m.coachH) + (m.formH ? " · " + esc(m.formH) : "") + "</span>" : "") + (m.coachA ? '<span>👔 ' + esc(m.away) + ": " + esc(m.coachA) + (m.formA ? " · " + esc(m.formA) : "") + "</span>" : "") + "</div>" : "";
+  const rows = m.comments.slice().sort((x, y) => (y.t || 0) - (x.t || 0)).map(x => {
+   const goal = /هدف|جووو|جول/.test(x.txt) && !/ضائع|مهدر|ملغ/.test(x.txt);
+   return '<div class="comm' + (goal ? " goal" : "") + '"><span class="cmin" dir="ltr">' + (x.t == null ? "" : esc(String(x.t)) + "'") + '</span><div class="ctxt" dir="rtl">' + esc(x.txt)
+    + (x.url ? ' <a class="cclip" href="' + esc(x.url) + '" target="_blank" rel="noopener">🎬 ' + esc(t("commClip")) + "</a>" : "") + "</div></div>";
+  }).join("");
+  mdSet(body, '<div class="commhead">🎙️ ' + esc(t("commSrc")) + (m.over ? "" : ' · <span class="livep">' + esc(t("commLive")) + "</span>") + "</div>" + staff + '<div class="commlist">' + rows + "</div>");
+ };
+ if(c && c.m && Date.now() - c.at < 30000){ paint(c.m); return; }
+ if(!c || !c.m) mdSet(body, '<div class="mdload"><span class="spinner"></span>' + esc(t("loading")) + "</div>"); else paint(c.m);
+ try{
+  const r = await fetch(FG_API + "?" + fgQuery(e, H, A)); const j = await r.json();
+  if(!r.ok || !j.ok) throw new Error(j.error || r.status);
+  _comm[eid] = {at: Date.now(), m: j};
+  if(!j.id || e._gkSrc === "af" || e._gkFg) {} else e._gkFg = j.id;
+ }catch(_){ _comm[eid] = {at: Date.now(), m: (c && c.m) || null}; }
+ if(_mdEid === eid && _mdTab === "C") paint(_comm[eid].m);
+}
 /* THE MATCH RECAP: three or four sentences in the reader's language, written by the worker from the
    match's own events once it has finished, one generation per match shared by everyone. The card
    shows a quiet placeholder while it is being written and disappears if nothing comes back. */
@@ -5852,13 +5906,15 @@ async function ensureTeams(){
  if(_teamsCache && _teamsComplete) return _teamsCache;
  if(_teamsCache && _teamsInflight) return _teamsInflight;   /* incomplete: allow a retry, but only one at a time */
  try{
-  const stored = JSON.parse(localStorage.getItem("gk_teams_v1") || "null");
+  const stored = JSON.parse(localStorage.getItem("gk_teams_v2") || "null");
   if(stored && stored.at && Date.now() - stored.at < 7 * 86400000 && stored.lgs){ _teamsCache = stored.lgs; _teamsComplete = true; return _teamsCache; }
  }catch(_){}
  if(_teamsInflight) return _teamsInflight;
  _teamsInflight = (async function(){
   const out = {};
-  const want = LEAGUES.filter(l => !l.uefa);
+  /* v6.103: the list is keyed gk_teams_v2 - a cached v1 list predates the Egyptian league and would hide
+    its clubs from the picker for a week */
+ const want = LEAGUES.filter(l => !l.uefa);
   let complete = true;
   /* team lists come from the STANDINGS feed: ESPN's /teams endpoint has no CORS header in browsers */
   await Promise.all(want.map(async l => {
@@ -5878,7 +5934,7 @@ async function ensureTeams(){
   }));
   _teamsCache = out;
   _teamsComplete = complete;
-  if(complete){ try{ localStorage.setItem("gk_teams_v1", JSON.stringify({at:Date.now(), lgs:out})); }catch(_){} }
+  if(complete){ try{ localStorage.setItem("gk_teams_v2", JSON.stringify({at:Date.now(), lgs:out})); }catch(_){} }
   return out;
  })();
  try{ return await _teamsInflight; }

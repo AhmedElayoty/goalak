@@ -109,7 +109,7 @@ export async function filgoalTick(env, store, now, log, toEspnEvent) {
   const live = (await store.get(K.live)) || { at: 0, byId: {} };
   /* stored copies from before a field existed (English names, then crests) are re-read once */
   const stale = f => f && f.teams && f.teams.home && (f.teams.home.nameAr === undefined || f.teams.home.logo === undefined);
-  if (fixtures.list.some(stale) || Object.values(live.byId).some(stale)) state.scheduleDay = null;   /* stored before English names existed: re-read once */
+  if (fixtures.list.some(stale) || Object.values(live.byId).some(stale) || !((await store.get(KIDX)) || {}).span) state.scheduleDay = null;   /* no twin index yet (or an old, narrower one): build it */   /* stored before English names existed: re-read once */
   const plan = fgPlan(now, state, fixtures.list);
   const day = utcDay(now);
   try {
@@ -117,12 +117,15 @@ export async function filgoalTick(env, store, now, log, toEspnEvent) {
       /* eight pages in PARALLEL, each on its own: in sequence they overran the tick's time budget and one
          slow page aborted the whole read (2026-09-02: the English names never landed). A day that fails
          keeps yesterday's copy of itself; the read counts as done when today's page arrived. */
-      const days = Array.from({ length: 8 }, (_, d) => utcDay(now + d * 86400000));
-      const got = await Promise.allSettled(days.map(dayStr => fgFetch("/matches?date=" + dayStr).then(h => ({ dayStr, rows: parseDay(h, now) }))));
-      const list = [], okDays = new Set();
-      got.forEach((r, i) => { if (r.status === "fulfilled" && r.value.rows) { okDays.add(days[i]); list.push(...r.value.rows); } else if (log) log.push("fg:day:" + days[i]); });
+      /* ONE page. FilGoal ignores ?date= (measured 2026-09-02: three different dates returned the same
+         61 match ids) and its matches page carries yesterday, today and tomorrow together - so the ten
+         "day pages" this once fetched were ten copies of the same thing. One request, three days. */
+      const h0 = await fgFetch("/matches");
+      const list = parseDay(h0, now) || [], idxRows = indexRows(h0);
+      const okDays = new Set(idxRows.map(r => utcDay(r.ko)));
+      if (idxRows.length) { const prev = (await store.get(KIDX)) || { rows: [] }; const keep = prev.rows.filter(r => !okDays.has(utcDay(r.ko))); await store.put(KIDX, { at: now, span: 10, rows: keep.concat(idxRows).slice(-1500) }); }
       for (const f of fixtures.list) if (!okDays.has(utcDay(Date.parse(f.fixture.date)))) list.push(f);   /* keep what a failed day already had */
-      if (!okDays.has(day)) throw new Error("today's page failed");
+      if (!idxRows.length) throw new Error("matches page unreadable");
       const seen = new Set();
       fixtures.list = list.filter(f => !seen.has(f.fixture.id) && seen.add(f.fixture.id));
       fixtures.at = now; fixtures.league = { id: FG_LEAGUE_ID, name: "الدوري المصري", country: "Egypt", season: fixtures.list[0] ? fixtures.list[0].league.season : null, via: "filgoal" };
@@ -133,7 +136,9 @@ export async function filgoalTick(env, store, now, log, toEspnEvent) {
       await store.put(K.fixtures, fixtures); await store.put(K.live, live);
       state.scheduleDay = day; state.lastLive = now; state.lastError = null;
     } else if (plan && plan.kind === "live") {
-      const rows = parseDay(await fgFetch("/matches?date=" + day), now);
+      const dayHtml = await fgFetch("/matches");
+      const rows = parseDay(dayHtml, now);
+      { const all = indexRows(dayHtml); if (all.length) { const prev = (await store.get(KIDX)) || { rows: [] }; await store.put(KIDX, { at: now, rows: prev.rows.filter(r => utcDay(r.ko) !== day).concat(all).slice(-1200) }); } }
       if (rows) {
         for (const f of rows) {
           live.byId[String(f.fixture.id)] = f;
@@ -151,4 +156,65 @@ export async function filgoalTick(env, store, now, log, toEspnEvent) {
     .map(f => toEspnEvent(live.byId[String(f.fixture.id)] || f, live.byId[String(f.fixture.id)] ? live.at : fixtures.at, 1));
   return { events, _gkSrc: "af" };
 }
-export async function fgStatus(store) { return (await store.get(K.fg)) || null; }
+export async function fgStatus(store) { const st = (await store.get(K.fg)) || null; const idx = (await store.get("egy:fgidx")) || null; return st ? Object.assign({}, st, { twinIndex: idx ? { rows: idx.rows.length, at: idx.at, span: idx.span || 8 } : null }) : st; }
+
+/* ============ COMMENTARY, EVENTS AND CLIPS FROM A MATCH PAGE ============
+   Every FilGoal match page embeds one JSON object - {"TimeZoneConsidered":true,"Id":<id>,...} - with
+   Comments (minute, Arabic text, sometimes a ContentUrl that is a goal clip), typed Events, coaches
+   and formations. The day pages we already read list EVERY competition FilGoal follows, so an index
+   of (date, Arabic home, Arabic away) -> match id lets a European match in the app find its FilGoal
+   twin and borrow the commentary. A page is fetched at most once a minute while live and once a
+   day once finished, whoever asks. */
+const KIDX = "egy:fgidx", KM = "egy:fgm:";
+export const norm = s => String(s || "").replace(/[\u064B-\u0652\u0640]/g, "").replace(/^(ال|نادي )/, "").replace(/[إأآ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه").replace(/[^\u0621-\u064A0-9a-z]/gi, "").toLowerCase();
+export function indexRows(html) {
+  const vm = extractViewModel(html); const out = [];
+  if (!Array.isArray(vm)) return out;
+  for (const day of vm) for (const m of (day && day.Matches) || []) if (m && m.Id && m.HomeTeamName && m.AwayTeamName)
+    out.push({ id: +m.Id, ko: msOf(m.Date), h: m.HomeTeamName, a: m.AwayTeamName, c: m.ChampionshipName || "", eg: +m.ChampionshipId === FG_LEAGUE_ID });
+  return out;
+}
+export function findTwin(rows, hAr, aAr, ko) {
+  const H = norm(hAr), A = norm(aAr); if (!H || !A) return null;
+  const near = r => Math.abs(r.ko - ko) <= 3 * 3600000;
+  const fits = (x, y) => x === y || (x.length > 3 && y.length > 3 && (x.indexOf(y) >= 0 || y.indexOf(x) >= 0));
+  let best = null;
+  for (const r of rows || []) {
+    if (!near(r)) continue;
+    const fh = fits(norm(r.h), H), fa = fits(norm(r.a), A);
+    if (fh && fa) return r;
+    if ((fh || fa) && Math.abs(r.ko - ko) <= 30 * 60000 && !best) best = r;
+  }
+  return best;
+}
+export function parseMatchBlob(html, id) {
+  const i = html.indexOf('{"TimeZoneConsidered":true,"Id":' + id);
+  if (i < 0) return null;
+  let depth = 0, inStr = false, esc = false, k = i;
+  for (; k < html.length; k++) {
+    const ch = html[k];
+    if (inStr) { if (esc) esc = false; else if (ch === "\\") esc = true; else if (ch === '"') inStr = false; continue; }
+    if (ch === '"') inStr = true; else if (ch === "{" || ch === "[") depth++; else if (ch === "}" || ch === "]") { depth--; if (depth === 0) { k++; break; } }
+  }
+  let b; try { b = JSON.parse(html.slice(i, k)); } catch (_) { return null; }
+  const over = String(b.CurrentMatchStatusText || "").toLowerCase() === "over" || /انتهت/.test(String((b.CurrentMatchStatus && b.CurrentMatchStatus.MatchStatusName) || b.MatchStatusName || ""));
+  const comments = (b.Comments || []).map(c => ({ t: c.Time == null ? null : +c.Time, txt: String(c.Content || "").trim(), url: c.ContentUrl ? String(c.ContentUrl) : "", st: c.MatchStatusName || "" })).filter(c => c.txt);
+  const events = (b.Events || []).map(e => ({ type: e.MatchEventTypeName || "", team: e.TeamName || "", player: e.PlayerAName || "", player2: e.PlayerBName || "", min: e.Minute != null ? +e.Minute : (e.Time != null ? +e.Time : null),
+    goal: /هدف/.test(e.MatchEventTypeName || "") && !/ضائع|مهدر/.test(e.MatchEventTypeName || ""), red: /حمراء/.test(e.MatchEventTypeName || ""), yellow: /صفراء/.test(e.MatchEventTypeName || ""), sub: /تبديل/.test(e.MatchEventTypeName || "") }));
+  return { id: +id, home: b.HomeTeamName, away: b.AwayTeamName, hs: b.HomeScore, as: b.AwayScore, over, coachH: b.HomeTeamCoachName || "", coachA: b.AwayTeamCoachName || "", formH: b.HomeTeamFormationName || "", formA: b.AwayTeamFormationName || "", comments, events };
+}
+export async function fgMatch(store, id, now) {
+  id = String(id).replace(/[^0-9]/g, ""); if (!id) return null;
+  const cached = await store.get(KM + id);
+  if (cached && (now - cached.at < (cached.over ? 86400000 : 60000))) return cached;
+  try {
+    const html = await fgFetch("/matches/" + id);
+    const m = parseMatchBlob(html, id);
+    if (!m) return cached || null;
+    m.at = now; await store.put(KM + id, m); return m;
+  } catch (_) { return cached || null; }
+}
+export async function fgTwinFor(store, hAr, aAr, ko) {
+  const idx = (await store.get(KIDX)) || { rows: [] };
+  return findTwin(idx.rows, hAr, aAr, ko);
+}

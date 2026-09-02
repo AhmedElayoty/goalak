@@ -193,6 +193,22 @@ highlights search; links only, never a stream. **Match recap**: worker `/api/rec
 finished matches only, cached a month per match+lang at the edge); shell `recapHtml/loadRecap`
 on the E tab; Arabic prompt asks for Egyptian colloquial but the model tends to MSA - tune later.
 
+## FilGoal commentary (v6.103) and what was measured about FilGoal
+
+- FilGoal IGNORES `?date=` (three dates returned the same 61 ids); its `/matches` page carries
+  yesterday+today+tomorrow. The daily read is therefore ONE request; the "week ahead" never
+  existed. The twin index (`egy:fgidx`, every competition on that page) spans those three days.
+- Match pages embed `{"TimeZoneConsidered":true,"Id":<id>,...}` with `Comments` (Time, Content,
+  ContentUrl = goal clip sometimes), typed `Events` (MatchEventTypeName Arabic), coaches,
+  formations, squads. `fgMatch(store,id)` caches a page 60 s while live / 1 day when over.
+- Routes: `/api/egy/fg?fixture=<id>` (Egyptian) or `?h=&a=&ko=` (twin by Arabic names + kick-off,
+  `&probe=1` to test) -> `{comments, events, coachH/A, formH/A, over}`. Shell: tab "C"
+  (`renderComm`, `fgTwinProbe` stamps `e._gkFg`); goal lines gold with "watch the goal" links.
+- European coverage on FilGoal's page is whatever they list that day (seen: Coppa Italia, Saudi,
+  Scottish, Egyptian divisions on a Wednesday) - the tab appears only when a twin is found.
+- No standings from FilGoal: `egyStandings` falls back to a teams-only table (`_gkProvisional`)
+  so the followed-club picker lists Egyptian clubs; the picker cache key moved to `gk_teams_v2`.
+
 ## Features roadmap (from the features agent, 2026-09-02) - owner picks the order
 
 1. Reveal the room's picks after lock (leaderboard already returns every user's picks; ~5h).
