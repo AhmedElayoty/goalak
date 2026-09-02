@@ -233,7 +233,7 @@ on the E tab; Arabic prompt asks for Egyptian colloquial but the model tends to 
   `commClip` strings remain but are unused. Owner: "the youtube is enough".
 - **Club page opens from the match SHEET header, not from rows.** `data-club`/`data-cslug` were removed
   from `.mrow` team spans, the prediction cards and the chat live strip (a thumb aiming for the card
-  landed on a crest). They now sit on the `<i>` inside each `.mvt` of the sheet header. Still present:
+  landed on a crest). They now sit on each `.mvt` span of the sheet header (crest + name + scorers; v6.111 - v6.110 had them on the name only and the owner tapped the crest). Still present:
   standings table, line-up labels, club page lists, `tmfx` header.
 - Egyptian club Results listed a match twice: `/schedule?season=yr-1` maps to the same `board?team=`
   answer. `evs` is deduped by id in `openClub`.

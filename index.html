@@ -1231,10 +1231,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.110";
+const APP_VERSION = "6.111";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-09-02-v6110";
+const FORCE_RELOAD = "2026-09-02-v6111";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -4949,9 +4949,9 @@ function renderMatchModal(eid){
  $("mbox").innerHTML =
   '<button type="button" class="mx" onclick="closeModal()">✕</button>' +
   '<div class="mvs">' +
-   '<span class="mvt">' + crestHtml(H.team) + '<i data-club="' + esc(String((H.team || {}).id || "")) + '" data-cslug="' + esc(slugForEvent(e) || "") + '">' + esc(teamName(H)) + "</i>" + scorerListHtml(e, H) + "</span>" +
+   '<span class="mvt" data-club="' + esc(String((H.team || {}).id || "")) + '" data-cslug="' + esc(slugForEvent(e) || "") + '">' + crestHtml(H.team) + "<i>" + esc(teamName(H)) + "</i>" + scorerListHtml(e, H) + "</span>" +
    scoreLine +
-   '<span class="mvt">' + crestHtml(A.team) + '<i data-club="' + esc(String((A.team || {}).id || "")) + '" data-cslug="' + esc(slugForEvent(e) || "") + '">' + esc(teamName(A)) + "</i>" + scorerListHtml(e, A) + "</span>" +
+   '<span class="mvt" data-club="' + esc(String((A.team || {}).id || "")) + '" data-cslug="' + esc(slugForEvent(e) || "") + '">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i>" + scorerListHtml(e, A) + "</span>" +
   "</div>" +
   '<div class="mmeta">' + meta
     + (s === "pre" && !vk ? '<br><span class="mcd">⏳ ' + countdown(Date.parse(e.date)) + "</span>" : "")
