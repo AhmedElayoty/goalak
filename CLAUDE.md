@@ -48,14 +48,14 @@ NOT bump.
 `node fantasy/src/build-bundle.mjs`. Edit `src/`, rebuild, commit both. A fix that only
 touches `src/` passes its tests and ships nothing — this happened (Triple Captain, v6.84.1).
 
-## Gates — all must pass before a commit (1,810 assertions as of v6.86)
+## Gates — all must pass before a commit (1,868 assertions as of 2026-09-02)
 
 ```
 node check-release.mjs  check-sync.mjs  check-fantasy-tab.mjs  predscore.test.mjs
      aggregate.test.mjs  lineups.test.mjs
 node fantasy/check.mjs  check-defined.mjs  check-ids.mjs  check-locks.mjs  check-tz.mjs
 node fantasy/src/modules/*.test.mjs
-node worker/fxmerge.test.mjs  worker/pushsub.test.mjs  worker/espnttl.test.mjs
+node worker/fxmerge.test.mjs  worker/pushsub.test.mjs  worker/espnttl.test.mjs  worker/egypt.test.mjs
 node fantasy/qa.mjs        # 261 live-browser assertions, 5 viewports x 2 languages — NEEDS CHROME (PC only)
 node qa-chat.mjs           # needs Chrome too
 ```
@@ -80,8 +80,9 @@ names the incident it prevents.
 - **The homepage must not get more crowded** — new surfaces go in sheets, not on the home
   screen (~31% chrome budget). The hero card hides on days its match is pinned below.
 - **Egyptian Premier League is NOT on ESPN** (checked 2026-09-02: no `egy.*` slug in its
-  full catalogue). It cannot be added as a league. Egyptian clubs reach the app through
-  the top-clubs dataset (`top-clubs.js`, group `egy`) via CAF competitions.
+  full catalogue). It comes from API-Football's free tier instead (`worker/src/egypt.js`,
+  100 calls/day) - see "The Egyptian feed" below. **NOT in fantasy, NOT in predictions.**
+  Its clubs also reach the app through the top-clubs dataset (`top-clubs.js`, group `egy`).
 
 ## Competitions (v6.87): UCL, UEL, **UECL (new)**, PL, La Liga, Serie A, Bundesliga, Ligue 1, Süper Lig, SPFL
 
@@ -101,6 +102,42 @@ fantasy deadline reminders, UCL prediction-open. Goals are held ~55s on purpose 
 the TV). Accounts, predictions, fantasy records and kick-off times live in a Durable Object
 (`worker/src/accounts.js`, SQLite); push subscriptions in `PushCoordinator` storage; chat in
 `ChatRoom` + R2 media. Nightly DB export runs on the owner's PC (`backup-goallak-db.mjs`).
+
+## The Egyptian feed (API-Football free tier — `worker/src/egypt.js`)
+
+ESPN has no Egyptian league, so it comes from API-Football: **100 requests per UTC day, 10 per
+minute**, one account, nothing paid. The design exists for two promises the owner made by name:
+the league never goes dark because the quota ran out, and no score is ever shown fresher than
+it is. Read the header comment of `egypt.js`; in short:
+
+- **Phones never call the provider.** The cron tick spends at most ONE call a minute, by
+  priority: today's schedule (1/day, covers +14 days) → a noon refresh on match days
+  (postponements) → final results per kick-off slot, fired the minute the live feed drops a
+  finished match (API-Football's `live=` endpoint lists in-play matches only — a finished one
+  VANISHES, it does not turn FT; we never write FT ourselves) → line-ups (2 attempts, T-26 and
+  T-10) → the live poll → the table after the last whistle.
+- **The live poll paces itself:** interval = live minutes still ahead ÷ calls still
+  affordable, clamped 1–10 min (≈1.4 min on a one-slot day, ≈2.7 on the usual two-slot day;
+  the league kicks off only at 14:00 and 17:00 UTC, measured over 30 fixtures). Nothing is
+  polled outside [KO−2, KO+115]; the dead hour between slots is free.
+- **8 calls are never spent** (`RESERVE`). The provider's `x-ratelimit-requests-remaining`
+  header is believed over our counter; a 200 carrying `errors.requests` means the quota is
+  gone and ends the day — it is not an error to retry.
+- **Output is ESPN-shaped** (`_gkSrc:"af"`, `_gkAt` = when the provider was last asked) so
+  the shell, the push filter and the live card reuse unchanged. A virtual `LEAGUES` entry
+  `{id:"egy", slug:"egy.af", src:"af"}` in the worker swaps the stored board into both board
+  loops. Routes: `/api/egy/{board,summary?fixture=,standings,status}` — storage reads only.
+- **Without the `APIFOOTBALL_KEY` secret everything is inert** (`/api/egy/status` →
+  `configured:false`, empty board, cron unchanged). The shell must hide the league until it
+  flips.
+- **Status 2026-09-02:** worker side deployed inert (version 85024612), 58-assertion test.
+  Waiting on the owner to create the API-Football account and run
+  `npx wrangler secret put APIFOOTBALL_KEY` from the worker folder (PC). Then, in order:
+  verify league id 233 + season 2026 with the real key; confirm the substitution
+  `player`(off)/`assist`(on) order and the payload shapes the tests assume; wire the shell
+  (league entry with `src:"af"`, match sheet without Facts/ratings, a freshness label that
+  prints the real age «يتحدّث كل N دقائق», Arabic names for the ~18 Egyptian clubs); release
+  bump.
 
 ## Conventions that gates and reviewers enforce
 
@@ -138,6 +175,8 @@ the TV). Accounts, predictions, fantasy records and kick-off times live in a Dur
 
 ## Open items (owner decides order)
 
+- Owner: create the API-Football account and set the `APIFOOTBALL_KEY` secret — the Egyptian
+  league stays hidden until then (see "The Egyptian feed").
 - Owner: rotate the six passwords exposed 2026-08-28 (still in git history); Cloudflare
   $5 Workers plan before public launch; GoDaddy auto-renew; licensed data feed + crest-free
   build for an official launch.

@@ -22,6 +22,7 @@ import {
 } from "./chat.js";
 import { broadcastScheduleResponse } from "./broadcasts.js";
 import { AccountStore, accountsApi, accountStore } from "./accounts.js";
+import { egyptTick, egyBoard, egySummary, egyStandings, egyStatus } from "./egypt.js";
 
 export { ChatRoom, AccountStore };
 
@@ -194,6 +195,11 @@ const LEAGUES = [
   { id: "uel", slug: "uefa.europa_qual", en: "UEL Qualifying", ar: "تصفيات الدوري الأوروبي" },
   { id: "uecl", slug: "uefa.europa.conf", en: "Conference League", ar: "دوري المؤتمر الأوروبي" },
   { id: "uecl", slug: "uefa.europa.conf_qual", en: "UECL Qualifying", ar: "تصفيات دوري المؤتمر الأوروبي" },
+  /* THE EGYPTIAN PREMIER LEAGUE is not on ESPN. It arrives through egypt.js (API-Football, a
+     hundred calls a day, spent by the tick below and never by a phone) already in ESPN's shape,
+     so kick-off, goal, red-card, full-time and live-card pushes need no special case. The slug
+     is a marker, not an ESPN path: both board loops skip espnBoard() for src "af". */
+  { id: "egy", slug: "egy.af", src: "af", en: "Egyptian Premier League", ar: "الدوري المصري" },
   { id: "epl", slug: "eng.1", en: "Premier League", ar: "الدوري الإنجليزي" },
   { id: "liga", slug: "esp.1", en: "La Liga", ar: "الدوري الإسباني" },
   { id: "seriea", slug: "ita.1", en: "Serie A", ar: "الدوري الإيطالي" },
@@ -512,7 +518,11 @@ async function runOnce(env, dry, store) {
      headers: an edge request carries no browser User-Agent and no Referer, and that is what
      the block is keyed on. Now it looks like what it is: the same app, from the server side. */
   const feedStatus = [];
-  const boards = await Promise.all(LEAGUES.map(l => espnBoard(l.slug, range, feedStatus)));
+  /* the Egyptian tick runs first: at most one provider call, then today's board from storage */
+  const egyLog = [];
+  const egyNow = await egyptTick(env, store, now, egyLog).catch(e => { egyLog.push("egy:tick:" + ((e && e.message) || "err")); return null; });
+  if (egyLog.length) console.log("egy " + egyLog.join(" "));
+  const boards = await Promise.all(LEAGUES.map(l => l.src === "af" ? egyNow : espnBoard(l.slug, range, feedStatus)));
   /* A DEAD FEED MUST BE LOUD. Silence here used to mean "nothing is happening"; it now says
      which league refused and with what, so this can never again be invisible. */
   if (feedStatus.length) console.log(JSON.stringify({ message: "espn feed refused", range, feedStatus }));
@@ -700,7 +710,7 @@ async function runOnce(env, dry, store) {
        saved. A wider sweep, four times an hour, is eleven cheap requests. */
     if (new Date(now).getUTCMinutes() % 15 === 0) {
       const wide = utcYMD(now) + "-" + utcYMD(now + 21 * 86400000);
-      const far = await Promise.all(LEAGUES.map(l => espnBoard(l.slug, wide, feedStatus)));
+      const far = await Promise.all(LEAGUES.map(l => l.src === "af" ? null : espnBoard(l.slug, wide, feedStatus)));
       const wideKos = [];
       far.forEach(j => { for (const e of (j && j.events) || []) {
         const ko = Date.parse(e && e.date) || 0;
@@ -957,6 +967,13 @@ export class PushCoordinator {
       await this.state.storage.put(key, rec);
       return json({ ok: true });
     }
+    /* THE EGYPTIAN FEED, read side. Every route here is a storage read; the writes happen in
+       egyptTick under the cron, so a phone - or a thousand - can never cause a provider call.
+       A bad id answers 404 in the same JSON shape rather than throwing. */
+    if (url.pathname === "/egy-board") { const d = url.searchParams.get("day") || ""; return json(await egyBoard(this.state.storage, /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(d) ? d : null)); }
+    if (url.pathname === "/egy-summary") { const s = await egySummary(this.state.storage, url.searchParams.get("fixture") || ""); return s ? json(s) : json({ ok: false, error: "unknown fixture" }, 404); }
+    if (url.pathname === "/egy-standings") { const s = await egyStandings(this.state.storage); return s ? json(s) : json({ ok: false, error: "no table yet" }, 404); }
+    if (url.pathname === "/egy-status") return json(await egyStatus(this.env, this.state.storage, Date.now()));
     if (url.pathname === "/sub-all") {
       /* the chat room's push audience, read from HERE rather than from a store the whole
          internet can write to - see sendChatPush */
@@ -1050,6 +1067,16 @@ async function chatApi(request, env, url) {
        requiring a login would only count the ones who already signed up */
     if (url.pathname === "/api/visit" && request.method === "POST")
       return withApiCors(await accountsApi(request, env, url, null), request);
+    /* the Egyptian league: board / summary / standings / status, served from what the cron
+       stored in the coordinator. Nothing a client sends can reach the provider. */
+    if (url.pathname.startsWith("/api/egy/")) {
+      const sub = url.pathname.slice(9).replace(/[^a-z]/g, "");
+      if (!["board", "summary", "standings", "status"].includes(sub)) return withApiCors(json({ ok: false, error: "not found" }, 404), request);
+      const id = env.PUSH_COORDINATOR.idFromName("global");
+      const r = await env.PUSH_COORDINATOR.get(id).fetch("https://coord/egy-" + sub + url.search, { method: "POST", body: "{}" });
+      const out = new Response(r.body, { status: r.status, headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=20" } });
+      return withApiCors(out, request);
+    }
     /* public read-only sports data; the edge cache is the rate limiter */
     if (url.pathname.startsWith("/api/espn/"))
       return withApiCors(await espnProxy(request, url), request);
@@ -1153,7 +1180,7 @@ export default {
     }
     if (url.pathname === "/api/session" || url.pathname.startsWith("/api/session/") || url.pathname.startsWith("/api/chat/")
       || url.pathname.startsWith("/api/auth/") || url.pathname.startsWith("/api/pred/")
-      || url.pathname.startsWith("/api/fx/") || url.pathname.startsWith("/api/espn/")
+      || url.pathname.startsWith("/api/fx/") || url.pathname.startsWith("/api/espn/") || url.pathname.startsWith("/api/egy/")
       || url.pathname.startsWith("/api/push/")
       || url.pathname === "/api/visit") return chatApi(request, env, url);
     if (url.pathname.startsWith("/media/") && request.method === "GET") {
