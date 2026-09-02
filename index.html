@@ -1211,10 +1211,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.99";
+const APP_VERSION = "6.100";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-09-02-v699";
+const FORCE_RELOAD = "2026-09-02-v6100";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1373,7 +1373,7 @@ const AR_TEAMS = {
     and foreign clubs — so this register now has a second job. Only names with one settled Arabic
     spelling are added here; the rest render in Latin, which is honest, and the QA list of who they
     currently are is in design/top-clubs-coverage.md for the owner to fill in. */
- "al ahly":"الأهلي","al ahly sc":"الأهلي","eastern company":"الشرقية للدخان","el qanah":"القناة","asyut petroleum":"بترول أسيوط","abu qir fertilizers":"أبو قير",
+ "al ahly":"الأهلي","al ahly sc":"الأهلي","sharkia enppi":"الشرقية إنبي","eastern company":"الشرقية للدخان","el qanah":"القناة","asyut petroleum":"بترول أسيوط","abu qir fertilizers":"أبو قير",
  /* the rest of the Egyptian Premier League, spelled the way API-Football spells them (verified against its team list on the first real call) */
  "ceramica cleopatra":"سيراميكا","ceramica cleopatra fc":"سيراميكا كليوباترا","enppi":"إنبي","enppi sc":"إنبي","ismaily":"الإسماعيلي","ismaily sc":"الإسماعيلي","smouha":"سموحة","smouha sc":"سموحة","el gouna":"الجونة","el gouna fc":"الجونة","pharco":"فاركو","pharco fc":"فاركو","talaea el gaish":"طلائع الجيش","tala'ea el gaish":"طلائع الجيش","el gaish":"طلائع الجيش","modern sport":"مودرن سبورت","modern sport fc":"مودرن سبورت","modern future":"مودرن فيوتشر","zed":"زد","zed fc":"زد","national bank of egypt":"البنك الأهلي","national bank of egypt sc":"البنك الأهلي","nbe":"البنك الأهلي","ghazl el mahalla":"غزل المحلة","ghazl el mahallah":"غزل المحلة","petrojet":"بتروجت","petrojet sc":"بتروجت","haras el hodood":"حرس الحدود","haras el hodoud":"حرس الحدود","al ittihad":"الاتحاد السكندري","al ittihad alexandria":"الاتحاد السكندري","ittihad alexandria":"الاتحاد السكندري","el ittihad":"الاتحاد السكندري","kahrabaa ismailia":"كهرباء الإسماعيلية","wadi degla":"وادي دجلة","el dakhleya":"الداخلية","aswan":"أسوان","aswan sc":"أسوان","misr lel makkasa":"مصر المقاصة","misr el makasa":"مصر المقاصة","el sharkia lel dokhan":"الشرقية للدخان","bank al ahly":"البنك الأهلي","al mokawloon al arab":"المقاولون","arab contractors":"المقاولون العرب","el entag el harby":"الإنتاج الحربي","tanta":"طنطا","nogoom":"نجوم","nogoom fc":"نجوم",
  /* the other Egyptian clubs that reach the app through CAF competitions */

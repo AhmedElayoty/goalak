@@ -1,5 +1,6 @@
 /* Goallak service worker
    CACHE changelog (bump on EVERY deploy, newest first):
+   goalak-v156 2026-09-02  v6.100 ONE MORE NAME. The last Egyptian club FilGoal spells in a way nobody had mapped - "الشرقية إنبي" - is Sharkia ENPPI, per the owner; it now travels in English like the other thirty-one and reads Arabic through AR_TEAMS.
    goalak-v155 2026-09-02  v6.99 "TROPHIES" EVERYWHERE, AND THE EGYPTIAN RE-READ THAT ACTUALLY LANDS. The club page's empty state said "Honours not recorded" under a tab called Trophies; it says Trophies now. Worker: the once-a-day read of eight FilGoal pages ran in sequence and one slow page aborted the lot, which is why English club names never reached the Egyptian board on the day they were added; the eight pages are now fetched in parallel, each on its own, a failed day keeps its previous copy, and the read counts as done when today's page arrived.
    goalak-v154 2026-09-02  v6.98 THE EGYPTIAN CHIP SAYS WHAT IT IS, AND THE CUPS COME ALONG. The rail chip reads "الدوري المصري" / "Egyptian League" under the flag rather than the country, and stays last. From the same FilGoal pages the worker now also takes Egypt Cup, Egyptian Super Cup and Egyptian League Cup matches of Egyptian clubs, each row naming its competition; CAF matches are deliberately NOT taken from there, because ESPN already carries them into Top Clubs and the same match must not appear twice. Fixtures stored before club names travelled in English are re-read once, so the English interface stops showing Arabic names for the days ahead.
    goalak-v153 2026-09-02  v6.97 THE EGYPTIAN LEAGUE SETTLES IN. Four requests from the owner after one evening with it. Its section now sits after every other league and just before Top Clubs, and its rail chip last, where he asked for it. Its clubs travel in English from the worker (FilGoal names them in Arabic; a map of thirty-one clubs turns them, unknown ones pass through untouched), so the English interface finally reads English and the Arabic interface reads through the same AR_TEAMS table as every other league - with SHORT Arabic names for the long ones (أبو قير, سيراميكا, المقاولون) because "أبو قير للأسمدة" was being cut to "أبو..." in a row; the row also wraps to two lines rather than cutting. And the club page's fourth tab is now called Trophies / البطولات.
@@ -153,7 +154,7 @@
    goalak-v2   2026-08-14  QA pass: WCup navy palette; precise shell matching vs SW scope; non-ok responses fall back to cached shell; redirected responses re-wrapped before use/caching; cache writes tied to event lifetime.
    goalak-v1   2026-08-14  v1.0 initial build: 7 leagues, all-leagues day view, league pages (matches / table / stats), AR/EN RTL.
 */
-const CACHE = "goalak-v155";
+const CACHE = "goalak-v156";
 /* top-clubs.js is a static DATA file (last season's top five per league + the ESPN competition-id
    map). It is cache-first like every other asset here, so it refreshes on the next CACHE bump —
    which is the right cadence: the club list only changes once a season. */

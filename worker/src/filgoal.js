@@ -18,7 +18,7 @@ export const EGY_EN = { "الأهلي": "Al Ahly", "الزمالك": "Zamalek", 
   "المقاولون العرب": "Al Mokawloon Al Arab", "طلائع الجيش": "Talaea El Gaish", "غزل المحلة": "Ghazl El Mahalla", "الاتحاد السكندري": "Al Ittihad Alexandria",
   "سيراميكا كليوباترا": "Ceramica Cleopatra", "مودرن سبورت": "Modern Sport", "أبو قير للأسمدة": "Abu Qir Fertilizers", "كهرباء الإسماعيلية": "Kahrabaa Ismailia",
   "بترول أسيوط": "Asyut Petroleum", "البنك الأهلي": "National Bank of Egypt", "حرس الحدود": "Haras El Hodood", "الداخلية": "El Dakhleya", "مصر المقاصة": "Misr Lel Makkasa",
-  "الشرقية للدخان": "Eastern Company", "أسوان": "Aswan", "الإنتاج الحربي": "El Entag El Harby", "طنطا": "Tanta", "نجوم": "Nogoom" };
+  "الشرقية للدخان": "Eastern Company", "أسوان": "Aswan", "الإنتاج الحربي": "El Entag El Harby", "طنطا": "Tanta", "الشرقية إنبي": "Sharkia ENPPI", "نجوم": "Nogoom" };
 export const enName = ar => EGY_EN[String(ar || "").trim()] || String(ar || "");
 const FG_HOST = "https://www.filgoal.com";
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128 Safari/537.36";
