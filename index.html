@@ -163,6 +163,8 @@ html[data-theme="light"] .ico-sun{display:none}
 .rail{position:sticky;top:0;z-index:40;background:linear-gradient(var(--bg) 85%,transparent);padding:6px 0 8px;display:flex;flex-wrap:wrap;gap:5px}
 .railc{flex:0 1 calc(20% - 5px);min-width:calc(20% - 5px);display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 6px;border-radius:12px;background:var(--card);border:1px solid var(--line);color:var(--dim)}
 .railc.on{background:var(--accdark);border-color:var(--acc);color:#fff}
+.railc.on[data-lg]{background:color-mix(in srgb,var(--lgc,var(--accdark)) 34%,var(--card));border-color:var(--lgc,var(--acc));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--lgc,var(--acc)) 55%,transparent),0 6px 18px -10px var(--lgc,var(--acc))}
+.railc{transition:transform .18s cubic-bezier(.2,.8,.2,1),background-color .18s}.railc:active{transform:scale(.96)}
 .railc .rico{font-size:16px;line-height:1.15}
 .rflag{width:20px;height:14px;border-radius:2.5px;object-fit:cover;display:inline-block;vertical-align:middle;border:1px solid rgba(255,255,255,.12)}
 .railc .rflag{margin:1px 0}
@@ -216,7 +218,7 @@ html[data-theme="light"] .ico-sun{display:none}
 .retrybtn{margin-top:12px;padding:8px 22px;border-radius:10px;background:var(--accdark);color:#fff;font-weight:700;font-size:13px}
 
 /* ---------- league sections (home) ---------- */
-.lgsec{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:10px;overflow:hidden}
+.lgsec{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:10px;overflow:hidden;box-shadow:0 10px 26px -18px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,255,255,.045)}
 /* each league block carries its competition's colour on the leading edge - the wall of
    identical rows becomes scannable chapters */
 .lgsec[data-lg]{border-inline-start:3px solid var(--lgc, var(--line))}
@@ -225,28 +227,28 @@ html[data-theme="light"] .ico-sun{display:none}
 /* ONE league colour code for the whole product - the fantasy's differentiated palette,
    which never let three leagues share a red. UCL wears starball silver (gold is the VALUE
    token and a ribbon must not impersonate it); UEL takes bronze, its own hue slot. */
-.lgsec[data-lg="epl"]{--lgc:#A855F7}
-.lgsec[data-lg="liga"]{--lgc:#FF6B00}
-.lgsec[data-lg="seriea"]{--lgc:#2E9BFF}
-.lgsec[data-lg="bun"]{--lgc:#FF3B3B}
-.lgsec[data-lg="fl1"]{--lgc:#17D4A7}
-.lgsec[data-lg="tsl"]{--lgc:#C7F000}
-.lgsec[data-lg="spl"]{--lgc:#FF5CA8}
-.lgsec[data-lg="ucl"]{--lgc:#E8EDFF}
-.lgsec[data-lg="uel"]{--lgc:#C9885A}
-.lgsec[data-lg="uecl"]{--lgc:#2ECC71}
-.lgsec[data-lg="egy"]{--lgc:#E4002B}
-html[data-theme="light"] .lgsec[data-lg="epl"]{--lgc:#7C3AED}
-html[data-theme="light"] .lgsec[data-lg="liga"]{--lgc:#D45500}
-html[data-theme="light"] .lgsec[data-lg="seriea"]{--lgc:#1D6FBF}
-html[data-theme="light"] .lgsec[data-lg="bun"]{--lgc:#C62828}
-html[data-theme="light"] .lgsec[data-lg="fl1"]{--lgc:#0E8A6D}
-html[data-theme="light"] .lgsec[data-lg="tsl"]{--lgc:#7A8F00}
-html[data-theme="light"] .lgsec[data-lg="spl"]{--lgc:#D6337A}
-html[data-theme="light"] .lgsec[data-lg="ucl"]{--lgc:#3B4FA8}
-html[data-theme="light"] .lgsec[data-lg="uel"]{--lgc:#9A6430}
-html[data-theme="light"] .lgsec[data-lg="uecl"]{--lgc:#1E8E4E}
-html[data-theme="light"] .lgsec[data-lg="egy"]{--lgc:#B8001F}
+.lgsec[data-lg="epl"]{--lgc:#A855F7}.railc[data-lg="epl"]{--lgc:#A855F7}
+.lgsec[data-lg="liga"]{--lgc:#FF6B00}.railc[data-lg="liga"]{--lgc:#FF6B00}
+.lgsec[data-lg="seriea"]{--lgc:#2E9BFF}.railc[data-lg="seriea"]{--lgc:#2E9BFF}
+.lgsec[data-lg="bun"]{--lgc:#FF3B3B}.railc[data-lg="bun"]{--lgc:#FF3B3B}
+.lgsec[data-lg="fl1"]{--lgc:#17D4A7}.railc[data-lg="fl1"]{--lgc:#17D4A7}
+.lgsec[data-lg="tsl"]{--lgc:#C7F000}.railc[data-lg="tsl"]{--lgc:#C7F000}
+.lgsec[data-lg="spl"]{--lgc:#FF5CA8}.railc[data-lg="spl"]{--lgc:#FF5CA8}
+.lgsec[data-lg="ucl"]{--lgc:#E8EDFF}.railc[data-lg="ucl"]{--lgc:#E8EDFF}
+.lgsec[data-lg="uel"]{--lgc:#C9885A}.railc[data-lg="uel"]{--lgc:#C9885A}
+.lgsec[data-lg="uecl"]{--lgc:#2ECC71}.railc[data-lg="uecl"]{--lgc:#2ECC71}
+.lgsec[data-lg="egy"]{--lgc:#E4002B}.railc[data-lg="egy"]{--lgc:#E4002B}
+html[data-theme="light"] .lgsec[data-lg="epl"]{--lgc:#7C3AED}html[data-theme="light"] .railc[data-lg="epl"]{--lgc:#7C3AED}.railc[data-lg="epl"]{--lgc:#7C3AED}
+html[data-theme="light"] .lgsec[data-lg="liga"]{--lgc:#D45500}html[data-theme="light"] .railc[data-lg="liga"]{--lgc:#D45500}.railc[data-lg="liga"]{--lgc:#D45500}
+html[data-theme="light"] .lgsec[data-lg="seriea"]{--lgc:#1D6FBF}html[data-theme="light"] .railc[data-lg="seriea"]{--lgc:#1D6FBF}.railc[data-lg="seriea"]{--lgc:#1D6FBF}
+html[data-theme="light"] .lgsec[data-lg="bun"]{--lgc:#C62828}html[data-theme="light"] .railc[data-lg="bun"]{--lgc:#C62828}.railc[data-lg="bun"]{--lgc:#C62828}
+html[data-theme="light"] .lgsec[data-lg="fl1"]{--lgc:#0E8A6D}html[data-theme="light"] .railc[data-lg="fl1"]{--lgc:#0E8A6D}.railc[data-lg="fl1"]{--lgc:#0E8A6D}
+html[data-theme="light"] .lgsec[data-lg="tsl"]{--lgc:#7A8F00}html[data-theme="light"] .railc[data-lg="tsl"]{--lgc:#7A8F00}.railc[data-lg="tsl"]{--lgc:#7A8F00}
+html[data-theme="light"] .lgsec[data-lg="spl"]{--lgc:#D6337A}html[data-theme="light"] .railc[data-lg="spl"]{--lgc:#D6337A}.railc[data-lg="spl"]{--lgc:#D6337A}
+html[data-theme="light"] .lgsec[data-lg="ucl"]{--lgc:#3B4FA8}html[data-theme="light"] .railc[data-lg="ucl"]{--lgc:#3B4FA8}.railc[data-lg="ucl"]{--lgc:#3B4FA8}
+html[data-theme="light"] .lgsec[data-lg="uel"]{--lgc:#9A6430}html[data-theme="light"] .railc[data-lg="uel"]{--lgc:#9A6430}.railc[data-lg="uel"]{--lgc:#9A6430}
+html[data-theme="light"] .lgsec[data-lg="uecl"]{--lgc:#1E8E4E}html[data-theme="light"] .railc[data-lg="uecl"]{--lgc:#1E8E4E}.railc[data-lg="uecl"]{--lgc:#1E8E4E}
+html[data-theme="light"] .lgsec[data-lg="egy"]{--lgc:#B8001F}html[data-theme="light"] .railc[data-lg="egy"]{--lgc:#B8001F}.railc[data-lg="egy"]{--lgc:#B8001F}
 .lghead{display:flex;align-items:center;border-bottom:1px solid var(--line)}
 .lgopen{flex:1;display:flex;align-items:center;gap:9px;padding:10px 13px;min-width:0;text-align:start}
 .lgopen.allonly{cursor:default}
@@ -278,7 +280,12 @@ html[data-theme="light"] .lgsec[data-lg="egy"]{--lgc:#B8001F}
 .mtime{font-size:15px;font-weight:800;color:var(--txt);font-variant-numeric:tabular-nums}
 /* the score is what a scores app is FOR: readable from a metre, digits in fixed columns so
    1-1 and 4-1 sit identically and a live change never makes the row breathe */
-.msc{font-size:22px;font-weight:900;letter-spacing:.5px;line-height:1.05;font-variant-numeric:tabular-nums}
+.msc{font-size:24px;font-weight:900;letter-spacing:.3px;line-height:1.05;font-variant-numeric:tabular-nums;font-family:'Alexandria','Cairo',system-ui,sans-serif}
+@keyframes rowIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+body.dayflip .mrow{animation:rowIn .34s cubic-bezier(.2,.8,.2,1) both}
+body.dayflip .mrow:nth-child(2){animation-delay:.03s}body.dayflip .mrow:nth-child(3){animation-delay:.06s}body.dayflip .mrow:nth-child(4){animation-delay:.09s}body.dayflip .mrow:nth-child(5){animation-delay:.12s}body.dayflip .mrow:nth-child(n+6){animation-delay:.15s}
+.tilt{transform:perspective(900px) rotateX(var(--ty,0deg)) rotateY(var(--tx,0deg));transition:transform .12s linear;transform-style:preserve-3d}
+.clhead .clmono{box-shadow:0 8px 20px -10px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.35)}
 .msc.live{color:var(--red)}
 .msub{font-size:9.5px;color:var(--dim2);font-weight:600;letter-spacing:.4px}
 .tvch{display:block;max-width:110px;margin:2px auto 0;color:var(--gold);font-size:var(--fs-2xs);font-weight:800;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -431,6 +438,7 @@ html[data-theme="light"] .lgsec[data-lg="egy"]{--lgc:#B8001F}
 .mdtab.on{background:var(--accdark);border-color:var(--acc);color:#fff}
 .afnote{font-size:11px;font-weight:600;color:var(--dim);text-align:center;padding:0 0 6px}
 [data-club]{cursor:pointer}
+.goalinks{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:8px 0;font-size:12px;font-weight:700}.goalinks a{color:var(--acc);text-decoration:none;border:1px solid var(--acc);border-radius:8px;padding:3px 9px}
 .lgsec[data-lg="egy"] .mrow .tm i{white-space:normal;line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:13px}
 #club .clhead{position:relative;padding:18px 14px 14px;background:linear-gradient(135deg,var(--c1,#1A2447),var(--c2,#0B1229));color:var(--ink,#fff);border-radius:18px 18px 0 0}
 #club .clx{position:absolute;top:10px;inset-inline-end:10px;background:rgba(0,0,0,.28);color:#fff;border-radius:50%;width:32px;height:32px;font-size:15px}
@@ -669,8 +677,8 @@ html[data-theme="light"] .skel{
 #mdBody.mdfade{animation:gkfade .15s ease-out}
 @media (prefers-reduced-motion: reduce){
  #home,#lg,#predPane,#chatPane,.mrow.live::before,.skel::after,.mrow.scored,
- #modal,#tmfx,#promo,#playerCard,#authModal,.mbox,.toast,#mdBody.mdfade,#gkPtr.spin svg{animation:none !important}
- #modal,#club,#promo,#playerCard,#authModal,.mbox,.toast,#mdBody.mdfade,#gkPtr.spin svg{animation:none !important}
+ #modal,#tmfx,#promo,#playerCard,#authModal,.mbox,.mrow,.tilt,.toast,#mdBody.mdfade,#gkPtr.spin svg{animation:none !important}
+ #modal,#club,#promo,#playerCard,#authModal,.mbox,.mrow,.tilt,.toast,#mdBody.mdfade,#gkPtr.spin svg{animation:none !important}
  .fold::after{transition:none !important}
 }
 .spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--line2);border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-inline-end:8px}
@@ -1211,10 +1219,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.100";
+const APP_VERSION = "6.101";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-09-02-v6100";
+const FORCE_RELOAD = "2026-09-02-v6101";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1690,7 +1698,7 @@ const STR = {
  mdSummary:["الملخص","Summary"],
  mdLineups:["التشكيل","Line-ups"],
  clResults:["النتائج","Results"], clSquad:["اللاعبين","Squad"], clStats:["إحصائيات","Stats"], clTitles:["البطولات","Trophies"],
- clFixtures:["القادمة","Fixtures"], clCoach:["المدرب","Coach"], clCaptain:["الكابتن","Captain"], clHome:["أرض","Home"], clAway:["خارج","Away"], clForm:["آخر {n}","Last {n}"], clTapYears:["اضغط على أي لقب لعرض السنوات","Tap a trophy to see the years"], clNoData:["لا توجد بيانات بعد","No data yet"],
+ clFixtures:["القادمة","Fixtures"], watchGoals:["شوف الأهداف","Watch the goals"], ytSearch:["على يوتيوب","YouTube highlights"], espnVideo:["فيديو ESPN","ESPN video"], clCoach:["المدرب","Coach"], clCaptain:["الكابتن","Captain"], clHome:["أرض","Home"], clAway:["خارج","Away"], clForm:["آخر {n}","Last {n}"], clTapYears:["اضغط على أي لقب لعرض السنوات","Tap a trophy to see the years"], clNoData:["لا توجد بيانات بعد","No data yet"],
  clNoFacts:["الألقاب مش متسجّلة لهذا النادي بعد","Trophies not recorded for this club yet"], clLast:["آخرها","last"], clSeason:["إحصائيات الموسم","Season stats"],
  clPosG:["حراسة","Goalkeepers"], clPosD:["دفاع","Defenders"], clPosM:["وسط","Midfielders"], clPosF:["هجوم","Forwards"],
  stGoals:["أهداف","Goals"], stConc:["استقبل","Conceded"], stClean:["شباك نظيفة","Clean sheets"], stShots:["تسديدات","Shots"], stOnT:["على المرمى","On target"], stPoss:["استحواذ","Possession"], stYel:["كروت صفراء","Yellow cards"], stRed:["كروت حمراء","Red cards"], stFouls:["أخطاء","Fouls"],
@@ -2275,7 +2283,7 @@ function tickClock(){
 function buildRail(){
  let h = '<button type="button" class="railc' + (view === "home" ? " on" : "") + '" onclick="gotoHome()"><span class="rico">⚽</span><span class="rlbl">' + esc(t("all")) + "</span></button>";
  for(const lg of LEAGUES){
-  h += '<button type="button" class="railc' + (view === "lg" && selLg && selLg.id === lg.id ? " on" : "") + '" onclick="gotoLeague(\'' + lg.id + '\')">' + lgIcon(lg) + '<span class="rlbl">' + esc(lgShort(lg)) + "</span></button>";
+  h += '<button type="button" class="railc' + (view === "lg" && selLg && selLg.id === lg.id ? " on" : "") + '" data-lg="' + lg.id + '" onclick="gotoLeague(\'' + lg.id + '\')">' + lgIcon(lg) + '<span class="rlbl">' + esc(lgShort(lg)) + "</span></button>";
  }
  $("rail").innerHTML = h;
 }
@@ -2301,7 +2309,7 @@ function buildStrip(force){
  const sel = $("dstrip").querySelector(".dc.sel");
  if(sel && sel.scrollIntoView) try{ sel.scrollIntoView({inline:"center", block:"nearest"}); }catch(_){}
 }
-function selectDay(k){
+function selectDay(k){ document.body.classList.add("dayflip"); clearTimeout(window._dayflipT); window._dayflipT = setTimeout(function(){ document.body.classList.remove("dayflip"); }, 700);
  if(k === selDay) return;
  selDay = k; chip = "all";
  buildStrip(true);
@@ -4156,7 +4164,7 @@ async function renderMdBody(){
  if(_mdTab === "E"){
   const finished = evState(e) === "post" && !voidedKey(e);
   const sumNow = sumCache[eid] && sumCache[eid].json;
-  mdSet(body, (finished ? motmCardHtml(eid) : "") + mdEventsHtml(e, H, A, sumNow));
+  mdSet(body, (finished ? motmCardHtml(eid) : "") + goalLinksHtml(e, H, A, sumNow) + mdEventsHtml(e, H, A, sumNow));
   if(finished){ const rt = _ratings[eid]; if(!rt || (!rt.ready && !rt.loading && (rt.failed || 0) < 3)) loadRatings(eid); }
   /* subs come from the summary feed: fetch once, then repaint the timeline with them */
   if(finished || evState(e) === "in") ensureSummary(eid).then(function(s){ if(s && _mdEid === eid && _mdTab === "E" && !sumNow) renderMdBody(); });
@@ -4240,7 +4248,7 @@ function renderClub(){
  const lgName = c.lg ? lgName_(c.lg) : "";
  const sub = [lgName, c.rank ? (LANG === "ar" ? "المركز " + c.rank : "#" + c.rank) : "", c.pts != null ? (c.pts + " " + t("pts")) : ""].filter(Boolean).join(" · ");
  const form = c.results.slice(0, 5).reverse();
- let h = '<div class="clhead" style="--c1:' + esc(kit.c1 || "#1A2447") + ';--c2:' + esc(kit.c2 || "#0B1229") + ';--ink:' + esc(kit.ink || "#fff") + '">'
+ let h = '<div class="clhead tilt" style="--c1:' + esc(kit.c1 || "#1A2447") + ';--c2:' + esc(kit.c2 || "#0B1229") + ';--ink:' + esc(kit.ink || "#fff") + '">'
   + '<button type="button" class="mdx clx" onclick="closeClub()" aria-label="✕">✕</button>'
   + '<div class="clid"><div class="clmono" dir="ltr">' + esc(code) + '</div><div><div class="clname">' + esc(nm) + '</div><div class="clsub">' + esc(sub) + "</div></div></div>"
   + (form.length ? '<div class="clform">' + form.map(r => '<i class="' + r.r.toLowerCase() + '" title="' + esc(r.g + "-" + r.a) + '">' + esc(t(r.r)) + "</i>").join("") + "<small>" + esc(t("clForm", {n: form.length})) + "</small></div>" : "")
@@ -4287,6 +4295,18 @@ function renderClub(){
 function lgName_(lg){ return LANG === "ar" ? lg.ar : lg.en; }
 /* the years live under the row; the row itself is a button so a phone tap always reaches it */
 function troToggle(btn){ const row = btn.closest(".cltro"); if(!row || !row.classList.contains("hasyrs")) return; const on = row.classList.toggle("open"); btn.setAttribute("aria-expanded", on ? "true" : "false"); }
+/* THE PHONE'S TILT MOVES THE CLUB HEADER A DEGREE OR TWO. Best-effort: present, it adds depth;
+   absent, nothing changes. Killed under prefers-reduced-motion. */
+(function(){
+ if(!("DeviceOrientationEvent" in window) || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) return;
+ let last = 0;
+ window.addEventListener("deviceorientation", function(ev){
+  const now = Date.now(); if(now - last < 60) return; last = now;
+  const els = document.querySelectorAll(".tilt"); if(!els.length) return;
+  const tx = Math.max(-3, Math.min(3, (ev.gamma || 0) / 12)), ty = Math.max(-3, Math.min(3, -((ev.beta || 0) - 45) / 15));
+  els.forEach(el => { el.style.setProperty("--tx", tx + "deg"); el.style.setProperty("--ty", ty + "deg"); });
+ }, {passive:true});
+})();
 /* every club name anywhere opens the page: capture phase, so the row's own tap never fires */
 document.addEventListener("click", function(ev){
  const el = ev.target && ev.target.closest ? ev.target.closest("[data-club]") : null;
@@ -4294,6 +4314,17 @@ document.addEventListener("click", function(ev){
  ev.stopPropagation(); ev.preventDefault();
  openClub(el.dataset.club, el.dataset.cslug || "", (el.textContent || "").replace(/^@\s*/, "").trim());
 }, true);
+/* WHERE TO WATCH THE GOALS, LEGALLY: ESPN's own video page when the summary names one, and a
+   YouTube search for the official highlights otherwise. Never a stream, never an embed. */
+function goalLinksHtml(e, H, A, sum){
+ const st = evState(e); if(st === "pre") return "";
+ const q = encodeURIComponent(((H.team || {}).displayName || "") + " vs " + ((A.team || {}).displayName || "") + " highlights " + new Date(e.date).getFullYear());
+ const yt = "https://www.youtube.com/results?search_query=" + q;
+ const v = sum && Array.isArray(sum.videos) && sum.videos[0] && sum.videos[0].links && sum.videos[0].links.web && sum.videos[0].links.web.href;
+ return '<div class="goalinks"><span>🎬 ' + esc(t("watchGoals")) + '</span>'
+  + (v ? '<a href="' + esc(v) + '" target="_blank" rel="noopener">' + esc(t("espnVideo")) + "</a>" : "")
+  + '<a href="' + esc(yt) + '" target="_blank" rel="noopener">' + esc(t("ytSearch")) + "</a></div>";
+}
 function openMatch(eid){
  _mdTab = "E";
  if(!renderMatchModal(eid)) return;

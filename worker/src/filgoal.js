@@ -58,8 +58,8 @@ export function fgToFixture(m, now) {
   return {
     fixture: { id: +m.Id, date: new Date(ko).toISOString(), status: st, venue: { name: m.StadiumName || null, city: null } },
     league: { id: +m.ChampionshipId || FG_LEAGUE_ID, name: m.ChampionshipName || "الدوري المصري", nameEn: +m.ChampionshipId === FG_LEAGUE_ID ? "Egyptian Premier League" : (CUP_EN[Object.keys(CUP_EN).find(k => String(m.ChampionshipName || "").indexOf(k) >= 0)] || m.ChampionshipName), country: "Egypt", season: new Date(ko).getUTCMonth() >= 6 ? new Date(ko).getUTCFullYear() : new Date(ko).getUTCFullYear() - 1, round: m.Week ? "Regular Season - " + m.Week : "" },
-    teams: { home: { id: +m.HomeTeamId, name: enName(m.HomeTeamName), nameAr: m.HomeTeamName, winner: short === "FT" ? m.HomeScore > m.AwayScore : null },
-             away: { id: +m.AwayTeamId, name: enName(m.AwayTeamName), nameAr: m.AwayTeamName, winner: short === "FT" ? m.AwayScore > m.HomeScore : null } },
+    teams: { home: { id: +m.HomeTeamId, name: enName(m.HomeTeamName), nameAr: m.HomeTeamName, logo: m.HomeTeamLogoUrl ? "https:" + String(m.HomeTeamLogoUrl).replace(/^https?:/, "") : "", winner: short === "FT" ? m.HomeScore > m.AwayScore : null },
+             away: { id: +m.AwayTeamId, name: enName(m.AwayTeamName), nameAr: m.AwayTeamName, logo: m.AwayTeamLogoUrl ? "https:" + String(m.AwayTeamLogoUrl).replace(/^https?:/, "") : "", winner: short === "FT" ? m.AwayScore > m.HomeScore : null } },
     goals: { home: short === "NS" ? null : (m.HomeScore == null ? 0 : +m.HomeScore), away: short === "NS" ? null : (m.AwayScore == null ? 0 : +m.AwayScore) },
     events: [], _fg: { text, status: m.Status, name: m.MatchStatusName }
   };
@@ -107,7 +107,9 @@ export async function filgoalTick(env, store, now, log, toEspnEvent) {
   const state = (await store.get(K.fg)) || { lastLive: 0, scheduleDay: null, statuses: {} };
   const fixtures = (await store.get(K.fixtures)) || { at: 0, list: [] };
   const live = (await store.get(K.live)) || { at: 0, byId: {} };
-  if (fixtures.list.some(f => f.teams && f.teams.home && f.teams.home.nameAr === undefined) || Object.values(live.byId).some(f => f && f.teams && f.teams.home && f.teams.home.nameAr === undefined)) state.scheduleDay = null;   /* stored before English names existed: re-read once */
+  /* stored copies from before a field existed (English names, then crests) are re-read once */
+  const stale = f => f && f.teams && f.teams.home && (f.teams.home.nameAr === undefined || f.teams.home.logo === undefined);
+  if (fixtures.list.some(stale) || Object.values(live.byId).some(stale)) state.scheduleDay = null;   /* stored before English names existed: re-read once */
   const plan = fgPlan(now, state, fixtures.list);
   const day = utcDay(now);
   try {
