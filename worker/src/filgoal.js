@@ -207,7 +207,7 @@ export function parseMatchBlob(html, id) {
   const comments = (b.Comments || []).map(c => ({ t: c.Time == null ? null : +c.Time, txt: String(c.Content || "").trim(), url: c.ContentUrl ? String(c.ContentUrl) : "", st: c.MatchStatusName || "" })).filter(c => c.txt);
   const events = (b.Events || []).map(e => ({ type: e.MatchEventTypeName || "", team: e.TeamName || "", teamId: e.TeamId != null ? +e.TeamId : null, player: e.PlayerAName || "", player2: e.PlayerBName || "", min: e.Minute != null ? +e.Minute : (e.Time != null ? +e.Time : null),
     goal: /هدف/.test(e.MatchEventTypeName || "") && !/ضائع|مهدر/.test(e.MatchEventTypeName || ""), red: /حمراء/.test(e.MatchEventTypeName || ""), yellow: /صفراء/.test(e.MatchEventTypeName || ""), sub: /تبديل/.test(e.MatchEventTypeName || "") }));
-  return { id: +id, home: b.HomeTeamName, away: b.AwayTeamName, hs: b.HomeScore, as: b.AwayScore, over, coachH: b.HomeTeamCoachName || "", coachA: b.AwayTeamCoachName || "", formH: b.HomeTeamFormationName || "", formA: b.AwayTeamFormationName || "", comments, events };
+  return { id: +id, home: b.HomeTeamName, away: b.AwayTeamName, homeEn: enName(b.HomeTeamName), awayEn: enName(b.AwayTeamName), hs: b.HomeScore, as: b.AwayScore, over, coachH: b.HomeTeamCoachName || "", coachA: b.AwayTeamCoachName || "", formH: b.HomeTeamFormationName || "", formA: b.AwayTeamFormationName || "", comments, events };
 }
 /* FilGoal's typed events -> the API-Football event shape egypt.js already turns into ESPN details:
    a goal (normal / penalty / own goal / missed penalty), a card, a substitution (A off, B on). */

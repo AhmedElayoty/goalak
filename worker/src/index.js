@@ -92,7 +92,7 @@ async function recapRoute(request, url, env) {
   const slug = String(url.searchParams.get("slug") || ""), eid = String(url.searchParams.get("eid") || ""), lang = url.searchParams.get("lang") === "en" ? "en" : "ar";
   if (!/^[a-z0-9._-]{2,40}$/.test(slug) || !/^\d{3,12}$/.test(eid)) return json({ ok: false, error: "params" }, 400);
   if (!env.AI) return json({ ok: false, error: "no-ai" }, 503);
-  const cache = caches.default, key = new Request("https://recap.goallak.internal/" + slug + "/" + eid + "/" + lang);
+  const cache = caches.default, key = new Request("https://recap.goallak.internal/v2/" + slug + "/" + eid + "/" + lang);   /* v2: English recaps once carried Arabic names */
   const hit = await cache.match(key);
   if (hit) return new Response(hit.body, hit);
   let facts;
@@ -103,7 +103,10 @@ async function recapRoute(request, url, env) {
     const m = await fr.json().catch(() => null);
     if (!m || !m.ok) return json({ ok: false, error: "no-commentary" }, 502);
     if (!m.over) return json({ ok: false, error: "not-finished" }, 409);
-    facts = { competition: "الدوري المصري", home: { team: m.home, goals: m.hs }, away: { team: m.away, goals: m.as }, coaches: { home: m.coachH, away: m.coachA },
+    /* English readers get English club names from our own map; player names are Arabic in the source and
+       the model is told to transliterate them - Arabic script inside an English sentence reads as broken */
+    const en = lang === "en";
+    facts = { competition: en ? "Egyptian Premier League" : "الدوري المصري", home: { team: en ? (m.homeEn || m.home) : m.home, goals: m.hs }, away: { team: en ? (m.awayEn || m.away) : m.away, goals: m.as }, coaches: { home: m.coachH, away: m.coachA },
       events: (m.events || []).slice(0, 30).map(e => ({ minute: e.min, type: e.type, team: e.team, player: e.player })),
       commentary: (m.comments || []).slice().sort((x, y) => (x.t || 0) - (y.t || 0)).map(c => (c.t == null ? "" : c.t + "' ") + String(c.txt).slice(0, 140)).slice(0, 45) };
   } else {
@@ -127,7 +130,7 @@ async function recapRoute(request, url, env) {
   }
   const sys = lang === "ar"
     ? "إنت معلق كورة مصري بتحكي لصاحبك في القهوة إيه اللي حصل في الماتش اللي خلص. اكتب 3 لـ 4 جمل بالعامية المصرية الصريحة - مش فصحى خالص: قول 'الماتش' مش 'المباراة'، 'جاب جول' أو 'سجّل'، 'الشوط التاني'، 'قفل الماتش'، 'ضربة جزاء'، 'طلع بكارت أحمر'. مثال على النبرة: 'الأهلي قفل الماتش بدري: جولين في أول نص ساعة وبعدها ماسك الكورة لحد الصافرة.' استخدم الحقائق المعطاة وبس - ممنوع تخترع أي جول أو اسم أو دقيقة. اذكر النتيجة ومين جاب ووقتها ونقطة التحول لو واضحة. بدون عناوين، بدون إيموجي، بدون مقدمات. 90 كلمة بالكتير. الأسماء بالعربي."
-    : "You are a football writer. Write a recap of a finished match in 3 to 4 plain English sentences. Use only the facts given and invent nothing. Mention the result, who scored and when, and the turning point if it is clear. No headings, no emojis, no preamble. At most 90 words.";
+    : "You are a football writer. Write a recap of a finished match in 3 to 4 plain English sentences. Use only the facts given and invent nothing. Mention the result, who scored and when, and the turning point if it is clear. The facts may contain Arabic names or Arabic commentary: write ONLY in English and transliterate every Arabic person or club name into Latin letters (for example عمر خضر -> Omar Khedr, طلائع الجيش -> Talaea El Gaish). Never leave Arabic script in the output. No headings, no emojis, no preamble. At most 90 words.";
   let text = "";
   try {
     const out = await env.AI.run(RECAP_MODEL, { messages: [{ role: "system", content: sys }, { role: "user", content: JSON.stringify(facts) }], max_tokens: 300, temperature: 0.35 });
