@@ -443,7 +443,8 @@ body.dayflip .mrow:nth-child(2){animation-delay:.03s}body.dayflip .mrow:nth-chil
 .commhead{font-size:12px;color:var(--dim);font-weight:700;padding:6px 2px}.commhead .livep{color:#4ADE80}.commstaff{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--dim);padding:0 2px 8px}
 .commlist{display:flex;flex-direction:column;gap:6px}.comm{display:flex;gap:10px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 10px}.comm.goal{border-color:#F5C451;background:color-mix(in srgb,#F5C451 10%,var(--card))}
 .comm .cmin{flex:0 0 auto;min-width:34px;text-align:center;font-weight:900;color:var(--acc);font-variant-numeric:tabular-nums}.comm .ctxt{font-size:13.5px;line-height:1.7}.cclip{display:inline-block;margin-inline-start:6px;color:var(--acc);border:1px solid var(--acc);border-radius:8px;padding:1px 8px;font-size:12px;font-weight:800;text-decoration:none}
-.goalinks{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:8px 0;font-size:12px;font-weight:700}.goalinks a{color:var(--acc);text-decoration:none;border:1px solid var(--acc);border-radius:8px;padding:3px 9px}.goalinks .disc{margin-inline-start:auto;color:var(--txt);border:1px solid var(--line);background:var(--card2);border-radius:8px;padding:3px 9px;font-weight:800;font-size:12px}
+.goalinks{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:8px 0;font-size:12px;font-weight:700}.goalinks a{color:var(--acc);text-decoration:none;border:1px solid var(--acc);border-radius:8px;padding:3px 9px}.goalinks .clip b{color:var(--gold,#F5C451);margin-inline-end:2px}.goalinks .clipsoon{color:var(--dim);font-weight:600;font-size:11px}
+.goalinks .disc{margin-inline-start:auto;color:var(--txt);border:1px solid var(--line);background:var(--card2);border-radius:8px;padding:3px 9px;font-weight:800;font-size:12px}
 .lgsec[data-lg="egy"] .mrow .tm i{white-space:normal;line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:13px}
 #club .clhead{position:relative;padding:18px 14px 14px;background:linear-gradient(135deg,var(--c1,#1A2447),var(--c2,#0B1229));color:var(--ink,#fff);border-radius:18px 18px 0 0}
 #club .clx{position:absolute;top:10px;inset-inline-end:10px;background:rgba(0,0,0,.28);color:#fff;border-radius:50%;width:32px;height:32px;font-size:15px}
@@ -1230,10 +1231,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.104";
+const APP_VERSION = "6.105";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-09-02-v6104";
+const FORCE_RELOAD = "2026-09-02-v6105";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1709,7 +1710,7 @@ const STR = {
  mdSummary:["الملخص","Summary"],
  mdLineups:["التشكيل","Line-ups"],
  clResults:["النتائج","Results"], clSquad:["اللاعبين","Squad"], clStats:["إحصائيات","Stats"], clTitles:["البطولات","Trophies"],
- clFixtures:["القادمة","Fixtures"], discuss:["ناقش في الدردشة","Discuss in chat"], roomPicks:["توقعات الشلة","The room's picks"], mdComm:["التعليق","Commentary"], commNone:["مفيش تعليق لهذه المباراة","No commentary for this match"], commSrc:["تعليق مباشر بالعربي من FilGoal","Live Arabic commentary from FilGoal"], commLive:["مباشر","live"], commClip:["شوف الهدف","Watch the goal"], recapTitle:["ملخص الماتش","Match recap"], recapWriting:["بنكتب الملخص…","Writing the recap…"], recapBy:["مكتوب آليًا من أحداث المباراة","Written automatically from the match events"], watchGoals:["شوف الأهداف","Watch the goals"], ytSearch:["على يوتيوب","YouTube highlights"], espnVideo:["فيديو ESPN","ESPN video"], clCoach:["المدرب","Coach"], clCaptain:["الكابتن","Captain"], clHome:["أرض","Home"], clAway:["خارج","Away"], clForm:["آخر {n}","Last {n}"], clTapYears:["اضغط على أي لقب لعرض السنوات","Tap a trophy to see the years"], clNoData:["لا توجد بيانات بعد","No data yet"],
+ clFixtures:["القادمة","Fixtures"], goalClips:["أهداف الماتش","Goal clips"], clipsSoon:["الأهداف بتظهر هنا أول ما تتنزل","Goal clips appear here as they are published"], discuss:["ناقش في الدردشة","Discuss in chat"], roomPicks:["توقعات الشلة","The room's picks"], mdComm:["التعليق","Commentary"], commNone:["مفيش تعليق لهذه المباراة","No commentary for this match"], commSrc:["تعليق مباشر بالعربي من FilGoal","Live Arabic commentary from FilGoal"], commLive:["مباشر","live"], commClip:["شوف الهدف","Watch the goal"], recapTitle:["ملخص الماتش","Match recap"], recapWriting:["بنكتب الملخص…","Writing the recap…"], recapBy:["مكتوب آليًا من أحداث المباراة","Written automatically from the match events"], watchGoals:["شوف الأهداف","Watch the goals"], ytSearch:["على يوتيوب","YouTube highlights"], espnVideo:["فيديو ESPN","ESPN video"], clCoach:["المدرب","Coach"], clCaptain:["الكابتن","Captain"], clHome:["أرض","Home"], clAway:["خارج","Away"], clForm:["آخر {n}","Last {n}"], clTapYears:["اضغط على أي لقب لعرض السنوات","Tap a trophy to see the years"], clNoData:["لا توجد بيانات بعد","No data yet"],
  clNoFacts:["الألقاب مش متسجّلة لهذا النادي بعد","Trophies not recorded for this club yet"], clLast:["آخرها","last"], clSeason:["إحصائيات الموسم","Season stats"],
  clPosG:["حراسة","Goalkeepers"], clPosD:["دفاع","Defenders"], clPosM:["وسط","Midfielders"], clPosF:["هجوم","Forwards"],
  stGoals:["أهداف","Goals"], stConc:["استقبل","Conceded"], stClean:["شباك نظيفة","Clean sheets"], stShots:["تسديدات","Shots"], stOnT:["على المرمى","On target"], stPoss:["استحواذ","Possession"], stYel:["كروت صفراء","Yellow cards"], stRed:["كروت حمراء","Red cards"], stFouls:["أخطاء","Fouls"],
@@ -4381,12 +4382,7 @@ async function renderComm(eid, e, H, A){
  };
  if(c && c.m && Date.now() - c.at < 30000){ paint(c.m); return; }
  if(!c || !c.m) mdSet(body, '<div class="mdload"><span class="spinner"></span>' + esc(t("loading")) + "</div>"); else paint(c.m);
- try{
-  const r = await fetch(FG_API + "?" + fgQuery(e, H, A)); const j = await r.json();
-  if(!r.ok || !j.ok) throw new Error(j.error || r.status);
-  _comm[eid] = {at: Date.now(), m: j};
-  if(!j.id || e._gkSrc === "af" || e._gkFg) {} else e._gkFg = j.id;
- }catch(_){ _comm[eid] = {at: Date.now(), m: (c && c.m) || null}; }
+ await fetchComm(eid, e, H, A);
  if(_mdEid === eid && _mdTab === "C") paint(_comm[eid].m);
 }
 /* THE MATCH RECAP: three or four sentences in the reader's language, written by the worker from the
@@ -4429,13 +4425,41 @@ function discussMatch(eid){
    YouTube search for the official highlights otherwise. Never a stream, never an embed. */
 function goalLinksHtml(e, H, A, sum){
  const st = evState(e); if(st === "pre") return "";
- const q = encodeURIComponent(((H.team || {}).displayName || "") + " vs " + ((A.team || {}).displayName || "") + " highlights " + new Date(e.date).getFullYear());
- const yt = "https://www.youtube.com/results?search_query=" + q;
- const v = sum && Array.isArray(sum.videos) && sum.videos[0] && sum.videos[0].links && sum.videos[0].links.web && sum.videos[0].links.web.href;
- return '<div class="goalinks"><span>🎬 ' + esc(t("watchGoals")) + '</span>'
-  + (v ? '<a href="' + esc(v) + '" target="_blank" rel="noopener">' + esc(t("espnVideo")) + "</a>" : "")
-  + '<a href="' + esc(yt) + '" target="_blank" rel="noopener">' + esc(t("ytSearch")) + "</a>"
-  + '<button type="button" class="disc" data-eid="' + esc(e.id) + '" onclick="discussMatch(this.dataset.eid)">💬 ' + esc(t("discuss")) + "</button></div>";
+ /* A SEARCH DURING A LIVE MATCH RETURNS OLD MEETINGS. The owner opened a running Egyptian match and
+    was offered last season's highlights. So: while a match runs, the row shows the goal CLIPS FilGoal
+    has published so far - one chip per goal, minute and scorer - and nothing else; the highlights
+    search appears only after full time, with the month in the query. */
+ const clips = clipsFor(e, H, A);
+ let h = '<div class="goalinks"><span>🎬 ' + esc(t(st === "post" ? "watchGoals" : "goalClips")) + '</span>';
+ h += clips.map(c => '<a class="clip" href="' + esc(c.url) + '" target="_blank" rel="noopener"><b dir="ltr">' + (c.t == null ? "" : esc(String(c.t)) + "'") + "</b> " + esc(c.txt.slice(0, 26)) + "</a>").join("");
+ if(st === "post"){
+  const when = (function(){ try{ return new Intl.DateTimeFormat("en", {month:"long", year:"numeric"}).format(new Date(e.date)); }catch(_){ return String(new Date(e.date).getFullYear()); } })();
+  const q = encodeURIComponent(((H.team || {}).displayName || "") + " vs " + ((A.team || {}).displayName || "") + " highlights " + when);
+  const v = sum && Array.isArray(sum.videos) && sum.videos[0] && sum.videos[0].links && sum.videos[0].links.web && sum.videos[0].links.web.href;
+  h += (v ? '<a href="' + esc(v) + '" target="_blank" rel="noopener">' + esc(t("espnVideo")) + "</a>" : "")
+    + '<a href="https://www.youtube.com/results?search_query=' + q + '" target="_blank" rel="noopener">' + esc(t("ytSearch")) + "</a>";
+ } else if(!clips.length) h += '<small class="clipsoon">' + esc(t("clipsSoon")) + "</small>";
+ h += '<button type="button" class="disc" data-eid="' + esc(e.id) + '" onclick="discussMatch(this.dataset.eid)">💬 ' + esc(t("discuss")) + "</button></div>";
+ return h;
+}
+/* the clips FilGoal has attached to this match's commentary lines; fetches the commentary quietly
+   the first time (Egyptian matches and found twins) and repaints the sheet when it lands */
+function clipsFor(e, H, A){
+ const c = _comm[e.id];
+ if(c && c.m && evState(e) === "in" && Date.now() - c.at > 60000 && !c.loading) fetchComm(e.id, e, H, A).then(function(){ if(_mdEid === e.id && _mdTab === "E") renderMdBody(); });
+ if(c && c.m) return (c.m.comments || []).filter(x => x.url).sort((x, y) => (x.t || 0) - (y.t || 0)).map(x => ({t: x.t, url: x.url, txt: x.txt}));
+ if(!c && (e._gkSrc === "af" || e._gkFg)) fetchComm(e.id, e, H, A).then(function(){ if(_mdEid === e.id && _mdTab === "E") renderMdBody(); });
+ return [];
+}
+async function fetchComm(eid, e, H, A){
+ const prev = _comm[eid]; _comm[eid] = Object.assign({}, prev || {}, {loading:true, at: (prev && prev.at) || 0});
+ try{
+  const r = await fetch(FG_API + "?" + fgQuery(e, H, A)); const j = await r.json();
+  if(!r.ok || !j.ok) throw new Error(j.error || r.status);
+  _comm[eid] = {at: Date.now(), m: j};
+  if(j.id && e._gkSrc !== "af" && !e._gkFg) e._gkFg = j.id;
+ }catch(_){ _comm[eid] = {at: Date.now(), m: (prev && prev.m) || null}; }
+ return _comm[eid];
 }
 function openMatch(eid){
  _mdTab = "E";
