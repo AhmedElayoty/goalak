@@ -431,6 +431,7 @@ html[data-theme="light"] .lgsec[data-lg="egy"]{--lgc:#B8001F}
 .mdtab.on{background:var(--accdark);border-color:var(--acc);color:#fff}
 .afnote{font-size:11px;font-weight:600;color:var(--dim);text-align:center;padding:0 0 6px}
 [data-club]{cursor:pointer}
+.lgsec[data-lg="egy"] .mrow .tm i{white-space:normal;line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:13px}
 #club .clhead{position:relative;padding:18px 14px 14px;background:linear-gradient(135deg,var(--c1,#1A2447),var(--c2,#0B1229));color:var(--ink,#fff);border-radius:18px 18px 0 0}
 #club .clx{position:absolute;top:10px;inset-inline-end:10px;background:rgba(0,0,0,.28);color:#fff;border-radius:50%;width:32px;height:32px;font-size:15px}
 .clid{display:flex;align-items:center;gap:12px}
@@ -1210,10 +1211,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.96";
+const APP_VERSION = "6.98";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-09-02-v696";
+const FORCE_RELOAD = "2026-09-02-v698";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1231,6 +1232,13 @@ const LEAGUES = [
     clubs.json). Every Arabic club name was already in AR_TEAMS from the qualifier work. */
  {id:"uecl", slug:"uefa.europa.conf", qual:"uefa.europa.conf_qual", uefa:true, en:"Conference League", ar:"دوري المؤتمر الأوروبي", shortEn:"UECL", shortAr:"المؤتمر", ico:"🥉",
   zones:{g:[1,8],a:[9,24],r:[25,36]}, zlabAr:["التأهل المباشر لدور الـ16","الملحق","خارج المنافسة"], zlabEn:["Direct to R16","Playoff","Eliminated"]},
+ {id:"epl", slug:"eng.1", en:"Premier League", ar:"الدوري الإنجليزي الممتاز", shortEn:"PL", shortAr:"إنجلترا", flag:"gb-eng", zones:{g:[1,4],a:[5,6],r:[18,20]}},
+ {id:"liga", slug:"esp.1", en:"La Liga", ar:"الدوري الإسباني", shortEn:"LaLiga", shortAr:"إسبانيا", flag:"es", zones:{g:[1,4],a:[5,6],r:[18,20]}},
+ {id:"seriea", slug:"ita.1", en:"Serie A", ar:"الدوري الإيطالي", shortEn:"Serie A", shortAr:"إيطاليا", flag:"it", zones:{g:[1,4],a:[5,6],r:[18,20]}},
+ {id:"bun", slug:"ger.1", en:"Bundesliga", ar:"الدوري الألماني", shortEn:"Bundesliga", shortAr:"ألمانيا", flag:"de", zones:{g:[1,4],a:[5,6],r:[16,18]}},
+ {id:"fl1", slug:"fra.1", en:"Ligue 1", ar:"الدوري الفرنسي", shortEn:"Ligue 1", shortAr:"فرنسا", flag:"fr", zones:{g:[1,3],a:[4,5],r:[16,18]}},
+ {id:"tsl", slug:"tur.1", en:"Süper Lig", ar:"الدوري التركي", shortEn:"Süper Lig", shortAr:"تركيا", flag:"tr", zones:{g:[1,2],a:[3,4],r:[16,18]}},
+ {id:"spl", slug:"sco.1", en:"Scottish Premiership", ar:"الدوري الأسكتلندي الممتاز", shortEn:"SPFL", shortAr:"أسكتلندا", flag:"gb-sct", zones:{g:[1,1],a:[2,3],r:[12,12]}},
  /* THE EGYPTIAN PREMIER LEAGUE - LIVE AGAIN THE SAME EVENING, FOR FREE: the worker reads FilGoal's
     pages (worker/src/filgoal.js, EGY_FEED="filgoal") into the store this entry's /api/egy/ routes
     serve from - Arabic names, score, minute, status; no events or line-ups yet. The note below
@@ -1242,14 +1250,7 @@ const LEAGUES = [
     feed without Facts or Stats (see the `af` branches). To revive: flip the worker's EGY_FEED
     var to "on" with a paying door configured, then uncomment this one line. NOT in predictions
     and NOT in fantasy either way. */
- {id:"egy", slug:"egy.af", src:"af", en:"Egyptian Premier League", ar:"الدوري المصري الممتاز", shortEn:"Egypt", shortAr:"مصر", flag:"eg", zones:{g:[1,2],a:[3,3]}},
- {id:"epl", slug:"eng.1", en:"Premier League", ar:"الدوري الإنجليزي الممتاز", shortEn:"PL", shortAr:"إنجلترا", flag:"gb-eng", zones:{g:[1,4],a:[5,6],r:[18,20]}},
- {id:"liga", slug:"esp.1", en:"La Liga", ar:"الدوري الإسباني", shortEn:"LaLiga", shortAr:"إسبانيا", flag:"es", zones:{g:[1,4],a:[5,6],r:[18,20]}},
- {id:"seriea", slug:"ita.1", en:"Serie A", ar:"الدوري الإيطالي", shortEn:"Serie A", shortAr:"إيطاليا", flag:"it", zones:{g:[1,4],a:[5,6],r:[18,20]}},
- {id:"bun", slug:"ger.1", en:"Bundesliga", ar:"الدوري الألماني", shortEn:"Bundesliga", shortAr:"ألمانيا", flag:"de", zones:{g:[1,4],a:[5,6],r:[16,18]}},
- {id:"fl1", slug:"fra.1", en:"Ligue 1", ar:"الدوري الفرنسي", shortEn:"Ligue 1", shortAr:"فرنسا", flag:"fr", zones:{g:[1,3],a:[4,5],r:[16,18]}},
- {id:"tsl", slug:"tur.1", en:"Süper Lig", ar:"الدوري التركي", shortEn:"Süper Lig", shortAr:"تركيا", flag:"tr", zones:{g:[1,2],a:[3,4],r:[16,18]}},
- {id:"spl", slug:"sco.1", en:"Scottish Premiership", ar:"الدوري الأسكتلندي الممتاز", shortEn:"SPFL", shortAr:"أسكتلندا", flag:"gb-sct", zones:{g:[1,1],a:[2,3],r:[12,12]}},
+ {id:"egy", slug:"egy.af", src:"af", en:"Egyptian Premier League", ar:"الدوري المصري الممتاز", shortEn:"Egyptian League", shortAr:"الدوري المصري", flag:"eg", zones:{g:[1,2],a:[3,3]}},
 ];
 /* Scores in these groups appear in All only. They are intentionally excluded from
    league navigation, chips, predictions, standings and notification preferences. */
@@ -1372,9 +1373,9 @@ const AR_TEAMS = {
     and foreign clubs — so this register now has a second job. Only names with one settled Arabic
     spelling are added here; the rest render in Latin, which is honest, and the QA list of who they
     currently are is in design/top-clubs-coverage.md for the owner to fill in. */
- "al ahly":"الأهلي","al ahly sc":"الأهلي",
+ "al ahly":"الأهلي","al ahly sc":"الأهلي","eastern company":"الشرقية للدخان","el qanah":"القناة","asyut petroleum":"بترول أسيوط","abu qir fertilizers":"أبو قير",
  /* the rest of the Egyptian Premier League, spelled the way API-Football spells them (verified against its team list on the first real call) */
- "ceramica cleopatra":"سيراميكا كليوباترا","ceramica cleopatra fc":"سيراميكا كليوباترا","enppi":"إنبي","enppi sc":"إنبي","ismaily":"الإسماعيلي","ismaily sc":"الإسماعيلي","smouha":"سموحة","smouha sc":"سموحة","el gouna":"الجونة","el gouna fc":"الجونة","pharco":"فاركو","pharco fc":"فاركو","talaea el gaish":"طلائع الجيش","tala'ea el gaish":"طلائع الجيش","el gaish":"طلائع الجيش","modern sport":"مودرن سبورت","modern sport fc":"مودرن سبورت","modern future":"مودرن فيوتشر","zed":"زد","zed fc":"زد","national bank of egypt":"البنك الأهلي","national bank of egypt sc":"البنك الأهلي","nbe":"البنك الأهلي","ghazl el mahalla":"غزل المحلة","ghazl el mahallah":"غزل المحلة","petrojet":"بتروجت","petrojet sc":"بتروجت","haras el hodood":"حرس الحدود","haras el hodoud":"حرس الحدود","al ittihad":"الاتحاد السكندري","al ittihad alexandria":"الاتحاد السكندري","ittihad alexandria":"الاتحاد السكندري","el ittihad":"الاتحاد السكندري","kahrabaa ismailia":"كهرباء الإسماعيلية","wadi degla":"وادي دجلة","el dakhleya":"الداخلية","aswan":"أسوان","aswan sc":"أسوان","misr lel makkasa":"مصر المقاصة","misr el makasa":"مصر المقاصة","el sharkia lel dokhan":"الشرقية للدخان","bank al ahly":"البنك الأهلي","al mokawloon al arab":"المقاولون العرب","arab contractors":"المقاولون العرب","el entag el harby":"الإنتاج الحربي","tanta":"طنطا","nogoom":"نجوم","nogoom fc":"نجوم",
+ "ceramica cleopatra":"سيراميكا","ceramica cleopatra fc":"سيراميكا كليوباترا","enppi":"إنبي","enppi sc":"إنبي","ismaily":"الإسماعيلي","ismaily sc":"الإسماعيلي","smouha":"سموحة","smouha sc":"سموحة","el gouna":"الجونة","el gouna fc":"الجونة","pharco":"فاركو","pharco fc":"فاركو","talaea el gaish":"طلائع الجيش","tala'ea el gaish":"طلائع الجيش","el gaish":"طلائع الجيش","modern sport":"مودرن سبورت","modern sport fc":"مودرن سبورت","modern future":"مودرن فيوتشر","zed":"زد","zed fc":"زد","national bank of egypt":"البنك الأهلي","national bank of egypt sc":"البنك الأهلي","nbe":"البنك الأهلي","ghazl el mahalla":"غزل المحلة","ghazl el mahallah":"غزل المحلة","petrojet":"بتروجت","petrojet sc":"بتروجت","haras el hodood":"حرس الحدود","haras el hodoud":"حرس الحدود","al ittihad":"الاتحاد السكندري","al ittihad alexandria":"الاتحاد السكندري","ittihad alexandria":"الاتحاد السكندري","el ittihad":"الاتحاد السكندري","kahrabaa ismailia":"كهرباء الإسماعيلية","wadi degla":"وادي دجلة","el dakhleya":"الداخلية","aswan":"أسوان","aswan sc":"أسوان","misr lel makkasa":"مصر المقاصة","misr el makasa":"مصر المقاصة","el sharkia lel dokhan":"الشرقية للدخان","bank al ahly":"البنك الأهلي","al mokawloon al arab":"المقاولون","arab contractors":"المقاولون العرب","el entag el harby":"الإنتاج الحربي","tanta":"طنطا","nogoom":"نجوم","nogoom fc":"نجوم",
  /* the other Egyptian clubs that reach the app through CAF competitions */
  "zamalek":"الزمالك","zamalek sc":"الزمالك","pyramids":"بيراميدز","pyramids fc":"بيراميدز","al-masry":"المصري","al masry":"المصري","al masry sc":"المصري",
  /* أوروبا: تصفيات ودوريات صغيرة (Wave 2). Israeli clubs render the BRAND ONLY
@@ -1688,7 +1689,7 @@ const STR = {
  predComp:["توقعات دوري أبطال أوروبا","Champions League Predictions"],
  mdSummary:["الملخص","Summary"],
  mdLineups:["التشكيل","Line-ups"],
- clResults:["النتائج","Results"], clSquad:["اللاعبين","Squad"], clStats:["إحصائيات","Stats"], clTitles:["الألقاب","Honours"],
+ clResults:["النتائج","Results"], clSquad:["اللاعبين","Squad"], clStats:["إحصائيات","Stats"], clTitles:["البطولات","Trophies"],
  clFixtures:["القادمة","Fixtures"], clCoach:["المدرب","Coach"], clCaptain:["الكابتن","Captain"], clHome:["أرض","Home"], clAway:["خارج","Away"], clForm:["آخر {n}","Last {n}"], clTapYears:["اضغط على أي لقب لعرض السنوات","Tap a trophy to see the years"], clNoData:["لا توجد بيانات بعد","No data yet"],
  clNoFacts:["الألقاب مش متسجّلة لهذا النادي بعد","Honours not recorded for this club yet"], clLast:["آخرها","last"], clSeason:["إحصائيات الموسم","Season stats"],
  clPosG:["حراسة","Goalkeepers"], clPosD:["دفاع","Defenders"], clPosM:["وسط","Midfielders"], clPosF:["هجوم","Forwards"],

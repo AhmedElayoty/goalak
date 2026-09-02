@@ -232,7 +232,9 @@ export function toEspnEvent(f, at, every) {
   };
   return { id: String(fx.id), uid: "s:600~l:af233~e:" + fx.id, date: fx.date, name: home.displayName + " vs " + away.displayName,
            shortName: away.abbreviation + " @ " + home.abbreviation, status, competitions: [comp],
-           _gkSrc: "af", _gkLeagueId: "egy", _gkAt: at, _gkEvery: every || null };
+           _gkSrc: "af", _gkLeagueId: "egy", _gkAt: at, _gkEvery: every || null,
+           /* a cup match rides in the league's section with its competition named on the row */
+           _gkCompetition: f.league && f.league.id && f.league.id !== 1667 && f.league.id !== AF_LEAGUE ? { ar: f.league.name || "", en: f.league.nameEn || f.league.name || "", slug: "" } : undefined };
 }
 /* line-ups + events -> the summary shape the match sheet reads (rosters, keyEvents) */
 export function toEspnSummary(f, lineups, at) {

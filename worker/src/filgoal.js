@@ -10,6 +10,16 @@
    fails to "no update" rather than to a wrong one. Unofficial by nature - friends-and-family only. */
 
 export const FG_LEAGUE_ID = 1667;
+/* FilGoal names clubs in Arabic. The shell keys its Arabic names on ENGLISH names (AR_TEAMS), and
+   the English interface needs English, so every club we know travels in English; an unknown one
+   travels as FilGoal wrote it rather than being dropped. */
+export const EGY_EN = { "الأهلي": "Al Ahly", "الزمالك": "Zamalek", "بيراميدز": "Pyramids", "المصري": "Al Masry", "الإسماعيلي": "Ismaily", "سموحة": "Smouha",
+  "إنبي": "ENPPI", "بتروجت": "Petrojet", "فاركو": "Pharco", "زد": "ZED", "وادي دجلة": "Wadi Degla", "الجونة": "El Gouna", "القناة": "El Qanah",
+  "المقاولون العرب": "Al Mokawloon Al Arab", "طلائع الجيش": "Talaea El Gaish", "غزل المحلة": "Ghazl El Mahalla", "الاتحاد السكندري": "Al Ittihad Alexandria",
+  "سيراميكا كليوباترا": "Ceramica Cleopatra", "مودرن سبورت": "Modern Sport", "أبو قير للأسمدة": "Abu Qir Fertilizers", "كهرباء الإسماعيلية": "Kahrabaa Ismailia",
+  "بترول أسيوط": "Asyut Petroleum", "البنك الأهلي": "National Bank of Egypt", "حرس الحدود": "Haras El Hodood", "الداخلية": "El Dakhleya", "مصر المقاصة": "Misr Lel Makkasa",
+  "الشرقية للدخان": "Eastern Company", "أسوان": "Aswan", "الإنتاج الحربي": "El Entag El Harby", "طنطا": "Tanta", "نجوم": "Nogoom" };
+export const enName = ar => EGY_EN[String(ar || "").trim()] || String(ar || "");
 const FG_HOST = "https://www.filgoal.com";
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128 Safari/537.36";
 const K = { fixtures: "egy:fixtures", live: "egy:live", fg: "egy:fg" };
@@ -47,18 +57,29 @@ export function fgToFixture(m, now) {
   const st = { short, elapsed, long: String(m.MatchStatusName || "") };
   return {
     fixture: { id: +m.Id, date: new Date(ko).toISOString(), status: st, venue: { name: m.StadiumName || null, city: null } },
-    league: { id: FG_LEAGUE_ID, name: m.ChampionshipName || "الدوري المصري", country: "Egypt", season: new Date(ko).getUTCMonth() >= 6 ? new Date(ko).getUTCFullYear() : new Date(ko).getUTCFullYear() - 1, round: m.Week ? "Regular Season - " + m.Week : "" },
-    teams: { home: { id: +m.HomeTeamId, name: m.HomeTeamName, winner: short === "FT" ? m.HomeScore > m.AwayScore : null },
-             away: { id: +m.AwayTeamId, name: m.AwayTeamName, winner: short === "FT" ? m.AwayScore > m.HomeScore : null } },
+    league: { id: +m.ChampionshipId || FG_LEAGUE_ID, name: m.ChampionshipName || "الدوري المصري", nameEn: +m.ChampionshipId === FG_LEAGUE_ID ? "Egyptian Premier League" : (CUP_EN[Object.keys(CUP_EN).find(k => String(m.ChampionshipName || "").indexOf(k) >= 0)] || m.ChampionshipName), country: "Egypt", season: new Date(ko).getUTCMonth() >= 6 ? new Date(ko).getUTCFullYear() : new Date(ko).getUTCFullYear() - 1, round: m.Week ? "Regular Season - " + m.Week : "" },
+    teams: { home: { id: +m.HomeTeamId, name: enName(m.HomeTeamName), nameAr: m.HomeTeamName, winner: short === "FT" ? m.HomeScore > m.AwayScore : null },
+             away: { id: +m.AwayTeamId, name: enName(m.AwayTeamName), nameAr: m.AwayTeamName, winner: short === "FT" ? m.AwayScore > m.HomeScore : null } },
     goals: { home: short === "NS" ? null : (m.HomeScore == null ? 0 : +m.HomeScore), away: short === "NS" ? null : (m.AwayScore == null ? 0 : +m.AwayScore) },
     events: [], _fg: { text, status: m.Status, name: m.MatchStatusName }
   };
+}
+/* the league itself, plus the domestic cups an Egyptian club plays in (Egypt Cup, Super Cup, League
+   Cup). CAF competitions are NOT taken from here: ESPN already carries them and the Top Clubs bucket
+   shows them, so taking them twice would print the same match twice. */
+const CUP_RE = /كأس مصر|كأس السوبر المصري|السوبر المصري|كأس الرابطة المصرية|كأس رابطة الأندية/;
+const CUP_EN = { "كأس مصر": "Egypt Cup", "كأس السوبر المصري": "Egyptian Super Cup", "السوبر المصري": "Egyptian Super Cup", "كأس الرابطة المصرية": "Egyptian League Cup", "كأس رابطة الأندية": "Egyptian League Cup" };
+export function wanted(m) {
+  if (!m || !m.Id || !m.HomeTeamName || !m.AwayTeamName) return false;
+  if (+m.ChampionshipId === FG_LEAGUE_ID) return true;
+  const nm = String(m.ChampionshipName || "");
+  return CUP_RE.test(nm) && (EGY_EN[String(m.HomeTeamName).trim()] || EGY_EN[String(m.AwayTeamName).trim()]);
 }
 export function parseDay(html, now) {
   const vm = extractViewModel(html);
   if (!Array.isArray(vm)) return null;
   const out = [];
-  for (const day of vm) for (const m of (day && day.Matches) || []) if (m && +m.ChampionshipId === FG_LEAGUE_ID && m.Id && m.HomeTeamName && m.AwayTeamName) out.push(fgToFixture(m, now));
+  for (const day of vm) for (const m of (day && day.Matches) || []) if (wanted(m)) out.push(fgToFixture(m, now));
   return out;
 }
 
@@ -86,6 +107,7 @@ export async function filgoalTick(env, store, now, log, toEspnEvent) {
   const state = (await store.get(K.fg)) || { lastLive: 0, scheduleDay: null, statuses: {} };
   const fixtures = (await store.get(K.fixtures)) || { at: 0, list: [] };
   const live = (await store.get(K.live)) || { at: 0, byId: {} };
+  if (fixtures.list.some(f => f.teams && f.teams.home && f.teams.home.nameAr === undefined)) state.scheduleDay = null;   /* stored before English names existed: re-read once */
   const plan = fgPlan(now, state, fixtures.list);
   const day = utcDay(now);
   try {

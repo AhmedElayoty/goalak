@@ -1,6 +1,6 @@
 /* THE PUBLISHER'S PAGE, PARSED DEFENSIVELY. A sample of FilGoal's embedded JSON (shape captured
  * 2026-09-02) walks through the extractor, the mapping and the polling plan.  node filgoal.test.mjs */
-import { extractViewModel, parseDay, fgToFixture, fgPlan, utcDay } from "./src/filgoal.js";
+import { extractViewModel, parseDay, fgToFixture, fgPlan, utcDay, wanted } from "./src/filgoal.js";
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("  FAIL  " + m); } };
 const eq = (a, b, m) => ok(a === b, m + "  (got " + JSON.stringify(a) + ", wanted " + JSON.stringify(b) + ")");
@@ -23,10 +23,17 @@ eq(ft.fixture.date, "2026-09-01T17:00:00.000Z", "/Date(ms)/ becomes ISO UTC (20:
 eq(ft.goals.home + "-" + ft.goals.away, "0-0", "finished score kept");
 eq(live.fixture.status.short, "2H", "\"live\" at minute 67 is the second half");
 eq(live.fixture.status.elapsed, 67, "the minute travels");
-eq(live.teams.home.name, "الأهلي", "Arabic names travel untouched");
+eq(live.teams.home.name, "Al Ahly", "known clubs travel in English (the shell maps back to Arabic)");
+eq(live.teams.home.nameAr, "الأهلي", "and keep FilGoal's Arabic beside it");
+eq(rows[0].teams.away.name, "El Qanah", "El Qanah too");
 eq(pre.fixture.status.short, "NS", "an upcoming match is NS");
 eq(pre.goals.home, null, "and carries no score - not a fake 0");
 eq(live.league.id, 1667, "league id is FilGoal's");
+console.log("\n2b · cups ride along, CAF does not");
+ok(wanted({Id:9,HomeTeamName:"الأهلي",AwayTeamName:"الزمالك",ChampionshipId:5,ChampionshipName:"كأس مصر"}), "Egypt Cup with an Egyptian club: taken");
+ok(!wanted({Id:9,HomeTeamName:"الأهلي",AwayTeamName:"صن داونز",ChampionshipId:7,ChampionshipName:"دوري أبطال أفريقيا"}), "CAF Champions League: left to ESPN's Top Clubs feed");
+ok(!wanted({Id:9,HomeTeamName:"الهلال",AwayTeamName:"النصر",ChampionshipId:8,ChampionshipName:"كأس السوبر السعودي"}), "another country's cup: no");
+eq(fgToFixture({Id:9,HomeTeamId:1,AwayTeamId:2,HomeTeamName:"الأهلي",AwayTeamName:"الزمالك",ChampionshipId:5,ChampionshipName:"كأس السوبر المصري",Date:"/Date(1788282000000)/",HomeScore:null,AwayScore:null,CurrentMatchStatusText:"upcoming"}, NOW).league.nameEn, "Egyptian Super Cup", "the cup's English name travels");
 console.log("\n3 · the plan: one page a minute during a match, once a day otherwise");
 const fx = rows;
 eq(fgPlan(NOW, { scheduleDay: utcDay(NOW), lastLive: NOW - 61000 }, fx).kind, "live", "a match in its window: fetch the day page");
