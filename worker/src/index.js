@@ -81,6 +81,51 @@ async function espnFetch(url, headers) {
 const ESPN_PROXY_OK = /^apis\/(site\/)?v2\/sports\/soccer\/[A-Za-z0-9._-]+\/(scoreboard|summary|standings|teams\/\d+\/schedule|teams\/\d+\/roster|teams\/\d+)$/;
 /* THE CORE API - season statistics per team - lives on a different ESPN host and carries no
    live data, so it gets its own narrow whitelist and a plain hour-long edge cache. */
+/* THE MATCH RECAP. Three or four sentences written from the finished match's own facts - score,
+   scorers and minutes, cards, substitutions - in Egyptian Arabic or plain English, by Workers AI.
+   Only for finished matches (a live recap would be wrong within a minute), only from the summary
+   the edge already proxies, cached a month per match and language so the room shares one call.
+   The model is told to use nothing but the facts given; a recap that invents is worse than none. */
+const RECAP_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+async function recapRoute(request, url, env) {
+  if (request.method !== "GET") return json({ ok: false, error: "method" }, 405);
+  const slug = String(url.searchParams.get("slug") || ""), eid = String(url.searchParams.get("eid") || ""), lang = url.searchParams.get("lang") === "en" ? "en" : "ar";
+  if (!/^[a-z0-9._-]{2,40}$/.test(slug) || !/^\d{3,12}$/.test(eid)) return json({ ok: false, error: "params" }, 400);
+  if (!env.AI) return json({ ok: false, error: "no-ai" }, 503);
+  const cache = caches.default, key = new Request("https://recap.goallak.internal/" + slug + "/" + eid + "/" + lang);
+  const hit = await cache.match(key);
+  if (hit) return new Response(hit.body, hit);
+  const sub = new URL(url.origin + "/api/espn/apis/site/v2/sports/soccer/" + slug + "/summary?event=" + eid);
+  const sr = await espnProxy(new Request(sub.toString()), sub);
+  const sum = await sr.json().catch(() => null);
+  const comp = sum && sum.header && sum.header.competitions && sum.header.competitions[0];
+  if (!comp) return json({ ok: false, error: "no-summary" }, 502);
+  if (!(comp.status && comp.status.type && comp.status.type.state === "post")) return json({ ok: false, error: "not-finished" }, 409);
+  const cs = comp.competitors || [];
+  const nm = c => (c && c.team && (c.team.displayName || c.team.shortDisplayName)) || "?";
+  const H = cs.find(c => c.homeAway === "home") || cs[0] || {}, A = cs.find(c => c.homeAway === "away") || cs[1] || {};
+  const facts = {
+    competition: (sum.header.league && sum.header.league.name) || "", date: comp.date || "",
+    home: { team: nm(H), goals: H.score }, away: { team: nm(A), goals: A.score },
+    venue: (sum.gameInfo && sum.gameInfo.venue && sum.gameInfo.venue.fullName) || undefined,
+    events: (sum.keyEvents || []).filter(k => k && k.type && /goal|card|substitution|penalty/i.test(k.type.text || k.type.type || "")).slice(0, 30).map(k => ({
+      minute: (k.clock && k.clock.displayValue) || "", type: (k.type.text || k.type.type || ""), team: (k.team && (k.team.displayName || k.team.abbreviation)) || "",
+      player: (k.participants && k.participants[0] && k.participants[0].athlete && k.participants[0].athlete.displayName) || "" }))
+  };
+  const sys = lang === "ar"
+    ? "أنت كاتب كروي مصري. اكتب ملخصًا لمباراة انتهت في 3 إلى 4 جمل باللهجة المصرية العامية، خفيفة ومحترمة. استخدم فقط الحقائق المعطاة ولا تخترع أي شيء. اذكر النتيجة، من سجل ومتى، ونقطة التحول لو واضحة. بدون عناوين وبدون إيموجي وبدون مقدمات. الحد الأقصى 90 كلمة. أسماء اللاعبين والأندية اكتبها بالعربي."
+    : "You are a football writer. Write a recap of a finished match in 3 to 4 plain English sentences. Use only the facts given and invent nothing. Mention the result, who scored and when, and the turning point if it is clear. No headings, no emojis, no preamble. At most 90 words.";
+  let text = "";
+  try {
+    const out = await env.AI.run(RECAP_MODEL, { messages: [{ role: "system", content: sys }, { role: "user", content: JSON.stringify(facts) }], max_tokens: 300, temperature: 0.35 });
+    text = String((out && (out.response || (out.result && out.result.response))) || "").trim();
+  } catch (e) { return json({ ok: false, error: "ai:" + String((e && e.message) || e).slice(0, 120) }, 502); }
+  if (!text) return json({ ok: false, error: "empty" }, 502);
+  const body = JSON.stringify({ ok: true, text, lang, model: RECAP_MODEL, at: Date.now() });
+  const res = new Response(body, { headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=2592000" } });
+  await cache.put(key, res.clone());
+  return res;
+}
 const ESPN_CORE_OK = /^sports\/soccer\/leagues\/[A-Za-z0-9._-]+\/seasons\/\d{4}\/types\/\d\/teams\/\d+\/statistics$/;
 async function espnCoreProxy(request, url) {
   if (request.method !== "GET") return json({ ok: false, error: "method" }, 405);
@@ -1105,6 +1150,7 @@ async function chatApi(request, env, url) {
       const out = new Response(r.body, { status: r.status, headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=20" } });
       return withApiCors(out, request);
     }
+    if (url.pathname === "/api/recap") return withApiCors(await recapRoute(request, url, env), request);
     if (url.pathname.startsWith("/api/espn-core/")) return withApiCors(await espnCoreProxy(request, url), request);
     /* public read-only sports data; the edge cache is the rate limiter */
     if (url.pathname.startsWith("/api/espn/"))
@@ -1209,7 +1255,7 @@ export default {
     }
     if (url.pathname === "/api/session" || url.pathname.startsWith("/api/session/") || url.pathname.startsWith("/api/chat/")
       || url.pathname.startsWith("/api/auth/") || url.pathname.startsWith("/api/pred/")
-      || url.pathname.startsWith("/api/fx/") || url.pathname.startsWith("/api/espn/") || url.pathname.startsWith("/api/egy/") || url.pathname.startsWith("/api/espn-core/")
+      || url.pathname.startsWith("/api/fx/") || url.pathname.startsWith("/api/espn/") || url.pathname.startsWith("/api/egy/") || url.pathname.startsWith("/api/espn-core/") || url.pathname === "/api/recap"
       || url.pathname.startsWith("/api/push/")
       || url.pathname === "/api/visit") return chatApi(request, env, url);
     if (url.pathname.startsWith("/media/") && request.method === "GET") {

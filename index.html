@@ -438,6 +438,8 @@ body.dayflip .mrow:nth-child(2){animation-delay:.03s}body.dayflip .mrow:nth-chil
 .mdtab.on{background:var(--accdark);border-color:var(--acc);color:#fff}
 .afnote{font-size:11px;font-weight:600;color:var(--dim);text-align:center;padding:0 0 6px}
 [data-club]{cursor:pointer}
+.recap{background:linear-gradient(160deg,color-mix(in srgb,var(--acc) 12%,var(--card)),var(--card));border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin:8px 0;box-shadow:0 10px 26px -18px rgba(0,0,0,.75)}
+.recap .rchead{font-weight:800;font-size:13px;margin-bottom:4px}.recap p{margin:0;font-size:14px;line-height:1.75}.recap small{display:block;color:var(--dim);font-size:10.5px;margin-top:6px}.recap .rcwait{color:var(--dim);font-style:italic}
 .goalinks{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:8px 0;font-size:12px;font-weight:700}.goalinks a{color:var(--acc);text-decoration:none;border:1px solid var(--acc);border-radius:8px;padding:3px 9px}
 .lgsec[data-lg="egy"] .mrow .tm i{white-space:normal;line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:13px}
 #club .clhead{position:relative;padding:18px 14px 14px;background:linear-gradient(135deg,var(--c1,#1A2447),var(--c2,#0B1229));color:var(--ink,#fff);border-radius:18px 18px 0 0}
@@ -1219,10 +1221,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.101";
+const APP_VERSION = "6.102";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-09-02-v6101";
+const FORCE_RELOAD = "2026-09-02-v6102";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1698,7 +1700,7 @@ const STR = {
  mdSummary:["الملخص","Summary"],
  mdLineups:["التشكيل","Line-ups"],
  clResults:["النتائج","Results"], clSquad:["اللاعبين","Squad"], clStats:["إحصائيات","Stats"], clTitles:["البطولات","Trophies"],
- clFixtures:["القادمة","Fixtures"], watchGoals:["شوف الأهداف","Watch the goals"], ytSearch:["على يوتيوب","YouTube highlights"], espnVideo:["فيديو ESPN","ESPN video"], clCoach:["المدرب","Coach"], clCaptain:["الكابتن","Captain"], clHome:["أرض","Home"], clAway:["خارج","Away"], clForm:["آخر {n}","Last {n}"], clTapYears:["اضغط على أي لقب لعرض السنوات","Tap a trophy to see the years"], clNoData:["لا توجد بيانات بعد","No data yet"],
+ clFixtures:["القادمة","Fixtures"], recapTitle:["ملخص الماتش","Match recap"], recapWriting:["بنكتب الملخص…","Writing the recap…"], recapBy:["مكتوب آليًا من أحداث المباراة","Written automatically from the match events"], watchGoals:["شوف الأهداف","Watch the goals"], ytSearch:["على يوتيوب","YouTube highlights"], espnVideo:["فيديو ESPN","ESPN video"], clCoach:["المدرب","Coach"], clCaptain:["الكابتن","Captain"], clHome:["أرض","Home"], clAway:["خارج","Away"], clForm:["آخر {n}","Last {n}"], clTapYears:["اضغط على أي لقب لعرض السنوات","Tap a trophy to see the years"], clNoData:["لا توجد بيانات بعد","No data yet"],
  clNoFacts:["الألقاب مش متسجّلة لهذا النادي بعد","Trophies not recorded for this club yet"], clLast:["آخرها","last"], clSeason:["إحصائيات الموسم","Season stats"],
  clPosG:["حراسة","Goalkeepers"], clPosD:["دفاع","Defenders"], clPosM:["وسط","Midfielders"], clPosF:["هجوم","Forwards"],
  stGoals:["أهداف","Goals"], stConc:["استقبل","Conceded"], stClean:["شباك نظيفة","Clean sheets"], stShots:["تسديدات","Shots"], stOnT:["على المرمى","On target"], stPoss:["استحواذ","Possession"], stYel:["كروت صفراء","Yellow cards"], stRed:["كروت حمراء","Red cards"], stFouls:["أخطاء","Fouls"],
@@ -4164,7 +4166,7 @@ async function renderMdBody(){
  if(_mdTab === "E"){
   const finished = evState(e) === "post" && !voidedKey(e);
   const sumNow = sumCache[eid] && sumCache[eid].json;
-  mdSet(body, (finished ? motmCardHtml(eid) : "") + goalLinksHtml(e, H, A, sumNow) + mdEventsHtml(e, H, A, sumNow));
+  mdSet(body, (finished ? motmCardHtml(eid) + recapHtml(eid, e) : "") + goalLinksHtml(e, H, A, sumNow) + mdEventsHtml(e, H, A, sumNow));
   if(finished){ const rt = _ratings[eid]; if(!rt || (!rt.ready && !rt.loading && (rt.failed || 0) < 3)) loadRatings(eid); }
   /* subs come from the summary feed: fetch once, then repaint the timeline with them */
   if(finished || evState(e) === "in") ensureSummary(eid).then(function(s){ if(s && _mdEid === eid && _mdTab === "E" && !sumNow) renderMdBody(); });
@@ -4314,6 +4316,30 @@ document.addEventListener("click", function(ev){
  ev.stopPropagation(); ev.preventDefault();
  openClub(el.dataset.club, el.dataset.cslug || "", (el.textContent || "").replace(/^@\s*/, "").trim());
 }, true);
+/* THE MATCH RECAP: three or four sentences in the reader's language, written by the worker from the
+   match's own events once it has finished, one generation per match shared by everyone. The card
+   shows a quiet placeholder while it is being written and disappears if nothing comes back. */
+const RECAP_API = new URL(ESPN_EDGE).origin + "/api/recap";
+const _recaps = {};
+function recapHtml(eid, e){
+ if(!e || e._gkSrc === "af") return "";
+ const k = eid + "|" + LANG, r = _recaps[k];
+ if(r && r.text) return '<div class="recap"><div class="rchead">📝 ' + esc(t("recapTitle")) + '</div><p dir="auto">' + esc(r.text) + '</p><small>' + esc(t("recapBy")) + "</small></div>";
+ if(r && r.failed) return "";
+ if(!r) loadRecap(eid, e);
+ return '<div class="recap skel" id="mdRecap"><div class="rchead">📝 ' + esc(t("recapTitle")) + '</div><p class="rcwait">' + esc(t("recapWriting")) + "</p></div>";
+}
+async function loadRecap(eid, e){
+ const k = eid + "|" + LANG; _recaps[k] = {loading:true};
+ try{
+  const slug = slugForEvent(e); if(!slug) throw new Error("slug");
+  const r = await fetch(RECAP_API + "?slug=" + encodeURIComponent(slug) + "&eid=" + encodeURIComponent(eid) + "&lang=" + LANG);
+  const j = await r.json();
+  if(!r.ok || !j.ok || !j.text) throw new Error(j.error || r.status);
+  _recaps[k] = {text: j.text};
+ }catch(_){ _recaps[k] = {failed:true}; }
+ if(_mdEid === eid && _mdTab === "E") renderMdBody();
+}
 /* WHERE TO WATCH THE GOALS, LEGALLY: ESPN's own video page when the summary names one, and a
    YouTube search for the official highlights otherwise. Never a stream, never an embed. */
 function goalLinksHtml(e, H, A, sum){

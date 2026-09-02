@@ -182,6 +182,17 @@ release). Unofficial: a publisher's page, friends build only; first thing to rep
 licensed feed at the public launch. `/api/egy/status` shows `via:"filgoal"` and the status
 words seen. Status parked notes above remain as history.
 
+## Shipped the same night (v6.101-v6.102)
+
+Design: league-coloured rail chips (palette selectors have `.railc[data-lg]` twins), card depth,
+`body.dayflip` staggered row fade set by `selectDay` for 700 ms (never on the live tick), `.tilt`
+gyro parallax on the club header, Alexandria scores. Egyptian crests from FilGoal (`team.logo`).
+"Watch the goals": `goalLinksHtml` - ESPN video page if the summary has `videos[]`, else a YouTube
+highlights search; links only, never a stream. **Match recap**: worker `/api/recap?slug&eid&lang`
+(Workers AI, `[ai] binding = "AI"`, model llama-3.3-70b-instruct-fp8-fast, facts-only prompt,
+finished matches only, cached a month per match+lang at the edge); shell `recapHtml/loadRecap`
+on the E tab; Arabic prompt asks for Egyptian colloquial but the model tends to MSA - tune later.
+
 ## Features roadmap (from the features agent, 2026-09-02) - owner picks the order
 
 1. Reveal the room's picks after lock (leaderboard already returns every user's picks; ~5h).

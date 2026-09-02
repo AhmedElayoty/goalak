@@ -7,6 +7,11 @@ workers_dev = true
 [triggers]
 crons = ["* * * * *"]
 
+# Workers AI: the match recap (v6.102). Free daily allowance; one generation per match per
+# language is cached at the edge for a month, so the whole room shares one call.
+[ai]
+binding = "AI"
+
 [vars]
 # DRY_RUN "false" = live sender (flipped 2026-08-15 after authorized dry-run verification; /test confirms delivery per device).
 DRY_RUN = "false"
