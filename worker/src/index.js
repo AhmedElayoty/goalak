@@ -95,6 +95,18 @@ async function recapRoute(request, url, env) {
   const cache = caches.default, key = new Request("https://recap.goallak.internal/" + slug + "/" + eid + "/" + lang);
   const hit = await cache.match(key);
   if (hit) return new Response(hit.body, hit);
+  let facts;
+  if (slug === "egy.af") {
+    /* an Egyptian match: FilGoal's own commentary is the source - richer than any event list */
+    const cid = env.PUSH_COORDINATOR.idFromName("global");
+    const fr = await env.PUSH_COORDINATOR.get(cid).fetch("https://coord/egy-fg?fixture=" + eid, { method: "POST", body: "{}" });
+    const m = await fr.json().catch(() => null);
+    if (!m || !m.ok) return json({ ok: false, error: "no-commentary" }, 502);
+    if (!m.over) return json({ ok: false, error: "not-finished" }, 409);
+    facts = { competition: "الدوري المصري", home: { team: m.home, goals: m.hs }, away: { team: m.away, goals: m.as }, coaches: { home: m.coachH, away: m.coachA },
+      events: (m.events || []).slice(0, 30).map(e => ({ minute: e.min, type: e.type, team: e.team, player: e.player })),
+      commentary: (m.comments || []).slice().sort((x, y) => (x.t || 0) - (y.t || 0)).map(c => (c.t == null ? "" : c.t + "' ") + String(c.txt).slice(0, 140)).slice(0, 45) };
+  } else {
   const sub = new URL(url.origin + "/api/espn/apis/site/v2/sports/soccer/" + slug + "/summary?event=" + eid);
   const sr = await espnProxy(new Request(sub.toString()), sub);
   const sum = await sr.json().catch(() => null);
@@ -104,7 +116,7 @@ async function recapRoute(request, url, env) {
   const cs = comp.competitors || [];
   const nm = c => (c && c.team && (c.team.displayName || c.team.shortDisplayName)) || "?";
   const H = cs.find(c => c.homeAway === "home") || cs[0] || {}, A = cs.find(c => c.homeAway === "away") || cs[1] || {};
-  const facts = {
+  facts = {
     competition: (sum.header.league && sum.header.league.name) || "", date: comp.date || "",
     home: { team: nm(H), goals: H.score }, away: { team: nm(A), goals: A.score },
     venue: (sum.gameInfo && sum.gameInfo.venue && sum.gameInfo.venue.fullName) || undefined,
@@ -112,8 +124,9 @@ async function recapRoute(request, url, env) {
       minute: (k.clock && k.clock.displayValue) || "", type: (k.type.text || k.type.type || ""), team: (k.team && (k.team.displayName || k.team.abbreviation)) || "",
       player: (k.participants && k.participants[0] && k.participants[0].athlete && k.participants[0].athlete.displayName) || "" }))
   };
+  }
   const sys = lang === "ar"
-    ? "أنت كاتب كروي مصري. اكتب ملخصًا لمباراة انتهت في 3 إلى 4 جمل باللهجة المصرية العامية، خفيفة ومحترمة. استخدم فقط الحقائق المعطاة ولا تخترع أي شيء. اذكر النتيجة، من سجل ومتى، ونقطة التحول لو واضحة. بدون عناوين وبدون إيموجي وبدون مقدمات. الحد الأقصى 90 كلمة. أسماء اللاعبين والأندية اكتبها بالعربي."
+    ? "إنت معلق كورة مصري بتحكي لصاحبك في القهوة إيه اللي حصل في الماتش اللي خلص. اكتب 3 لـ 4 جمل بالعامية المصرية الصريحة - مش فصحى خالص: قول 'الماتش' مش 'المباراة'، 'جاب جول' أو 'سجّل'، 'الشوط التاني'، 'قفل الماتش'، 'ضربة جزاء'، 'طلع بكارت أحمر'. مثال على النبرة: 'الأهلي قفل الماتش بدري: جولين في أول نص ساعة وبعدها ماسك الكورة لحد الصافرة.' استخدم الحقائق المعطاة وبس - ممنوع تخترع أي جول أو اسم أو دقيقة. اذكر النتيجة ومين جاب ووقتها ونقطة التحول لو واضحة. بدون عناوين، بدون إيموجي، بدون مقدمات. 90 كلمة بالكتير. الأسماء بالعربي."
     : "You are a football writer. Write a recap of a finished match in 3 to 4 plain English sentences. Use only the facts given and invent nothing. Mention the result, who scored and when, and the turning point if it is clear. No headings, no emojis, no preamble. At most 90 words.";
   let text = "";
   try {

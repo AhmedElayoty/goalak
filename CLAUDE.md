@@ -209,10 +209,23 @@ on the E tab; Arabic prompt asks for Egyptian colloquial but the model tends to 
 - No standings from FilGoal: `egyStandings` falls back to a teams-only table (`_gkProvisional`)
   so the followed-club picker lists Egyptian clubs; the picker cache key moved to `gk_teams_v2`.
 
+## v6.104 - the rest of the list (2026-09-02, night)
+
+- Egyptian matches carry events: `filgoalTick` live branch calls `fgMatch` per started match and
+  `fgEventsToAf` maps FilGoal event types (Arabic) to API-Football shapes -> `toEspnEvent` details
+  (goal/penalty/own goal/missed penalty, cards) and summary keyEvents (subs). Goal pushes for
+  Egypt now carry scorers. Recap for `slug === "egy.af"` is built from FilGoal's commentary lines
+  (coordinator `/egy-fg`), not ESPN. Arabic recap prompt asks for Egyptian dialect with an example.
+- Room's picks (`picksRowHtml`, appended inside predCard/predResultRow; `lbCache.users` kept and
+  refreshed quietly on the Matches tab); discuss-in-chat (`discussMatch`, a button in the
+  goal-links row - NOT a `.mshare`, a qa-chat gate asserts the first share button says "share");
+  goal celebration (`celebrateGoal`: vib + `body.goalburst` wash, followed clubs only, 4 s
+  throttle); global `#liveBar` (`renderLiveBar`, every view except home and chat).
+
 ## Features roadmap (from the features agent, 2026-09-02) - owner picks the order
 
 1. Reveal the room's picks after lock (leaderboard already returns every user's picks; ~5h).
-2. Club Fixtures tab - SHIPPED v6.96.  3. Friend duel card on the leaderboard (~4h).
+2. Club Fixtures tab - SHIPPED v6.96. 1 and 4 SHIPPED v6.104; goal celebration + live bar too.  3. Friend duel card on the leaderboard (~4h).
 4. Discuss-in-chat button on the match sheet, pre-seeded with the scoreline (~3h).
 5. Team of the Matchday from cached ratings, in a sheet (~10h).  6. "My Table": standings
 filtered to followed clubs (~5h).  7. Add-to-calendar .ics for a followed club (~4h).

@@ -1,6 +1,6 @@
 /* THE PUBLISHER'S PAGE, PARSED DEFENSIVELY. A sample of FilGoal's embedded JSON (shape captured
  * 2026-09-02) walks through the extractor, the mapping and the polling plan.  node filgoal.test.mjs */
-import { extractViewModel, parseDay, fgToFixture, fgPlan, utcDay, wanted, parseMatchBlob, findTwin, norm, indexRows } from "./src/filgoal.js";
+import { extractViewModel, parseDay, fgToFixture, fgPlan, utcDay, wanted, parseMatchBlob, findTwin, norm, indexRows, fgEventsToAf } from "./src/filgoal.js";
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("  FAIL  " + m); } };
 const eq = (a, b, m) => ok(a === b, m + "  (got " + JSON.stringify(a) + ", wanted " + JSON.stringify(b) + ")");
@@ -38,6 +38,11 @@ console.log("\n2c · a match page: commentary, clips, events");
 const page = 'x {"TimeZoneConsidered":true,"Id":375883,"HomeTeamName":"غزل المحلة","AwayTeamName":"الشرقية إنبي","HomeScore":0,"AwayScore":0,"CurrentMatchStatusText":"over","HomeTeamCoachName":"أ","AwayTeamCoachName":"ب","Comments":[{"Id":1,"Time":49,"ContentUrl":"","Content":"تسديدة قوية","MatchStatusName":"الشوط الثاني"},{"Id":2,"Time":30,"ContentUrl":"https://www.filgoal.com/videos/1","Content":"جووول","MatchStatusName":"الشوط الأول"}],"Events":[{"MatchEventTypeName":"بطاقة صفراء","TeamName":"غزل المحلة","PlayerAName":"عمرو جمعة","Minute":12},{"MatchEventTypeName":"هدف","TeamName":"الشرقية إنبي","PlayerAName":"س","Minute":30}]} y';
 const mb = parseMatchBlob(page, 375883);
 eq(mb.comments.length, 2, "two commentary lines"); eq(mb.comments[1].url, "https://www.filgoal.com/videos/1", "the clip link travels"); eq(mb.events.filter(e => e.goal).length, 1, "one goal event"); eq(mb.events[0].yellow, true, "a yellow is a yellow"); eq(mb.over, true, "finished");
+console.log("\n2c2 · events become goals, cards and subs the timeline understands");
+const afe = fgEventsToAf(mb.events, rows[0]);
+eq(afe.length, 2, "two events"); eq(afe[0].type + "/" + afe[0].detail, "Card/Yellow Card", "the yellow"); eq(afe[1].type + "/" + afe[1].detail, "Goal/Normal Goal", "the goal"); eq(afe[1].time.elapsed, 30, "at minute 30");
+eq(fgEventsToAf([{type:"هدف من ضربة جزاء",team:"x",teamId:1,player:"p",min:88}])[0].detail, "Penalty", "a penalty goal is a penalty");
+eq(fgEventsToAf([{type:"ضربة جزاء ضائعة",team:"x",teamId:1,player:"p",min:88}])[0].detail, "Missed Penalty", "a missed one is not a goal");
 console.log("\n2d · finding a European match's twin by Arabic names and kick-off");
 const idx = indexRows(html);
 eq(idx.length, 4, "the index keeps every competition");

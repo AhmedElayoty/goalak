@@ -443,7 +443,7 @@ body.dayflip .mrow:nth-child(2){animation-delay:.03s}body.dayflip .mrow:nth-chil
 .commhead{font-size:12px;color:var(--dim);font-weight:700;padding:6px 2px}.commhead .livep{color:#4ADE80}.commstaff{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--dim);padding:0 2px 8px}
 .commlist{display:flex;flex-direction:column;gap:6px}.comm{display:flex;gap:10px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 10px}.comm.goal{border-color:#F5C451;background:color-mix(in srgb,#F5C451 10%,var(--card))}
 .comm .cmin{flex:0 0 auto;min-width:34px;text-align:center;font-weight:900;color:var(--acc);font-variant-numeric:tabular-nums}.comm .ctxt{font-size:13.5px;line-height:1.7}.cclip{display:inline-block;margin-inline-start:6px;color:var(--acc);border:1px solid var(--acc);border-radius:8px;padding:1px 8px;font-size:12px;font-weight:800;text-decoration:none}
-.goalinks{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:8px 0;font-size:12px;font-weight:700}.goalinks a{color:var(--acc);text-decoration:none;border:1px solid var(--acc);border-radius:8px;padding:3px 9px}
+.goalinks{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:8px 0;font-size:12px;font-weight:700}.goalinks a{color:var(--acc);text-decoration:none;border:1px solid var(--acc);border-radius:8px;padding:3px 9px}.goalinks .disc{margin-inline-start:auto;color:var(--txt);border:1px solid var(--line);background:var(--card2);border-radius:8px;padding:3px 9px;font-weight:800;font-size:12px}
 .lgsec[data-lg="egy"] .mrow .tm i{white-space:normal;line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:13px}
 #club .clhead{position:relative;padding:18px 14px 14px;background:linear-gradient(135deg,var(--c1,#1A2447),var(--c2,#0B1229));color:var(--ink,#fff);border-radius:18px 18px 0 0}
 #club .clx{position:absolute;top:10px;inset-inline-end:10px;background:rgba(0,0,0,.28);color:#fff;border-radius:50%;width:32px;height:32px;font-size:15px}
@@ -465,6 +465,11 @@ body.dayflip .mrow:nth-child(2){animation-delay:.03s}body.dayflip .mrow:nth-chil
 .clstaff{display:flex;gap:8px}.clstaff .clcard{flex:1;margin:0}.clstaff b{display:block;font-size:14px}
 .mystreak{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:0 0 10px}
 .mystreak .msl1{font-weight:800}.mystreak .msl2{font-size:12px;color:var(--dim);margin-top:4px}
+#liveBar{display:flex;gap:6px;overflow-x:auto;padding:6px 8px 2px;scrollbar-width:none}#liveBar:empty{display:none}
+.rpicks{display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding:6px 10px 8px;border-top:1px dashed var(--line)}.rplab{font-size:10.5px;color:var(--dim);font-weight:800;margin-inline-end:2px}
+.rpick{display:inline-flex;align-items:center;gap:4px;background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:2px 7px;font-size:11.5px}.rpick b{font-weight:800}.rpick i{font-style:normal;color:var(--dim)}.rpick.hit{border-color:#F5C451;background:color-mix(in srgb,#F5C451 14%,var(--card2))}.rpick.part{border-color:#4ADE80}.rpick.me{outline:1px solid var(--acc)}
+body.goalburst::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:200;background:radial-gradient(circle at 50% 35%,rgba(245,196,81,.42),rgba(245,196,81,0) 62%);animation:burst .95s ease-out both}
+@keyframes burst{from{opacity:1}to{opacity:0}}
 #chatLive{display:flex;gap:6px;overflow-x:auto;padding:6px 8px 4px;scrollbar-width:none}#chatLive:empty{display:none}
 .clive{flex:0 0 auto;display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:12px;font-weight:700;color:var(--txt)}
 .clive .sc{color:var(--live,#4ADE80);font-weight:900}.clive .ck{color:var(--dim);font-weight:600}
@@ -682,8 +687,8 @@ html[data-theme="light"] .skel{
 #mdBody.mdfade{animation:gkfade .15s ease-out}
 @media (prefers-reduced-motion: reduce){
  #home,#lg,#predPane,#chatPane,.mrow.live::before,.skel::after,.mrow.scored,
- #modal,#tmfx,#promo,#playerCard,#authModal,.mbox,.mrow,.tilt,.toast,#mdBody.mdfade,#gkPtr.spin svg{animation:none !important}
- #modal,#club,#promo,#playerCard,#authModal,.mbox,.mrow,.tilt,.toast,#mdBody.mdfade,#gkPtr.spin svg{animation:none !important}
+ #modal,#tmfx,#promo,#playerCard,#authModal,.mbox,.mrow,.tilt,body.goalburst::after,.toast,#mdBody.mdfade,#gkPtr.spin svg{animation:none !important}
+ #modal,#club,#promo,#playerCard,#authModal,.mbox,.mrow,.tilt,body.goalburst::after,.toast,#mdBody.mdfade,#gkPtr.spin svg{animation:none !important}
  .fold::after{transition:none !important}
 }
 .spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--line2);border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-inline-end:8px}
@@ -1100,6 +1105,7 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    <div id="mlist"><div class="skel"><span class="spinner"></span><span id="loadTxt">جارٍ التحميل…</span></div></div>
   </section>
 
+  <div id="liveBar"></div>
   <section id="predPane" class="hide">
    <div id="predTop"></div>
    <div class="ltabs" id="ptabs"></div>
@@ -1224,10 +1230,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.103";
+const APP_VERSION = "6.104";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-09-02-v6103";
+const FORCE_RELOAD = "2026-09-02-v6104";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1703,7 +1709,7 @@ const STR = {
  mdSummary:["الملخص","Summary"],
  mdLineups:["التشكيل","Line-ups"],
  clResults:["النتائج","Results"], clSquad:["اللاعبين","Squad"], clStats:["إحصائيات","Stats"], clTitles:["البطولات","Trophies"],
- clFixtures:["القادمة","Fixtures"], mdComm:["التعليق","Commentary"], commNone:["مفيش تعليق لهذه المباراة","No commentary for this match"], commSrc:["تعليق مباشر بالعربي من FilGoal","Live Arabic commentary from FilGoal"], commLive:["مباشر","live"], commClip:["شوف الهدف","Watch the goal"], recapTitle:["ملخص الماتش","Match recap"], recapWriting:["بنكتب الملخص…","Writing the recap…"], recapBy:["مكتوب آليًا من أحداث المباراة","Written automatically from the match events"], watchGoals:["شوف الأهداف","Watch the goals"], ytSearch:["على يوتيوب","YouTube highlights"], espnVideo:["فيديو ESPN","ESPN video"], clCoach:["المدرب","Coach"], clCaptain:["الكابتن","Captain"], clHome:["أرض","Home"], clAway:["خارج","Away"], clForm:["آخر {n}","Last {n}"], clTapYears:["اضغط على أي لقب لعرض السنوات","Tap a trophy to see the years"], clNoData:["لا توجد بيانات بعد","No data yet"],
+ clFixtures:["القادمة","Fixtures"], discuss:["ناقش في الدردشة","Discuss in chat"], roomPicks:["توقعات الشلة","The room's picks"], mdComm:["التعليق","Commentary"], commNone:["مفيش تعليق لهذه المباراة","No commentary for this match"], commSrc:["تعليق مباشر بالعربي من FilGoal","Live Arabic commentary from FilGoal"], commLive:["مباشر","live"], commClip:["شوف الهدف","Watch the goal"], recapTitle:["ملخص الماتش","Match recap"], recapWriting:["بنكتب الملخص…","Writing the recap…"], recapBy:["مكتوب آليًا من أحداث المباراة","Written automatically from the match events"], watchGoals:["شوف الأهداف","Watch the goals"], ytSearch:["على يوتيوب","YouTube highlights"], espnVideo:["فيديو ESPN","ESPN video"], clCoach:["المدرب","Coach"], clCaptain:["الكابتن","Captain"], clHome:["أرض","Home"], clAway:["خارج","Away"], clForm:["آخر {n}","Last {n}"], clTapYears:["اضغط على أي لقب لعرض السنوات","Tap a trophy to see the years"], clNoData:["لا توجد بيانات بعد","No data yet"],
  clNoFacts:["الألقاب مش متسجّلة لهذا النادي بعد","Trophies not recorded for this club yet"], clLast:["آخرها","last"], clSeason:["إحصائيات الموسم","Season stats"],
  clPosG:["حراسة","Goalkeepers"], clPosD:["دفاع","Defenders"], clPosM:["وسط","Midfielders"], clPosF:["هجوم","Forwards"],
  stGoals:["أهداف","Goals"], stConc:["استقبل","Conceded"], stClean:["شباك نظيفة","Clean sheets"], stShots:["تسديدات","Shots"], stOnT:["على المرمى","On target"], stPoss:["استحواذ","Possession"], stYel:["كروت صفراء","Yellow cards"], stRed:["كروت حمراء","Red cards"], stFouls:["أخطاء","Fouls"],
@@ -2807,6 +2813,18 @@ function broadcastFor(e, lg){
  };
  return null;
 }
+/* A GOAL BY A CLUB YOU FOLLOW IS FELT, NOT JUST SEEN: a short double buzz and a gold wash over the
+   whole screen for under a second. Other goals keep the row flash only. Killed under reduced motion. */
+let _celebAt = 0;
+function celebrateGoal(e, H, A){
+ const mine = new Set(myTeamIds().concat(myClub ? [String(myClub.id)] : []));
+ const hit = [H, A].some(c => c && c.team && mine.has(String(c.team.id)));
+ if(!hit || Date.now() - _celebAt < 4000) return;
+ _celebAt = Date.now();
+ try{ vib([70, 50, 140]); }catch(_){}
+ document.body.classList.add("goalburst");
+ setTimeout(function(){ document.body.classList.remove("goalburst"); }, 950);
+}
 function mrow(e, lg){
  const comp = e.competitions && e.competitions[0] || {};
  const cs = comp.competitors || [];
@@ -2861,7 +2879,7 @@ function mrow(e, lg){
   rowCls += " live";
   const curScore = String(H.score) + "-" + String(A.score);
   const wasScore = (_rowScorePrev || _rowScore)[e.id];
-  if(wasScore && wasScore !== curScore) rowCls += " scored";
+  if(wasScore && wasScore !== curScore){ rowCls += " scored"; celebrateGoal(e, H, A); }
   _rowScore[e.id] = curScore;
  }
  return '<button type="button" class="' + rowCls + '" data-eid="' + esc(e.id) + '" onclick="openMatch(this.dataset.eid)">' +
@@ -4176,8 +4194,9 @@ async function renderMdBody(){
  if(_mdTab === "E"){
   const finished = evState(e) === "post" && !voidedKey(e);
   const sumNow = sumCache[eid] && sumCache[eid].json;
-  mdSet(body, (finished ? motmCardHtml(eid) + recapHtml(eid, e) : "") + goalLinksHtml(e, H, A, sumNow) + mdEventsHtml(e, H, A, sumNow));
-  if(finished){ const rt = _ratings[eid]; if(!rt || (!rt.ready && !rt.loading && (rt.failed || 0) < 3)) loadRatings(eid); }
+  const af0 = e._gkSrc === "af";   /* the Egyptian feed has no ratings: no star card, no "analysis failed" */
+  mdSet(body, (finished ? (af0 ? "" : motmCardHtml(eid)) + recapHtml(eid, e) : "") + goalLinksHtml(e, H, A, sumNow) + mdEventsHtml(e, H, A, sumNow));
+  if(finished && !af0){ const rt = _ratings[eid]; if(!rt || (!rt.ready && !rt.loading && (rt.failed || 0) < 3)) loadRatings(eid); }
   /* subs come from the summary feed: fetch once, then repaint the timeline with them */
   if(finished || evState(e) === "in") ensureSummary(eid).then(function(s){ if(s && _mdEid === eid && _mdTab === "E" && !sumNow) renderMdBody(); });
   return;
@@ -4376,7 +4395,7 @@ async function renderComm(eid, e, H, A){
 const RECAP_API = new URL(ESPN_EDGE).origin + "/api/recap";
 const _recaps = {};
 function recapHtml(eid, e){
- if(!e || e._gkSrc === "af") return "";
+ if(!e) return "";
  const k = eid + "|" + LANG, r = _recaps[k];
  if(r && r.text) return '<div class="recap"><div class="rchead">📝 ' + esc(t("recapTitle")) + '</div><p dir="auto">' + esc(r.text) + '</p><small>' + esc(t("recapBy")) + "</small></div>";
  if(r && r.failed) return "";
@@ -4394,6 +4413,18 @@ async function loadRecap(eid, e){
  }catch(_){ _recaps[k] = {failed:true}; }
  if(_mdEid === eid && _mdTab === "E") renderMdBody();
 }
+/* FROM THE SCORE TO THE BANTER IN ONE TAP: closes the sheet, opens the room, and seeds the composer
+   with the scoreline so the message starts where the conversation already is. Nothing is sent. */
+function discussMatch(eid){
+ const e = EV_INDEX[eid]; if(!e) return;
+ const cs = (e.competitions && e.competitions[0] && e.competitions[0].competitors) || [];
+ const H = cs.find(c => c.homeAway === "home") || cs[0] || {}, A = cs.find(c => c.homeAway === "away") || cs[1] || {};
+ const st = evState(e), sc = st === "pre" ? "" : " " + scoreTxt(H, A);
+ const seed = clubAr(H.team || {}) + sc + " " + clubAr(A.team || {}) + (st === "in" && e.status && e.status.displayClock ? " (" + e.status.displayClock + ")" : "") + " — ";
+ try{ closeMatch(); }catch(_){ hideSheet("modal"); }
+ showMain("chat");
+ setTimeout(function(){ const ta = $("chatIn"); if(ta){ ta.value = seed; ta.focus(); try{ ta.setSelectionRange(seed.length, seed.length); }catch(_){} } }, 80);
+}
 /* WHERE TO WATCH THE GOALS, LEGALLY: ESPN's own video page when the summary names one, and a
    YouTube search for the official highlights otherwise. Never a stream, never an embed. */
 function goalLinksHtml(e, H, A, sum){
@@ -4403,7 +4434,8 @@ function goalLinksHtml(e, H, A, sum){
  const v = sum && Array.isArray(sum.videos) && sum.videos[0] && sum.videos[0].links && sum.videos[0].links.web && sum.videos[0].links.web.href;
  return '<div class="goalinks"><span>🎬 ' + esc(t("watchGoals")) + '</span>'
   + (v ? '<a href="' + esc(v) + '" target="_blank" rel="noopener">' + esc(t("espnVideo")) + "</a>" : "")
-  + '<a href="' + esc(yt) + '" target="_blank" rel="noopener">' + esc(t("ytSearch")) + "</a></div>";
+  + '<a href="' + esc(yt) + '" target="_blank" rel="noopener">' + esc(t("ytSearch")) + "</a>"
+  + '<button type="button" class="disc" data-eid="' + esc(e.id) + '" onclick="discussMatch(this.dataset.eid)">💬 ' + esc(t("discuss")) + "</button></div>";
 }
 function openMatch(eid){
  _mdTab = "E";
@@ -5447,6 +5479,7 @@ let _predInflight = null;
 function showMain(v, fromPop){
  /* a tap you can feel — the cheapest confirmation a control registered */
  if(!fromPop) vib(10);
+ setTimeout(renderLiveBar, 0);
  /* a full-screen overlay must never outlive the screen it was opened from: a photo left
     open over the chat would sit on top of whatever tab you moved to */
  try{ closeLightbox(); closeReact(); closeEmojiPanel(); }catch(_){}
@@ -5613,6 +5646,32 @@ function renderPred(){
   '<button type="button" class="ltab' + (predTab === "L" ? " on" : "") + '" onclick="setPredTab(\'L\')">' + esc(t("leaderboard")) + "</button>";
  $("predNote").textContent = "🎯 " + t("scoringRule");
  if(predTab === "M") renderPredMatches(); else renderLeaderboard();
+ /* THE ROOM'S PICKS need the board's users even on the Matches tab: fetch them quietly, once a
+    minute at most, and repaint the cards when they land */
+ if(predTab === "M" && gkUser && validChatSession() && !(lbCache.usersAt && Date.now() - lbCache.usersAt < 60000) && !lbCache._usersBusy){
+  lbCache._usersBusy = true;
+  fetch(CHAT_API + "/api/pred/leaderboard", {headers:chatAuthHeaders(), cache:"no-store"}).then(r => r.json()).then(j => {
+   lbCache._usersBusy = false;
+   if(j && j.ok && Array.isArray(j.users)){ lbCache.users = j.users; lbCache.usersAt = Date.now(); if(mainView === "pred" && predTab === "M") renderPredMatches(); }
+  }).catch(() => { lbCache._usersBusy = false; });
+ }
+}
+/* EVERYBODY'S PICKS, ONCE THE MATCH IS LOCKED. Until now the game was played blind: the board
+   returned every friend's picks and the app threw them away after scoring. After the lock, each
+   card lists the room's scorelines; on a finished match the exact ones wear a target and the
+   points sit beside the name. Before the lock nothing shows - a pick is private until it counts. */
+function picksRowHtml(e){
+ const users = lbCache.users; if(!users || !users.length) return "";
+ const locked = predLocked(e) || evState(e) !== "pre"; if(!locked) return "";
+ const fin = evState(e) === "post" && !voidedKey(e);
+ const chips = [];
+ users.forEach(u => {
+  const pk = u.picks && u.picks[e.id]; if(!pk) return;
+  const s = fin ? scorePredGk(pk, e) : null;
+  chips.push('<span class="rpick' + (s === 3 ? " hit" : s ? " part" : "") + (gkUser && u.uid === gkUser.uid ? " me" : "") + '"><b>' + esc(u.username) + '</b> <span dir="ltr">' + esc(pickTxt(pk, e)) + "</span>" + (fin ? '<i>' + (s === 3 ? "🎯" : s ? "+" + s : "·") + "</i>" : "") + "</span>");
+ });
+ if(!chips.length) return "";
+ return '<div class="rpicks"><span class="rplab">' + esc(t("roomPicks")) + "</span>" + chips.join("") + "</div>";
 }
 function setPredTab(x){ predTab = x; renderPred(); }
 function predCard(e){
@@ -5653,7 +5712,7 @@ function predCard(e){
   '<span class="tm tmh"><i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + "</span>" +
   '<span class="mid">' + mid + '<span class="msub"><span dir="ltr">' + esc(fmtTime(e.date)) + "</span>" + (lg ? " · " + esc(lgShort(lg)) : "") + (e._gkQual ? " · " + esc(t("qualTag")) : "") + "</span></span>" +
   '<span class="tm tma" data-club="' + esc(String((A.team || {}).id || "")) + '" data-cslug="' + esc(slugForEvent(e) || "") + '">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span>" +
-  "</div></div></div>";
+  "</div>" + picksRowHtml(e) + "</div></div>";
 }
 function predResultRow(e){
  const comp = e.competitions && e.competitions[0] || {};
@@ -5671,7 +5730,7 @@ function predResultRow(e){
   '<span class="tm tmh"><i>' + esc(teamName(H)) + "</i>" + crestHtml(H.team) + "</span>" +
   '<span class="mid"><span class="msc" dir="ltr">' + scoreTxt(H, A) + '</span><span class="msub">' + sub + "</span></span>" +
   '<span class="tm tma" data-club="' + esc(String((A.team || {}).id || "")) + '" data-cslug="' + esc(slugForEvent(e) || "") + '">' + crestHtml(A.team) + "<i>" + esc(teamName(A)) + "</i></span>" +
-  "</div></div></div>";
+  "</div>" + picksRowHtml(e) + "</div></div>";
 }
 /* A REPAINT MUST NEVER EAT WHAT SOMEBODY IS TYPING. The tab refreshes on a timer and on
    every return to the app, and each refresh rebuilt the list wholesale - so a manager who had
@@ -5821,7 +5880,7 @@ async function renderLeaderboard(){
   const shown = scored.length ? scored : rows;
   shown.sort((a, b) => b.pts - a.pts || b.exact - a.exact || b.played - a.played || String(a.name).localeCompare(String(b.name)));
   if(me){ me.top = shown.length > 0 && shown[0].uid === gkUser.uid && me.n > 0; }
-  lbCache = {at:Date.now(), rows:shown, me};
+  lbCache = {at:Date.now(), rows:shown, me, users, usersAt: Date.now()};
   if(mainView === "pred" && predTab === "L") body.innerHTML = lbHtml(shown);
  }catch(_){
   if(lbCache.rows){ body.innerHTML = '<div class="stale">⚠️ ' + esc(t("staleNote")) + "</div>" + lbHtml(lbCache.rows); }
@@ -6904,6 +6963,20 @@ function renderChatLive(){
    + '<span class="ck" dir="ltr">' + esc(String((e.status && e.status.displayClock) || "")) + "</span></button>";
  }).join("");
 }
+/* THE LIVE BAR follows you to every tab but the home screen (which has the list) and the chat (which
+   has its own strip): a thin row of live scores, one tap to the sheet, gone when nothing is on. */
+function renderLiveBar(){
+ const bar = $("liveBar"); if(!bar) return;
+ if(mainView === "home" || mainView === "chat"){ bar.innerHTML = ""; return; }
+ const tk = todayKey(), live = [];
+ for(const lg of LEAGUES){ const c = dayCache[lg.id + "|" + tk]; for(const e of (c && c.events) || []) if(evState(e) === "in") live.push(e); }
+ live.sort((a, b) => new Date(a.date) - new Date(b.date));
+ bar.innerHTML = live.slice(0, 8).map(e => {
+  const cs = (e.competitions && e.competitions[0] && e.competitions[0].competitors) || [];
+  const H = cs.find(x => x.homeAway === "home") || cs[0] || {}, A = cs.find(x => x.homeAway === "away") || cs[1] || {};
+  return '<button type="button" class="clive" data-id="' + esc(e.id) + '" onclick="openMatch(this.dataset.id)"><span>' + esc(clubAr(H.team || {})) + '</span><span class="sc" dir="ltr">' + esc(String(H.score ?? "")) + " - " + esc(String(A.score ?? "")) + '</span><span>' + esc(clubAr(A.team || {})) + '</span><span class="ck" dir="ltr">' + esc(String((e.status && e.status.displayClock) || "")) + "</span></button>";
+ }).join("");
+}
 function renderChat(){
  const log = $("chatLog");
  if(!log) return;
@@ -7463,7 +7536,7 @@ setInterval(function(){
  if(document.hidden) return;
  followToday();
  buildStrip(false); /* day rollover rebuilds the strip */
- if(mainView === "chat") renderChatLive();
+ if(mainView === "chat") renderChatLive(); else renderLiveBar();
  /* AN OPEN SHEET ON A LIVE MATCH FOLLOWS THE MATCH. The list behind the sheet repainted
     every 25 seconds while the sheet itself froze at the moment it was opened - score, clock,
     line-ups, substitutions, all of it. This is the second half of the Barcelona fix; the

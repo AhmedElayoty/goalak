@@ -141,6 +141,12 @@ export async function filgoalTick(env, store, now, log, toEspnEvent) {
       { const all = indexRows(dayHtml); if (all.length) { const prev = (await store.get(KIDX)) || { rows: [] }; await store.put(KIDX, { at: now, rows: prev.rows.filter(r => utcDay(r.ko) !== day).concat(all).slice(-1200) }); } }
       if (rows) {
         for (const f of rows) {
+          /* a match that has started carries its events: goals with scorers for the timeline and the
+             pushes, cards, substitutions - from the match page, cached a minute while live, a day after */
+          if (f.fixture.status.short !== "NS" && f.fixture.status.short !== "PST") {
+            const m = await fgMatch(store, f.fixture.id, now).catch(() => null);
+            if (m && m.events) { f.events = fgEventsToAf(m.events, f); f._fgComments = m.comments ? m.comments.length : 0; }
+          }
           live.byId[String(f.fixture.id)] = f;
           state.statuses[f._fg.text || "?"] = (state.statuses[f._fg.text || "?"] || 0) + 1;   /* which status words the page uses - read via /api/egy/status */
           const i = fixtures.list.findIndex(x => x.fixture.id === f.fixture.id);
@@ -199,9 +205,28 @@ export function parseMatchBlob(html, id) {
   let b; try { b = JSON.parse(html.slice(i, k)); } catch (_) { return null; }
   const over = String(b.CurrentMatchStatusText || "").toLowerCase() === "over" || /انتهت/.test(String((b.CurrentMatchStatus && b.CurrentMatchStatus.MatchStatusName) || b.MatchStatusName || ""));
   const comments = (b.Comments || []).map(c => ({ t: c.Time == null ? null : +c.Time, txt: String(c.Content || "").trim(), url: c.ContentUrl ? String(c.ContentUrl) : "", st: c.MatchStatusName || "" })).filter(c => c.txt);
-  const events = (b.Events || []).map(e => ({ type: e.MatchEventTypeName || "", team: e.TeamName || "", player: e.PlayerAName || "", player2: e.PlayerBName || "", min: e.Minute != null ? +e.Minute : (e.Time != null ? +e.Time : null),
+  const events = (b.Events || []).map(e => ({ type: e.MatchEventTypeName || "", team: e.TeamName || "", teamId: e.TeamId != null ? +e.TeamId : null, player: e.PlayerAName || "", player2: e.PlayerBName || "", min: e.Minute != null ? +e.Minute : (e.Time != null ? +e.Time : null),
     goal: /هدف/.test(e.MatchEventTypeName || "") && !/ضائع|مهدر/.test(e.MatchEventTypeName || ""), red: /حمراء/.test(e.MatchEventTypeName || ""), yellow: /صفراء/.test(e.MatchEventTypeName || ""), sub: /تبديل/.test(e.MatchEventTypeName || "") }));
   return { id: +id, home: b.HomeTeamName, away: b.AwayTeamName, hs: b.HomeScore, as: b.AwayScore, over, coachH: b.HomeTeamCoachName || "", coachA: b.AwayTeamCoachName || "", formH: b.HomeTeamFormationName || "", formA: b.AwayTeamFormationName || "", comments, events };
+}
+/* FilGoal's typed events -> the API-Football event shape egypt.js already turns into ESPN details:
+   a goal (normal / penalty / own goal / missed penalty), a card, a substitution (A off, B on). */
+export function fgEventsToAf(events, f) {
+  const out = [];
+  for (const e of events || []) {
+    const t = String(e.type || "");
+    let type = null, detail = "";
+    if (/ضائع|مهدر|أهدر/.test(t)) { type = "Goal"; detail = "Missed Penalty"; }   /* FilGoal types a miss without the word goal */
+    else if (/هدف/.test(t)) { type = "Goal"; detail = /جزاء/.test(t) ? "Penalty" : /مرماه|عكسي|ذاتي/.test(t) ? "Own Goal" : "Normal Goal"; }
+    else if (/حمراء/.test(t)) { type = "Card"; detail = "Red Card"; }
+    else if (/صفراء/.test(t)) { type = "Card"; detail = "Yellow Card"; }
+    else if (/تبديل/.test(t)) { type = "subst"; detail = "Substitution"; }
+    if (!type) continue;
+    let teamId = e.teamId;
+    if (teamId == null && f && f.teams) { const n = norm(e.team); teamId = norm(f.teams.home.nameAr || f.teams.home.name) === n ? f.teams.home.id : norm(f.teams.away.nameAr || f.teams.away.name) === n ? f.teams.away.id : null; }
+    out.push({ time: { elapsed: e.min != null ? +e.min : null, extra: null }, team: { id: teamId, name: e.team }, player: { id: null, name: e.player || "" }, assist: { id: null, name: e.player2 || "" }, type, detail });
+  }
+  return out.slice(0, 80);
 }
 export async function fgMatch(store, id, now) {
   id = String(id).replace(/[^0-9]/g, ""); if (!id) return null;
