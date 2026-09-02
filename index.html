@@ -441,7 +441,7 @@ html[data-theme="light"] .lgsec[data-lg="egy"]{--lgc:#B8001F}
 .clbody{padding:8px 12px 18px}.clcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:10px}
 .clcard h4{margin:0 0 6px;font-size:13px;color:var(--dim);font-weight:700}
 .clrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}.clrow:last-child{border-bottom:0}
-.clrow .opp{flex:1;font-weight:700}.clsc{font-weight:900;min-width:48px;text-align:center;font-variant-numeric:tabular-nums}.clsc.w{color:#22C55E}.clsc.l{color:#F87171}.clsc.d{color:#F5C451}.cldate{color:var(--dim);font-size:11px;min-width:58px;text-align:end}
+.clrow .opp{flex:1;font-weight:700}.clha{display:inline-block;font-size:10px;font-weight:800;color:var(--dim);border:1px solid var(--line);border-radius:6px;padding:0 5px;margin-inline-end:6px;vertical-align:middle}.clsc{font-weight:900;min-width:48px;text-align:center;font-variant-numeric:tabular-nums}.clsc.w{color:#22C55E}.clsc.l{color:#F87171}.clsc.d{color:#F5C451}.cldate{color:var(--dim);font-size:11px;min-width:58px;text-align:end}
 .clgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.clstat{background:var(--card2);border-radius:12px;padding:10px 6px;text-align:center}.clstat b{display:block;font:800 22px/1.1 'Alexandria','Cairo',sans-serif;color:#F5C451}.clstat span{font-size:11px;color:var(--dim)}
 .clpos{font-size:11px;color:var(--dim);margin:10px 0 2px;font-weight:800;letter-spacing:.3px}.clnum{display:inline-block;min-width:28px;text-align:center;font-weight:800;color:var(--dim);font-variant-numeric:tabular-nums}.clage{color:var(--dim);font-size:11px}
 .cltro{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}.cltro:last-child{border-bottom:0}.cltro .n{font:800 22px/1 'Alexandria','Cairo',sans-serif;color:#F5C451;min-width:36px;text-align:center}.cltro .tt{flex:1;font-weight:700}.cltro small{color:var(--dim)}
@@ -1210,10 +1210,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.94";
+const APP_VERSION = "6.95";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-09-02-v694";
+const FORCE_RELOAD = "2026-09-02-v695";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1686,7 +1686,7 @@ const STR = {
  mdSummary:["الملخص","Summary"],
  mdLineups:["التشكيل","Line-ups"],
  clResults:["النتائج","Results"], clSquad:["اللاعبين","Squad"], clStats:["إحصائيات","Stats"], clTitles:["الألقاب","Honours"],
- clCoach:["المدرب","Coach"], clCaptain:["الكابتن","Captain"], clForm:["آخر {n}","Last {n}"], clTapYears:["اضغط على أي لقب لعرض السنوات","Tap a trophy to see the years"], clNoData:["لا توجد بيانات بعد","No data yet"],
+ clCoach:["المدرب","Coach"], clCaptain:["الكابتن","Captain"], clHome:["أرض","Home"], clAway:["خارج","Away"], clForm:["آخر {n}","Last {n}"], clTapYears:["اضغط على أي لقب لعرض السنوات","Tap a trophy to see the years"], clNoData:["لا توجد بيانات بعد","No data yet"],
  clNoFacts:["الألقاب مش متسجّلة لهذا النادي بعد","Honours not recorded for this club yet"], clLast:["آخرها","last"], clSeason:["إحصائيات الموسم","Season stats"],
  clPosG:["حراسة","Goalkeepers"], clPosD:["دفاع","Defenders"], clPosM:["وسط","Midfielders"], clPosF:["هجوم","Forwards"],
  stGoals:["أهداف","Goals"], stConc:["استقبل","Conceded"], stClean:["شباك نظيفة","Clean sheets"], stShots:["تسديدات","Shots"], stOnT:["على المرمى","On target"], stPoss:["استحواذ","Possession"], stYel:["كروت صفراء","Yellow cards"], stRed:["كروت حمراء","Red cards"], stFouls:["أخطاء","Fouls"],
@@ -4238,15 +4238,15 @@ function renderClub(){
  h += '<div class="mdtabs">' + [["R", "clResults"], ["S", "clSquad"], ["T", "clStats"], ["H", "clTitles"]].map(p => '<button type="button" class="mdtab' + (_clubTab === p[0] ? " on" : "") + '" onclick="setClubTab(\'' + p[0] + '\')">' + esc(t(p[1])) + "</button>").join("") + "</div>";
  h += '<div class="clbody">';
  if(_clubTab === "R"){
-  h += c.results.length ? '<div class="clcard">' + c.results.slice(0, 15).map(r => '<div class="clrow"><span class="opp" data-club="' + esc(String(r.opp.id || "")) + '" data-cslug="' + esc(c.slug) + '">' + (r.home ? "" : "@ ") + esc(clubAr(r.opp)) + '</span><span class="clsc ' + r.r.toLowerCase() + '" dir="ltr">' + r.g + " - " + r.a + '</span><span class="cldate">' + esc(clubDate(r.d)) + "</span></div>").join("") + "</div>"
+  h += c.results.length ? '<div class="clcard">' + c.results.slice(0, 15).map(r => '<div class="clrow"><span class="opp" data-club="' + esc(String(r.opp.id || "")) + '" data-cslug="' + esc(c.slug) + '">' + '<small class="clha">' + esc(t(r.home ? "clHome" : "clAway")) + "</small> " + esc(clubAr(r.opp)) + '</span><span class="clsc ' + r.r.toLowerCase() + '" dir="ltr">' + r.g + " - " + r.a + '</span><span class="cldate">' + esc(clubDate(r.d)) + "</span></div>").join("") + "</div>"
    : '<div class="clcard"><div class="muted">' + esc(t("clNoData")) + "</div></div>";
  } else if(_clubTab === "S"){
   /* ESPN's roster feed names coaches years out of date (Guardiola at Barcelona, in 2026), so a
      coach recorded in club-facts.json wins; the feed is only the fallback for clubs not in it */
   const fx = (k) => c.facts ? (LANG === "ar" ? c.facts[k] : (c.facts[k + "En"] || c.facts[k])) : "";
   const coach = fx("coach") || (c.roster && Array.isArray(c.roster.coach) && c.roster.coach[0] ? [c.roster.coach[0].firstName, c.roster.coach[0].lastName].filter(Boolean).join(" ") : "");
-  const cap = fx("captain");
-  if(coach || cap) h += '<div class="clstaff">' + (coach ? '<div class="clcard"><h4>' + esc(t("clCoach")) + "</h4><b>" + esc(coach) + "</b></div>" : "") + (cap ? '<div class="clcard"><h4>' + esc(t("clCaptain")) + "</h4><b>" + esc(cap) + "</b></div>" : "") + "</div>";
+  /* no captain: the owner dropped it (2026-09-02) - armbands change too often for a static file to be trusted */
+  if(coach) h += '<div class="clstaff"><div class="clcard"><h4>' + esc(t("clCoach")) + "</h4><b>" + esc(coach) + "</b></div></div>";
   const ath = (c.roster && c.roster.athletes) || [];
   if(!ath.length) h += '<div class="clcard" style="margin-top:10px"><div class="muted">' + esc(t("clNoData")) + "</div></div>";
   else {
