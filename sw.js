@@ -1,5 +1,6 @@
 /* Goallak service worker
    CACHE changelog (bump on EVERY deploy, newest first):
+   goalak-v162 2026-09-02  v6.106 THE OFFLINE PAGE, SEEN ONLINE. The owner, on 4G, opened the app and got "you are offline" in two languages at once. Two faults. The worker's navigation path tries the network once and then the cache - and a worker that has just installed has an EMPTY cache for a moment; twelve releases in one day meant twelve such moments, and one of them met a dropped 4G packet. The path now tries the network a second time after 700 ms before giving up, and the root falls to the same page as any other path rather than to a browser error. And the page itself: it printed Arabic and English together because a service worker cannot see the app's language - it now reads the same gk_lang key index.html keeps and shows one language, and it retries the shell every four seconds and the moment the browser reports it is online, reloading in place instead of waiting to be closed.
    goalak-v161 2026-09-02  v6.105 NO OLD HIGHLIGHTS FOR A MATCH THAT IS STILL ON. The owner opened a running Egyptian match, tapped "watch the goals" and got last season's meeting - a YouTube search during a live match can only find old ones. Now, while a match runs, that row shows the goal CLIPS FilGoal has published so far, one chip per goal with the minute and the scorer, refreshed with the sheet; and if there are none yet it says so in one line. The highlights search appears only after full time, and carries the month so it finds this meeting, not an earlier one. Commentary is fetched quietly for the clips the first time the sheet opens on an Egyptian match or a found twin.
    goalak-v160 2026-09-02  v6.104 THE REST OF THE LIST. (1) Egyptian matches now carry their goals, cards and substitutions - read from FilGoal's match page the moment a match has started - so the timeline fills in, the goal push names the scorer, and the recap exists for Egypt too, written from FilGoal's own commentary lines rather than a bare event list. (2) The Arabic recap is told, with an example, to talk like an Egyptian commentator at the coffee shop - "الماتش", "جاب جول", "قفل الماتش" - not a newsreader. (3) THE ROOM'S PICKS: once a Champions League match is locked, its card lists every friend's scoreline; on a finished match the exact ones wear a target and the points sit beside the name. Before the lock nothing shows - a pick is private until it counts. The board's users were always downloaded and thrown away; now they are kept. (4) "Discuss in chat" on the match sheet: one tap closes the sheet, opens the room and seeds the message with the scoreline. (5) A goal by a club you follow is FELT: a double buzz and a gold wash over the screen for under a second (reduced-motion users get neither). (6) The live bar: a thin row of live scores on every tab except home (which has the list) and chat (which has its own strip), one tap to the sheet, gone when nothing is on.
    goalak-v159 2026-09-02  v6.103 ARABIC COMMENTARY, MINUTE BY MINUTE, WITH THE GOAL CLIPS. FilGoal's match pages carry live Arabic text for every match they follow - seventy-odd lines a game - and on goal lines, often a link to the clip. The match sheet gained a Commentary tab: always on an Egyptian match (we hold its FilGoal id), and on any other match the moment its FilGoal twin is found - the worker indexes every competition on the day pages it already reads and matches by kick-off and the two Arabic club names the app already knows. Goal lines are gold and carry "watch the goal" when a clip exists - a link to FilGoal's page, never an embed. The worker fetches a match page at most once a minute while live and once a day when over, whoever asks; the tab is not shown when there is nothing to show. Coaches and formations from the same page sit at the top. Commentary is Arabic only - FilGoal writes Arabic - and is a publisher's page, for the friends build.
@@ -159,10 +160,25 @@
    goalak-v2   2026-08-14  QA pass: WCup navy palette; precise shell matching vs SW scope; non-ok responses fall back to cached shell; redirected responses re-wrapped before use/caching; cache writes tied to event lifetime.
    goalak-v1   2026-08-14  v1.0 initial build: 7 leagues, all-leagues day view, league pages (matches / table / stats), AR/EN RTL.
 */
-const CACHE = "goalak-v161";
+const CACHE = "goalak-v162";
 /* top-clubs.js is a static DATA file (last season's top five per league + the ESPN competition-id
    map). It is cache-first like every other asset here, so it refreshes on the next CACHE bump —
    which is the right cadence: the club list only changes once a season. */
+/* THE OFFLINE PAGE, IN ONE LANGUAGE, THAT COMES BACK BY ITSELF. It used to print Arabic and English
+   together (the worker cannot see the app's language setting) and sit there until the reader closed
+   it. It now reads gk_lang - the very key index.html keeps - and shows one language, and it retries
+   the shell every four seconds and the moment the browser says it is online, reloading in place. */
+function offlineHtml() {
+  return "<!doctype html><meta charset=utf-8><title>Goallak</title>"
+    + "<meta name=viewport content=\"width=device-width,initial-scale=1\">"
+    + "<body style=\"font:16px system-ui;padding:24px;background:#0a1230;color:#fff;margin:0\">"
+    + "<p id=ar dir=rtl lang=ar>\u0645\u0641\u064a\u0634 \u0646\u062a \u2014 \u0628\u0646\u062d\u0627\u0648\u0644 \u062a\u0627\u0646\u064a\u2026</p>"
+    + "<p id=en dir=ltr lang=en hidden>You are offline. Retrying\u2026</p>"
+    + "<script>(function(){var l='ar';try{l=localStorage.getItem('gk_lang')||'ar'}catch(e){}"
+    + "if(l==='en'){document.getElementById('ar').hidden=true;document.getElementById('en').hidden=false;document.body.dir='ltr'}else{document.body.dir='rtl'}"
+    + "function again(){fetch('index.html?v='+Date.now(),{cache:'no-store'}).then(function(r){if(r.ok)location.replace(location.pathname+location.search)}).catch(function(){})}"
+    + "addEventListener('online',again);setInterval(again,4000);setTimeout(again,1200)})()</script></body>";
+}
 const SHELL = ["./", "index.html", "club-facts.json", "manifest.json", "icon-192.png", "icon-512.png", "icon-180.png", "favicon.svg", "logo-head.svg", "logo-mark-pos.svg", "logo-mark-rev.svg", "badge.png", "top-clubs.js"];
 /* Third-party hosts are never intercepted (live data + shared state must ride the network). */
 const BYPASS = /espn\.com|espncdn\.com|googleapis\.com|gstatic\.com|flagcdn\.com|textdb\.online|workers\.dev/;
@@ -328,17 +344,13 @@ self.addEventListener("fetch", e => {
            resolve to the wrong files. Only the root falls back to the root. */
         const m = await caches.match(key);
         if (m) return m;
-        return isRoot ? ((await caches.match("index.html")) || caches.match("./"))
-                      : new Response("<!doctype html><meta charset=utf-8><title>Goallak</title>"
-                                     + "<meta name=viewport content=\"width=device-width,initial-scale=1\">"
-                                     /* the app is Arabic-first and supports a light theme; the fallback
-                                        page had no language, no direction and a hardcoded dark ground */
-                                     + "<body dir=rtl lang=ar style=\"font:16px system-ui;padding:24px;"
-                                     + "background:#0a1230;color:#fff\">"
-                                     + "<p>مفيش نت — افتح تاني لما يرجع</p>"
-                                     + "<p dir=ltr lang=en style=opacity:.75>You are offline. Reopen when you are back.</p>"
-                                     + "</body>",
-                                     { headers: { "Content-Type": "text/html; charset=utf-8" } });
+        if (isRoot) { const cached = (await caches.match("index.html")) || (await caches.match("./")); if (cached) return cached; }
+        /* ONE MORE TRY BEFORE GIVING UP. A freshly installed worker has an empty cache for a moment, and a
+           phone on 4G drops a packet now and then; the two met on 2026-09-02 and a reader who was online
+           saw the offline page. A second attempt after 700 ms costs nothing when it fails and saves the
+           open when it works. */
+        try { await new Promise(res => setTimeout(res, 700)); const r2 = await fetch(url, { cache: "no-store" }); if (r2.ok) return await unredirect(r2); } catch (_) {}
+        return new Response(offlineHtml(), { headers: { "Content-Type": "text/html; charset=utf-8" } });
       }
     })());
     return;
