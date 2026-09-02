@@ -1172,10 +1172,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.85";
+const APP_VERSION = "6.86";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-08-31-v685";
+const FORCE_RELOAD = "2026-09-02-v686";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -3711,7 +3711,10 @@ function mdEventsHtml(e, H, A, sum){
   });
   for(const cl of Object.keys(byClock)){
    const grp = byClock[cl];
-   if(grp.length < 2) continue;
+   /* no rosters means no way to tell the taker's copy from the keeper's; collapsing would then
+      keep whichever ESPN listed first, which may be the keeper - the very row this exists to
+      drop. Leave both, as before, rather than show one wrong one. */
+   if(grp.length < 2 || !gkIds.size) continue;
    const takers = grp.filter(k => !gkIds.has(String((((((k.participants || [])[0] || {}).athlete) || {}).id) || "")));
    const keep = takers.length ? takers[0] : grp[0];
    grp.forEach(k => { if(k !== keep) penSkip.add(k); });
@@ -4520,7 +4523,13 @@ function renderMatchModal(eid){
  const preLineups = !vk && s === "pre";
  /* before kick-off the FACTS view leads: head-to-head, form, table context - the things a
     fan wants while waiting; the XI is one tab away and appears ~an hour before the whistle */
- if(preLineups) _mdTab = "F";
+ /* THE DEFAULT IS FOR THE DOOR, NOT FOR EVERY REPAINT. This ran on each renderMatchModal,
+    which was harmless while pre-match sheets only repainted on open - and became a 25-second
+    bounce the moment waitingXI (v6.84.2) started repainting them while the eleven had not
+    landed: a reader who tapped Line-ups to wait for the team sheet was thrown back to Facts
+    on the next tick, every tick, for up to two hours. "E" is openMatch's default and is never
+    a valid tab for a pre-match sheet, so it means exactly one thing here: freshly opened. */
+ if(preLineups && _mdTab === "E") _mdTab = "F";
  _mdEid = eid;
  scheduleFit();
  $("mbox").innerHTML =
