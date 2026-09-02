@@ -1,5 +1,6 @@
 /* Goallak service worker
    CACHE changelog (bump on EVERY deploy, newest first):
+   goalak-v150 2026-09-02  v6.94 THE FACTS FILE FOLLOWS THE RELEASE. club-facts.json was fetched with cache:"force-cache", which hands back whatever copy the browser holds for as long as it holds it - so a phone that had opened v6.90 kept the Arabic-only file through v6.93 and printed Arabic names in the English page, while a fresh browser showed the fix. The file, and the three places that read the fantasy club list, are now fetched with ?v=<APP_VERSION>: every release is a new URL, every phone gets the current file. Shipped in two commits - a patch script aborted halfway and the first commit carried the fetch change without the cache bump; this one completes it.
    goalak-v149 2026-09-02  v6.93 COACH AND CAPTAIN IN THE READER'S LANGUAGE. club-facts.json carried both in Arabic only, so the English interface printed Arabic names inside an English page. The file now carries coachEn/captainEn beside them and the sheet picks by language, falling back to whatever exists.
    goalak-v148 2026-09-02  v6.92 THE TROPHY ROW IS A BUTTON. The owner tapped a trophy on his phone and nothing unfolded; in the desktop browser the same tap worked. Rather than argue with a phone about which taps a div receives, the whole honour row is now a real button - the one element every tap in this app already reaches - with the years underneath it and an aria-expanded state. Verified with a real pointer tap on a phone-sized viewport, not a synthesised click.
    goalak-v147 2026-09-02  v6.91 THE CLUB PAGE, CORRECTED BY ITS FIRST READER. Three things the owner saw within minutes of v6.90. (1) Barcelona's coach read "Josep Guardiola": ESPN's roster feed names coaches years out of date, and the page trusted it. club-facts.json now carries the coach for the twenty clubs it knows and wins over the feed; the feed is the fallback only for clubs the file does not cover. (2) "Last 5" showed three dots: three matches into a season there ARE only three, so the page now reaches back into last season's schedule to make five, and the label says the true count whatever it is. (3) A trophy count is now a door: tap any honour and the years it was won unfold beneath it, newest first, as year chips - 36 for Real Madrid's league titles, 55 for Celtic's. Every year list in the file is checked against its count and its "last" year before a release can ship.
@@ -147,7 +148,7 @@
    goalak-v2   2026-08-14  QA pass: WCup navy palette; precise shell matching vs SW scope; non-ok responses fall back to cached shell; redirected responses re-wrapped before use/caching; cache writes tied to event lifetime.
    goalak-v1   2026-08-14  v1.0 initial build: 7 leagues, all-leagues day view, league pages (matches / table / stats), AR/EN RTL.
 */
-const CACHE = "goalak-v149";
+const CACHE = "goalak-v150";
 /* top-clubs.js is a static DATA file (last season's top five per league + the ESPN competition-id
    map). It is cache-first like every other asset here, so it refreshes on the next CACHE bump —
    which is the right cadence: the club list only changes once a season. */

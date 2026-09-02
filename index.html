@@ -1210,10 +1210,10 @@ html[data-theme="light"] .lvchip .lvsc{color:#c62828}
    a new build at all. A commit gate now refuses any release where APP_VERSION does not match
    the newest sw.js changelog entry; see check-release.mjs. This is the third time the marker
    has gone stale, and the first time something stops it. */
-const APP_VERSION = "6.93";
+const APP_VERSION = "6.94";
 /* One-time forced refresh (WC-app mechanism). Bump this token ONLY when every already-open client
    must hard-reload once; normal deploys leave it alone and still get new code on the next open. */
-const FORCE_RELOAD = "2026-09-02-v693";
+const FORCE_RELOAD = "2026-09-02-v694";
 const API = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
 const STAND = "https://site.api.espn.com/apis/v2/sports/soccer/";
 const BROADCAST_API = "https://goalak-push.ahmed-ayoty.workers.dev/api/broadcasts";
@@ -1993,7 +1993,7 @@ async function kitColorsFor(id){
  if(!id) return null;
  try{
   if(!_kitColors){
-   if(!_kitLoading) _kitLoading = fetch("fantasy/clubs.json", {cache:"force-cache"}).then(r => r.json()).catch(() => null);
+   if(!_kitLoading) _kitLoading = fetch("fantasy/clubs.json?v=" + APP_VERSION).then(r => r.json()).catch(() => null);
    const j = await _kitLoading;
    if(!j || !Array.isArray(j.clubs)) return null;
    _kitColors = {};
@@ -4183,7 +4183,7 @@ async function renderMdBody(){
 const ESPN_CORE = "https://goalak-push.ahmed-ayoty.workers.dev/api/espn-core/";
 let _clubTab = "R", _club = null, _clubFacts = null, _clubKits = null;
 async function clubFacts(){ if(_clubFacts) return _clubFacts; try{ _clubFacts = (await (await fetch("club-facts.json?v=" + APP_VERSION)).json()).clubs || {}; }catch(_){ _clubFacts = {}; } return _clubFacts; }
-async function clubKits(){ if(_clubKits) return _clubKits; try{ const j = await (await fetch("fantasy/clubs.json", {cache:"force-cache"})).json(); const arr = Array.isArray(j) ? j : (j.clubs || []); _clubKits = {}; arr.forEach(c => { _clubKits[String(c.id)] = c; }); }catch(_){ _clubKits = {}; } return _clubKits; }
+async function clubKits(){ if(_clubKits) return _clubKits; try{ const j = await (await fetch("fantasy/clubs.json?v=" + APP_VERSION)).json(); const arr = Array.isArray(j) ? j : (j.clubs || []); _clubKits = {}; arr.forEach(c => { _clubKits[String(c.id)] = c; }); }catch(_){ _clubKits = {}; } return _clubKits; }
 function clubSlugFor(id){
  for(const k in EV_INDEX){ const e = EV_INDEX[k]; const cs = (e && e.competitions && e.competitions[0] && e.competitions[0].competitors) || []; if(cs.some(c => c.team && String(c.team.id) === String(id))) return slugForEvent(e) || ""; }
  return "";
@@ -6063,7 +6063,7 @@ async function ensureSearchIdx(){
  if(_searchLoading) return _searchLoading;
  _searchLoading = (async () => {
   let clubs = [];
-  try{ const j = await fetch("fantasy/clubs.json", {cache: "force-cache"}).then(r => r.json()); clubs = (j && j.clubs) || []; }catch(_){}
+  try{ const j = await fetch("fantasy/clubs.json?v=" + APP_VERSION).then(r => r.json()); clubs = (j && j.clubs) || []; }catch(_){}
   /* Arabic folding: strip harakat, unify alef/teh-marbuta/yeh, drop the definite article -
      so "الريال" finds ريال مدريد and "brcelona" still misses honestly */
   const fold = v => String(v || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
