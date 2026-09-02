@@ -112,12 +112,15 @@ export async function filgoalTick(env, store, now, log, toEspnEvent) {
   const day = utcDay(now);
   try {
     if (plan && plan.kind === "schedule") {
-      const list = [];
-      for (let d = 0; d < 8; d++) {
-        const dayStr = utcDay(now + d * 86400000);
-        const rows = parseDay(await fgFetch("/matches?date=" + dayStr), now);
-        if (rows) list.push(...rows);
-      }
+      /* eight pages in PARALLEL, each on its own: in sequence they overran the tick's time budget and one
+         slow page aborted the whole read (2026-09-02: the English names never landed). A day that fails
+         keeps yesterday's copy of itself; the read counts as done when today's page arrived. */
+      const days = Array.from({ length: 8 }, (_, d) => utcDay(now + d * 86400000));
+      const got = await Promise.allSettled(days.map(dayStr => fgFetch("/matches?date=" + dayStr).then(h => ({ dayStr, rows: parseDay(h, now) }))));
+      const list = [], okDays = new Set();
+      got.forEach((r, i) => { if (r.status === "fulfilled" && r.value.rows) { okDays.add(days[i]); list.push(...r.value.rows); } else if (log) log.push("fg:day:" + days[i]); });
+      for (const f of fixtures.list) if (!okDays.has(utcDay(Date.parse(f.fixture.date)))) list.push(f);   /* keep what a failed day already had */
+      if (!okDays.has(day)) throw new Error("today's page failed");
       const seen = new Set();
       fixtures.list = list.filter(f => !seen.has(f.fixture.id) && seen.add(f.fixture.id));
       fixtures.at = now; fixtures.league = { id: FG_LEAGUE_ID, name: "الدوري المصري", country: "Egypt", season: fixtures.list[0] ? fixtures.list[0].league.season : null, via: "filgoal" };
@@ -126,7 +129,7 @@ export async function filgoalTick(env, store, now, log, toEspnEvent) {
       for (const f of fixtures.list) live.byId[String(f.fixture.id)] = f;
       live.at = now;
       await store.put(K.fixtures, fixtures); await store.put(K.live, live);
-      state.scheduleDay = day; state.lastLive = now;
+      state.scheduleDay = day; state.lastLive = now; state.lastError = null;
     } else if (plan && plan.kind === "live") {
       const rows = parseDay(await fgFetch("/matches?date=" + day), now);
       if (rows) {
