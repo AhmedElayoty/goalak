@@ -27,11 +27,23 @@ const K = { fixtures: "egy:fixtures", live: "egy:live", fg: "egy:fg" };
 export function utcDay(ms) { return new Date(ms).toISOString().slice(0, 10); }
 
 /* the JSON sits after `var viewModelData = `; walk it with a bracket counter that respects strings */
+/* THE TICK'S CPU IS THE SCARCE THING. The character-by-character bracket walk over a 460 KB page,
+   plus one over a 260 KB match page per started match, killed the cron invocation once three matches
+   had started (2026-09-02, 16:31-17:30: the board froze, "not started" at kick-off, commentary running).
+   The statement ends in "];" / "};" - slice there and let the native parser do the work; the walk is
+   only the fallback for a page where that guess fails. */
+function sliceJson(html, start, closer) {
+  const end = html.indexOf(closer + ";", start);
+  if (end < 0) return null;
+  try { return JSON.parse(html.slice(start, end + 1)); } catch (_) { return null; }
+}
 export function extractViewModel(html) {
   const i = html.indexOf("var viewModelData = ");
   if (i < 0) return null;
   let j = i + "var viewModelData = ".length;
   while (j < html.length && html[j] !== "[") j++;
+  const quick = sliceJson(html, j, "]");
+  if (quick) return quick;
   let depth = 0, inStr = false, esc = false, k = j;
   for (; k < html.length; k++) {
     const ch = html[k];
@@ -151,13 +163,18 @@ export async function filgoalTick(env, store, now, log, toEspnEvent) {
       const rows = parseDay(dayHtml, now);
       { const all = indexRows(dayHtml); if (all.length) { const prev = (await store.get(KIDX)) || { rows: [] }; await store.put(KIDX, { at: now, rows: prev.rows.filter(r => utcDay(r.ko) !== day).concat(all).slice(-1200) }); } }
       if (rows) {
+        /* events for started matches come from their match pages - ONE page per tick, the stalest first,
+           so two or three live matches take turns and the tick never outgrows its CPU allowance */
+        const budget = { fetches: 1 };
+        const started = rows.filter(f => f.fixture.status.short !== "NS" && f.fixture.status.short !== "PST");
+        const ages = await Promise.all(started.map(async f => { const c = await store.get(KM + String(f.fixture.id)); return { f, at: c && c.pv === FGM_PV ? c.at : 0, over: !!(c && c.over) }; }));
+        ages.sort((a, b) => a.at - b.at);
+        for (const { f } of ages) {
+          const m = await fgMatch(store, f.fixture.id, now, budget).catch(() => null);
+          if (m && m.events) { f.events = fgEventsToAf(m.events, f); f._fgComments = m.comments ? m.comments.length : 0; }
+          else { const prev = live.byId[String(f.fixture.id)]; if (prev && prev.events) f.events = prev.events; }   /* keep last known events */
+        }
         for (const f of rows) {
-          /* a match that has started carries its events: goals with scorers for the timeline and the
-             pushes, cards, substitutions - from the match page, cached a minute while live, a day after */
-          if (f.fixture.status.short !== "NS" && f.fixture.status.short !== "PST") {
-            const m = await fgMatch(store, f.fixture.id, now).catch(() => null);
-            if (m && m.events) { f.events = fgEventsToAf(m.events, f); f._fgComments = m.comments ? m.comments.length : 0; }
-          }
           live.byId[String(f.fixture.id)] = f;
           state.statuses[f._fg.text || "?"] = (state.statuses[f._fg.text || "?"] || 0) + 1;   /* which status words the page uses - read via /api/egy/status */
           const i = fixtures.list.findIndex(x => x.fixture.id === f.fixture.id);
@@ -204,9 +221,12 @@ export function findTwin(rows, hAr, aAr, ko) {
   }
   return best;
 }
+export const FGM_PV = 3;   /* parse version: bump when the cached shape changes so a day-old cache is re-read */
 export function parseMatchBlob(html, id) {
   const i = html.indexOf('{"TimeZoneConsidered":true,"Id":' + id);
   if (i < 0) return null;
+  const quick = sliceJson(html, i, "}");
+  if (quick && quick.Id == id) return shapeMatch(quick, id);
   let depth = 0, inStr = false, esc = false, k = i;
   for (; k < html.length; k++) {
     const ch = html[k];
@@ -214,16 +234,23 @@ export function parseMatchBlob(html, id) {
     if (ch === '"') inStr = true; else if (ch === "{" || ch === "[") depth++; else if (ch === "}" || ch === "]") { depth--; if (depth === 0) { k++; break; } }
   }
   let b; try { b = JSON.parse(html.slice(i, k)); } catch (_) { return null; }
+  return shapeMatch(b, id);
+}
+function shapeMatch(b, id) {
   const over = String(b.CurrentMatchStatusText || "").toLowerCase() === "over" || /انتهت/.test(String((b.CurrentMatchStatus && b.CurrentMatchStatus.MatchStatusName) || b.MatchStatusName || ""));
   /* ContentUrl is NOT a URL: it is the embed HTML of a tweet or a video (a <blockquote class="twitter-tweet">
      ending in the status link). Handed to an <a href> as-is it became a relative path on goallak.com, a
      404, and the offline page - the owner saw exactly that. Pull the first absolute link out of it. */
   const linkOf = v => { const str = String(v || "").trim(); if (!str) return ""; if (/^https?:\/\//i.test(str)) return str; if (/^\/\//.test(str)) return "https:" + str;
     const all = str.match(/https?:\/\/[^\s"'<>]+/g) || []; const pick = all.find(u => /twitter\.com\/[^/]+\/status|x\.com\/[^/]+\/status|youtu\.be|youtube\.com\/(watch|shorts|embed)|filgoal\.com\/videos/i.test(u)) || all.find(u => !/twitter\.com\/?$|x\.com\/?$/i.test(u)) || ""; return pick.replace(/\?ref_src=[^&]*$/, ""); };
-  const comments = (b.Comments || []).map(c => ({ t: c.Time == null ? null : +c.Time, txt: String(c.Content || "").trim(), url: linkOf(c.ContentUrl), st: c.MatchStatusName || "" })).filter(c => c.txt);
+  /* FilGoal counts a comment's Time from the start of ITS HALF: "55'" at full time is 45 + 10. The absolute
+     minute is Time plus what the half started at; the break itself is labelled, not numbered. */
+  const base = st => /الثاني|التاني/.test(st) ? 45 : /إضافي/.test(st) ? 90 : /ركلات/.test(st) ? 120 : 0;
+  const comments = (b.Comments || []).map(c => { const st = String(c.MatchStatusName || ""); const t = c.Time == null ? null : +c.Time; const ht = /استراحة|بين الشوطين/.test(st);
+    return { t, m: t == null ? null : (ht ? 45 : t + base(st)), ht, txt: String(c.Content || "").trim(), url: linkOf(c.ContentUrl), st }; }).filter(c => c.txt);
   const events = (b.Events || []).map(e => ({ type: e.MatchEventTypeName || "", team: e.TeamName || "", teamId: e.TeamId != null ? +e.TeamId : null, player: e.PlayerAName || "", player2: e.PlayerBName || "", min: e.Minute != null ? +e.Minute : (e.Time != null ? +e.Time : null),
     goal: /هدف/.test(e.MatchEventTypeName || "") && !/ضائع|مهدر/.test(e.MatchEventTypeName || ""), red: /حمراء/.test(e.MatchEventTypeName || ""), yellow: /صفراء/.test(e.MatchEventTypeName || ""), sub: /تبديل/.test(e.MatchEventTypeName || "") }));
-  return { id: +id, home: b.HomeTeamName, away: b.AwayTeamName, homeEn: enName(b.HomeTeamName), awayEn: enName(b.AwayTeamName), hs: b.HomeScore, as: b.AwayScore, over, coachH: b.HomeTeamCoachName || "", coachA: b.AwayTeamCoachName || "", formH: b.HomeTeamFormationName || "", formA: b.AwayTeamFormationName || "", comments, events };
+  return { pv: FGM_PV, id: +id, home: b.HomeTeamName, away: b.AwayTeamName, homeEn: enName(b.HomeTeamName), awayEn: enName(b.AwayTeamName), hs: b.HomeScore, as: b.AwayScore, over, coachH: b.HomeTeamCoachName || "", coachA: b.AwayTeamCoachName || "", formH: b.HomeTeamFormationName || "", formA: b.AwayTeamFormationName || "", comments, events };
 }
 /* FilGoal's typed events -> the API-Football event shape egypt.js already turns into ESPN details:
    a goal (normal / penalty / own goal / missed penalty), a card, a substitution (A off, B on). */
@@ -244,10 +271,12 @@ export function fgEventsToAf(events, f) {
   }
   return out.slice(0, 80);
 }
-export async function fgMatch(store, id, now) {
+export async function fgMatch(store, id, now, budget) {
   id = String(id).replace(/[^0-9]/g, ""); if (!id) return null;
   const cached = await store.get(KM + id);
-  if (cached && (now - cached.at < (cached.over ? 86400000 : 60000))) return cached;
+  if (cached && cached.pv === FGM_PV && (now - cached.at < (cached.over ? 86400000 : 60000))) return cached;
+  if (budget && budget.fetches <= 0) return cached || null;      /* the tick spends one page a minute, no more */
+  if (budget) budget.fetches--;
   try {
     const html = await fgFetch("/matches/" + id);
     const m = parseMatchBlob(html, id);
